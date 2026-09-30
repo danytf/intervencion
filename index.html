@@ -2109,7 +2109,8 @@ function goTab(i) {
   try{ contarCampos(); }catch(e){}
   try{ actualizarDots(); }catch(e){}
   if(i===5){ try{ renderDashboard(); }catch(e){} try{ populateEvoSelect(); }catch(e){} try{ populateRadarSelect(); }catch(e){} try{ populatePerfilSelect(); }catch(e){} }
-  if(i===4){ try{ sugerirMatriz(); }catch(e){} }
+  // Solo en una ficha nueva se proponen los criterios vacíos; la decisión de una ficha guardada se respeta
+  if(i===4 && !AppState.lastLoadedId){ try{ sugerirMatriz(); }catch(e){} }
   if(i===3){ try{ renderDiagnostico(); }catch(e){} }
   if(i===2){ try{ renderFaseDisplay(faseSelected); }catch(e){} }
   AppState.currentTab = i;
@@ -2179,6 +2180,10 @@ function recopilarDatos() {
   });
   d.lmiNota=document.getElementById('lmiNota')?.value||'';
   d.nota_sesion=document.getElementById('d_nota_sesion')?.value||'';
+  // Matriz de decisión y checklist pre-despido de esta intervención
+  d.decisionMatrix = copiaMatriz(matrizState);
+  d.decisionResult = resultadoMatriz(d.decisionMatrix);
+  d.checklistDespido = leerChecklist();
   return d;
 }
 
@@ -2219,6 +2224,7 @@ function cargarDatos(data) {
   try{ renderDiagnostico(); }catch(e){}
   try{ refrescarListas(); }catch(e){}
   try{ if(!faseSelected) renderFaseDisplay(null); }catch(e){}
+  try{ restaurarDecision(data); }catch(e){}
 }
 
 // ── AUTOSAVE (sesión) ──
@@ -2239,8 +2245,6 @@ function autoguardar() {
   try{if(faseSelected){renderFaseDisplay(faseSelected);renderSenales(faseSelected);}}catch(e){}
   try{renderSemaforo();}catch(e){}
   try{actualizarDiasFase();}catch(e){}
-  // Actualizar sugerencia de Matriz si el usuario está en ese tab
-  if (currentTab === 4) { try{ sugerirMatriz(true); }catch(e){} }
 }
 
 // ── FICHAS (localStorage) ──
@@ -2333,6 +2337,7 @@ function nuevaFicha() {
   try{ renderFaseDisplay(null); }catch(e){}
   try{ refrescarListas(); }catch(e){}
   _senalesFase = null; const _sc=document.getElementById('senalesCard'); if(_sc) _sc.style.display='none';
+  try{ restaurarDecision({}); }catch(e){}
   contarCampos(); goTab(0);
   toast('Formulario listo para una ficha nueva');
 }
@@ -5615,17 +5620,56 @@ const MATRIZ_REGLAS = [
 
 function setMatriz(criterio, valor) {
   matrizState[criterio] = valor;
-  var el = document.getElementById('mc_' + criterio);
-  if (el) {
-    el.className = 'mz-crit ' + (valor ? 'si' : 'no');
-    var btns = el.querySelectorAll('.mz-btn');
-    if (btns[0]) { btns[0].className = 'mz-btn' + (valor === true  ? ' active-si' : ''); btns[0].setAttribute('aria-pressed', valor === true ? 'true' : 'false');
-      btns[0].innerHTML = (valor === true ? ic('check') : '') + 'Sí'; }
-    if (btns[1]) { btns[1].className = 'mz-btn' + (valor === false ? ' active-no' : ''); btns[1].setAttribute('aria-pressed', valor === false ? 'true' : 'false');
-      btns[1].innerHTML = (valor === false ? ic('x') : '') + 'No'; }
-  }
+  pintarCriterio(criterio);
   calcMatriz();
+  autoguardar();   // cambio deliberado: queda en el borrador y como cambio sin guardar
 }
+// Refleja en pantalla el valor de un criterio (true = Sí, false = No, null = sin evaluar)
+function pintarCriterio(criterio) {
+  const valor = matrizState[criterio];
+  const el = document.getElementById('mc_' + criterio);
+  if (!el) return;
+  el.className = 'mz-crit' + (valor === true ? ' si' : valor === false ? ' no' : '');
+  const btns = el.querySelectorAll('.mz-btn');
+  if (btns[0]) { btns[0].className = 'mz-btn' + (valor === true  ? ' active-si' : ''); btns[0].setAttribute('aria-pressed', valor === true ? 'true' : 'false');
+    btns[0].innerHTML = (valor === true ? ic('check') : '') + 'Sí'; }
+  if (btns[1]) { btns[1].className = 'mz-btn' + (valor === false ? ' active-no' : ''); btns[1].setAttribute('aria-pressed', valor === false ? 'true' : 'false');
+    btns[1].innerHTML = (valor === false ? ic('x') : '') + 'No'; }
+}
+
+// ── Persistencia de la decisión de cada intervención ──
+const CRITERIOS_MATRIZ = ['esfuerzo', 'aprendizaje', 'proceso', 'resultado'];
+// Copia independiente: solo true / false / null (null = no evaluado; nunca se convierte en false)
+function copiaMatriz(m) {
+  const c = {};
+  CRITERIOS_MATRIZ.forEach(k => { const v = m ? m[k] : null; c[k] = (v === true || v === false) ? v : null; });
+  return c;
+}
+// Regla aplicada, con un identificador estable por combinación (E1A1P0R1…): no depende de textos ni del orden de MATRIZ_REGLAS
+function resultadoMatriz(m) {
+  if (!CRITERIOS_MATRIZ.every(k => m[k] === true || m[k] === false)) return null;
+  const regla = MATRIZ_REGLAS.find(r => r.cond(m));
+  if (!regla) return null;
+  return { regla: 'E' + +m.esfuerzo + 'A' + +m.aprendizaje + 'P' + +m.proceso + 'R' + +m.resultado, cls: regla.cls };
+}
+function casillasChecklist() { return [...document.querySelectorAll('#checklistSection .checklist-item input[type=checkbox]')]; }
+function leerChecklist() { return casillasChecklist().map(cb => cb.checked); }
+// Restaura matriz y checklist de una ficha. Si faltan (fichas antiguas) quedan vacíos en pantalla;
+// no se deducen de la evaluación ni se escribe nada en localStorage.
+function restaurarDecision(data) {
+  const m = copiaMatriz(data && data.decisionMatrix);
+  CRITERIOS_MATRIZ.forEach(k => { matrizState[k] = m[k]; pintarCriterio(k); });
+  const banner = document.getElementById('matrizSugerenciaBanner');
+  if (banner) banner.style.display = 'none';
+  calcMatriz();
+  const lista = data && Array.isArray(data.checklistDespido) ? data.checklistDespido : [];
+  casillasChecklist().forEach((cb, i) => {
+    cb.checked = lista[i] === true;
+    cb.closest('.checklist-item')?.classList.toggle('checked', cb.checked);
+  });
+  actualizarChecklist();
+}
+
 
 function calcMatriz() {
   var s = matrizState;
@@ -5690,6 +5734,7 @@ function toggleCheck(cb) {
   const item = cb.closest('.checklist-item');
   if (item) item.classList.toggle('checked', cb.checked);
   actualizarChecklist();
+  autoguardar();   // el estado de cada casilla forma parte de la intervención
 }
 
 function actualizarChecklist() {
