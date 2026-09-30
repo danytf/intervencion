@@ -1120,7 +1120,7 @@ input[type=date]{scroll-margin-top:96px;}
     <section class="card lmi-card" aria-labelledby="h-lmi">
       <div class="lmi-head">
         <span class="tile" data-tone="brand"><svg class="ic" aria-hidden="true"><use href="#i-target"/></svg></span>
-        <div class="card-head-text"><h2 class="card-title" id="h-lmi">Lo más importante ahora mismo</h2><p class="card-sub">Prioridad de intervención para esta sesión</p></div>
+        <div class="card-head-text"><h2 class="card-title" id="h-lmi">Lo más importante ahora mismo</h2><p class="card-sub">Prioridades sugeridas para esta intervención; orientan, no deciden</p></div>
         <button type="button" class="icon-btn" onclick="renderLMI()" aria-label="Recalcular prioridades"><svg class="ic" aria-hidden="true"><use href="#i-refresh"/></svg></button>
       </div>
       <div id="lmiCard"><div class="lmi-empty">Puntúa las variables y selecciona la fase para generar el análisis.</div></div>
@@ -1135,7 +1135,8 @@ input[type=date]{scroll-margin-top:96px;}
         <div class="riesgo-card-score cifra" id="riesgoScore">—</div>
         <div class="riesgo-card-info">
           <h2 class="riesgo-card-nivel" id="riesgoNivel">Sin datos</h2>
-          <div class="riesgo-card-desc" id="riesgoDesc">Guarda al menos una sesión para calcular el riesgo</div>
+          <div class="riesgo-card-desc" id="riesgoDesc">Guarda al menos una sesión para calcular el índice</div>
+          <p class="meta" id="riesgoManual" hidden style="margin-top:4px"></p>
         </div>
       </div>
       <div class="riesgo-card-bar" aria-hidden="true"><div class="riesgo-card-bar-fill" id="riesgoBarFill"></div></div>
@@ -1146,8 +1147,8 @@ input[type=date]{scroll-margin-top:96px;}
       <div class="semaforo-header" id="semaforoHeader">
         <span class="tile" id="semaforoIcono"><svg class="ic" aria-hidden="true"><use href="#i-traffic"/></svg></span>
         <div class="semaforo-info">
-          <p class="eyebrow">Semáforo de permanencia</p>
-          <h2 class="semaforo-title" id="semaforoTitle">Semáforo de permanencia</h2>
+          <p class="eyebrow">Semáforo de seguimiento</p>
+          <h2 class="semaforo-title" id="semaforoTitle">Semáforo de seguimiento</h2>
           <div class="semaforo-dias" id="semaforoDias">—</div>
         </div>
       </div>
@@ -1305,7 +1306,7 @@ input[type=date]{scroll-margin-top:96px;}
       </section>
       <div class="dash-table-wrap" style="margin-top:16px">
         <table class="dash-table" id="dashTable">
-          <thead><tr><th scope="col">Captador/a</th><th scope="col">Estado</th><th scope="col">Técnica</th><th scope="col">Hábitos</th><th scope="col">Fase</th><th scope="col">Riesgo</th><th scope="col">Semáforo</th><th scope="col">Sesiones</th><th scope="col">Última int.</th></tr></thead>
+          <thead><tr><th scope="col">Captador/a</th><th scope="col">Estado</th><th scope="col">Técnica</th><th scope="col">Hábitos</th><th scope="col">Fase</th><th scope="col">Atención</th><th scope="col">Semáforo</th><th scope="col">Sesiones</th><th scope="col">Última int.</th></tr></thead>
           <tbody id="dashTbody"></tbody>
         </table>
       </div>
@@ -1766,7 +1767,7 @@ const AYUDA_TABS = [
       { titulo: 'Fecha de comienzo', texto: 'Fecha en que el captador inició su actividad. Permite calcular automáticamente la fase actual (F1–F6) y los días de antigüedad.' },
       { titulo: 'Badge de fase', texto: 'Se actualiza solo al introducir la fecha de comienzo. Muestra los días activos, la fase actual, el rango de días de esa fase y el estado del captador.' },
       { titulo: 'Fecha de intervención', texto: 'Fecha de esta sesión concreta. Puede ser diferente al día de hoy si se rellena a posteriori.' },
-      { titulo: 'Estado', texto: 'Situación actual del captador: En progreso, Estancado, En riesgo o Baja. Afecta al cálculo del semáforo de permanencia.' },
+      { titulo: 'Estado', texto: 'Situación actual del captador: En progreso, Estancado, En riesgo o Baja. Se muestra como contexto junto al índice de atención y al semáforo; no cambia su cálculo.' },
       { titulo: 'Nota de sesión', texto: 'Campo libre para registrar qué observaste, qué trabajaste y cuál es el siguiente paso. Se guarda con la ficha y aparece en el historial del tab Equipo.' },
     ],
     siguiente: 'Evaluación — puntúa las variables para activar el diagnóstico.',
@@ -1802,9 +1803,9 @@ const AYUDA_TABS = [
     icon: '🔍',
     desc: 'Análisis automático de la situación del captador basado en todos los datos.',
     secciones: [
-      { titulo: 'Lo más importante ahora mismo', texto: 'El bloque azul oscuro arriba del todo. Genera hasta 3 prioridades de intervención ordenadas por urgencia, basadas en los scores de evaluación, la fase y la nota de acompañamiento.' },
-      { titulo: 'Riesgo de baja', texto: 'Puntuación 0–100 calculada a partir de múltiples factores: fase crítica, scores bajos, tendencia negativa, estado. Niveles: Bajo / Moderado / Alto / Crítico.' },
-      { titulo: 'Semáforo de permanencia', texto: 'Visible a partir de F3. Evalúa el historial de sesiones del captador para predecir si va a continuar o hay riesgo de abandono silencioso.' },
+      { titulo: 'Lo más importante ahora mismo', texto: 'El primer bloque de la pantalla. Propone hasta 3 prioridades distintas para esta intervención, ordenadas por urgencia, a partir de la evaluación, la fase y el seguimiento. Orientan la intervención; la decisión es del responsable.' },
+      { titulo: 'Índice de atención', texto: 'Indicador interno de 0 a 100 calculado con reglas a partir de las señales registradas: seguimiento, puntuaciones, evolución y variables concretas. No es una probabilidad de baja. Niveles: baja, moderada, alta o prioritaria.' },
+      { titulo: 'Semáforo de seguimiento', texto: 'Visible a partir del Día 46. Compara las dos últimas sesiones (solo las variables evaluadas en ambas) y los días sin intervención para indicar el nivel de seguimiento: normal, reforzado o prioritario. No predice si la persona seguirá.' },
       { titulo: 'Diagnóstico automático', texto: 'Categoriza la situación del captador según 12 reglas de prioridad: desde fase inicial hasta rendimiento alto. Incluye la variable con más palanca de mejora.' },
       { titulo: 'Señales de alarma', texto: 'Checklist de señales observables en esta fase. Márcalas si las has detectado — afectan al riesgo calculado y a la recomendación final.' },
     ],
@@ -2014,6 +2015,9 @@ function selectFase(id, silent) {
   try{ renderSenales(id); }catch(e){}
   try{ renderSemaforo(); }catch(e){}
   try{ renderLMI(); }catch(e){}
+  // La fase cambia el diagnóstico y el índice de atención: se actualizan también
+  try{ renderRiesgoCard(); }catch(e){}
+  try{ renderDiagnostico(); }catch(e){}
   if (!silent) autoguardar();
 }
 
@@ -2732,7 +2736,7 @@ function generarPDF(){
     doc.setFillColor(...rC.map(x=>Math.min(255,x+180))); doc.rect(M-2,y,cw+4,9,'F');
     doc.setFillColor(...rC); doc.rect(M-2,y,3,9,'F');
     doc.setFontSize(7.5);doc.setFont('helvetica','bold');doc.setTextColor(...rC);
-    doc.text('RIESGO DE BAJA: '+riesgo.score+'/100 \u2014 '+nR.label.toUpperCase(),M+5,y+6); y+=12; }
+    doc.text('\u00cdNDICE DE ATENCI\u00d3N: '+riesgo.score+'/100 \u2014 '+nR.label.toUpperCase(),M+5,y+6); y+=12; }
 
   // Datos generales
   y+=2; sec('DATOS GENERALES', NEG);
@@ -5019,14 +5023,14 @@ function paintRadar(vals, prevVals) {
 
 
 // ══════════════════════════════════════════
-// PREDICCIÓN DE RIESGO DE BAJA
+// ÍNDICE INTERNO DE ATENCIÓN (no es una probabilidad de baja)
 // ══════════════════════════════════════════
 
 const RIESGO_NIVELES = {
-  bajo:     { label:'Riesgo bajo',     cls:'rb-bajo',     fill:'rfill-bajo',     color:'#2a7d4f', max:25 },
-  moderado: { label:'Riesgo moderado', cls:'rb-moderado', fill:'rfill-moderado', color:'#856404', max:50 },
-  alto:     { label:'Riesgo alto',     cls:'rb-alto',     fill:'rfill-alto',     color:'#e65100', max:75 },
-  critico:  { label:'Riesgo crítico',  cls:'rb-critico',  fill:'rfill-critico',  color:'#d4342a', max:100 },
+  bajo:     { label:'Atención baja',        cls:'rb-bajo',     fill:'rfill-bajo',     color:'#2a7d4f', max:25 },
+  moderado: { label:'Atención moderada',    cls:'rb-moderado', fill:'rfill-moderado', color:'#856404', max:50 },
+  alto:     { label:'Atención alta',        cls:'rb-alto',     fill:'rfill-alto',     color:'#e65100', max:75 },
+  critico:  { label:'Atención prioritaria', cls:'rb-critico',  fill:'rfill-critico',  color:'#d4342a', max:100 },
 };
 
 function nivelRiesgo(score) {
@@ -5036,261 +5040,164 @@ function nivelRiesgo(score) {
   return 'critico';
 }
 
+// Medias de una sesión: null en el grupo que no esté evaluado (nunca 0)
+function mediasSesion(s) {
+  const grupo = (p, n) => {
+    const v = Array.from({ length: n }, (_, i) => scoreDe(s, p + '_' + i)).filter(x => x !== null);
+    return { n: v.length, media: v.length ? v.reduce((a, b) => a + b, 0) / v.length : null };
+  };
+  const t = grupo('t', TECNICA_VARS.length), h = grupo('h', HABITOS_VARS.length);
+  const disp = [t.media, h.media].filter(x => x !== null);
+  return { t: t.media, h: h.media, nT: t.n, nH: h.n, n: t.n + h.n,
+           global: disp.length ? disp.reduce((a, b) => a + b, 0) / disp.length : null };
+}
+// Cuánta información tiene una sesión (variables evaluadas por grupo)
+function coberturaDe(s) {
+  const m = mediasSesion(s);
+  return { tecnica: m.nT, tecnicaTotal: TECNICA_VARS.length, habitos: m.nH, habitosTotal: HABITOS_VARS.length,
+           evaluadas: m.n, total: TECNICA_VARS.length + HABITOS_VARS.length };
+}
+// Suficiencia de datos (no es una confianza estadística): alta = datos suficientes, media = parciales, baja = pocos
+function suficienciaDe(m) { return (m.nT >= 2 && m.nH >= 3 && m.n >= 8) ? 'alta' : m.n >= 4 ? 'media' : 'baja'; }
+// Evolución entre dos sesiones: media de las diferencias en las variables evaluadas en ambas.
+// null si hay menos de 3 variables comparables: la comparación no sería fiable.
+function compararEvolucion(anterior, actual) {
+  if (!anterior || !actual) return null;
+  const difs = Object.keys(ALL_VARS_LABELS).map(k => {
+    const a = scoreDe(anterior, k), b = scoreDe(actual, k);
+    return a !== null && b !== null ? b - a : null;
+  }).filter(v => v !== null);
+  if (difs.length < 3) return null;
+  return { delta: difs.reduce((x, y) => x + y, 0) / difs.length, comparables: difs.length };
+}
+const fmt1 = n => n.toFixed(1).replace('.', ',');
+
+/* Agregación por dimensiones (evita contar varias veces la misma evidencia):
+   · temporal, rendimiento, fase, evolución y creencias: cada dimensión aporta solo su señal más fuerte.
+     Antes una técnica baja sumaba en la media global, en la media de técnica, en la expectativa de fase,
+     en la «fase crítica» y en cada variable: hasta cinco veces.
+   · proceso (variables concretas): distintas variables son evidencias distintas y se suman, con tope 25;
+     el tope baja a 15 si la dimensión de rendimiento ya ha puntuado, porque esas variables ya pesan en la media.
+   Pesos: se conservan los valores originales de cada factor; solo cambia cómo se agregan.
+   Retirados: la penalización por «fase inicial con 1 sesión» (penalizaba la falta de datos), la bonificación
+   por media alta (una media alta ya aporta 0 en rendimiento; restar además ocultaba señales temporales o
+   concretas) y los puntos por estado manual (es una decisión del responsable, no una evidencia automática:
+   se devuelve aparte como contexto). */
 function calcRiesgo(sessions, estado) {
   if (!sessions || sessions.length === 0) return null;
-  if (estado === 'baja') return { score:100, nivel:'critico', factores:['⚫ Captador/a en situación de baja'] };
-
-  let score = 0;
-  const factores = [];
   const sorted = ordenarSesiones(sessions);
-  const last = sorted[sorted.length-1];
-  const prev = sorted.length > 1 ? sorted[sorted.length-2] : null;
-
-  // ── Factor 1: Días sin intervención (ponderado por estado) ──
-  const diasSin = diasDesdeUltimaIntervencion(sorted) ?? 0;
+  const last = sorted[sorted.length - 1];
+  const prev = sorted.length > 1 ? sorted[sorted.length - 2] : null;
+  const m = mediasSesion(last);
   const faseNum = numeroFase(last.faseSelected);
-  if (diasSin > 14) {
-    const diasPts = faseNum <= 3 ? 25 : 15; // más crítico en fases iniciales
-    score += diasPts;
-    factores.push('📅 Sin intervención hace ' + diasSin + ' días');
-  } else if (diasSin > 7) {
-    score += (faseNum <= 3 ? 12 : 8);
-    factores.push('📅 ' + diasSin + ' días desde última sesión');
+  const faseDisponible = !isNaN(faseNum);
+  const faseLabel = faseDisponible ? FASES[faseNum - 1].label : null;
+  const diasSin = diasDesdeUltimaIntervencion(sorted);   // null si no hay fecha: no se penaliza
+  const base = {
+    cobertura: coberturaDe(last), suficienciaDatos: suficienciaDe(m), diasSin, faseDisponible,
+    estadoManual: ESTADOS[estado] ? { id: estado, label: ESTADOS[estado].label } : null
+  };
+  if (estado === 'baja') {
+    return Object.assign(base, { score: 100, nivel: 'critico', delta: null, soloEstado: true,
+      factores: [{ id:'estado_baja', dim:'manual', puntos:0, icono:'user', label:'Marcado de baja por el responsable: el índice no se calcula con las señales' }] });
   }
 
-  // ── Factor 2: Puntuación media actual ──
-  const tAvg = parseFloat(avgScores(last,'t',TECNICA_VARS.length)||0);
-  const hAvg = parseFloat(avgScores(last,'h',HABITOS_VARS.length)||0);
-  const globalAvg = (tAvg + hAvg) / 2;
+  const factores = [];
+  const add = (id, dim, puntos, label, icono) => factores.push({ id, dim, puntos, label, icono });
+  const v = k => scoreDe(last, k);
+  const bajoV = (k, max) => { const x = v(k); return x !== null && x <= max; };
+  const nivelOk = m.n >= 4;   // mínimo de variables para valorar medias
 
-  // Variables técnicas individuales
-  const t_parada   = parseFloat(last['t_0']||0);
-  const t_speech   = parseFloat(last['t_1']||0);
-  const t_rebatidas= parseFloat(last['t_2']||0);
-  const t_cierre   = parseFloat(last['t_3']||0);
-  if (globalAvg > 0) {
-    if (globalAvg < 2) {
-      score += 30;
-      factores.push('📉 Rendimiento muy bajo (' + globalAvg.toFixed(1) + '/5)');
-    } else if (globalAvg < 2.5) {
-      score += 20;
-      factores.push('📉 Rendimiento bajo (' + globalAvg.toFixed(1) + '/5)');
-    } else if (globalAvg < 3) {
-      score += 10;
-      factores.push('📊 Rendimiento por debajo de la media (' + globalAvg.toFixed(1) + '/5)');
+  // Seguimiento temporal (criterio interno de 7 y 14 días; más peso en F1–F3)
+  if (diasSin !== null && diasSin > 14) add('dias_sin_intervencion', 'temporal', faseNum <= 3 ? 25 : 15, 'Sin intervención registrada hace ' + diasSin + ' días (criterio interno: más de 14)', 'calendar');
+  else if (diasSin !== null && diasSin > 7) add('dias_sin_intervencion', 'temporal', faseNum <= 3 ? 12 : 8, diasSin + ' días desde la última intervención (criterio interno: más de 7)', 'calendar');
+
+  // Rendimiento: nivel general y por grupo (solo grupos evaluados)
+  if (nivelOk && m.global !== null) {
+    if (m.global < 2)        add('media_global', 'rendimiento', 30, 'Media ' + fmt1(m.global) + '/5, muy baja', 'trend-down');
+    else if (m.global < 2.5) add('media_global', 'rendimiento', 20, 'Media ' + fmt1(m.global) + '/5, baja', 'trend-down');
+    else if (m.global < 3)   add('media_global', 'rendimiento', 10, 'Media ' + fmt1(m.global) + '/5, por debajo de 3', 'chart');
+  }
+  if (m.t !== null && m.nT >= 2) {
+    if (m.t < 2)        add('media_tecnica', 'rendimiento', 18, 'Técnica ' + fmt1(m.t) + '/5, muy baja (' + m.nT + ' de ' + TECNICA_VARS.length + ' evaluadas)', 'bolt');
+    else if (m.t < 2.5) add('media_tecnica', 'rendimiento', 8, 'Técnica ' + fmt1(m.t) + '/5, baja (' + m.nT + ' de ' + TECNICA_VARS.length + ' evaluadas)', 'bolt');
+  }
+  if (m.h !== null && m.nH >= 3) {
+    if (m.h < 2)        add('media_habitos', 'rendimiento', 12, 'Hábitos ' + fmt1(m.h) + '/5, muy bajos (' + m.nH + ' de ' + HABITOS_VARS.length + ' evaluados)', 'dumbbell');
+    else if (m.h < 2.5) add('media_habitos', 'rendimiento', 6, 'Hábitos ' + fmt1(m.h) + '/5, bajos (' + m.nH + ' de ' + HABITOS_VARS.length + ' evaluados)', 'dumbbell');
+  }
+
+  // Evolución: solo con variables comparables entre la sesión anterior y la actual
+  const evo = prev ? compararEvolucion(prev, last) : null;
+  const delta = evo ? evo.delta : null;
+  if (delta !== null && delta < -1)        add('caida', 'evolucion', 20, 'Caída de ' + fmt1(-delta) + ' puntos respecto a la sesión anterior (' + evo.comparables + ' variables comparables)', 'trend-down');
+  else if (delta !== null && delta < -0.5) add('caida', 'evolucion', 10, 'Bajada de ' + fmt1(-delta) + ' puntos respecto a la sesión anterior (' + evo.comparables + ' variables comparables)', 'trend-down');
+
+  // Contexto de fase: nivel de referencia interno por fase (solo con fase válida). Se unifican los
+  // antiguos factores de «expectativa de fase» y «fase crítica» (medían lo mismo) y cuenta el mayor.
+  if (faseDisponible && nivelOk && m.global !== null) {
+    const g = m.global, cands = [];
+    if (faseNum >= 5) { if (g < 3.5) cands.push([15, 3.5]); else if (g < 4) cands.push([8, 4]); }
+    else if (faseNum >= 3) { if (g < 3) cands.push([15, 3]); else if (g < 3.5) cands.push([8, 3.5]); }
+    const critica = { 1:[20, 3], 2:[12, 2.8], 3:[20, 3.5], 4:[15, 3], 5:[10, 3.5] }[faseNum];
+    if (critica && g < critica[1]) cands.push(critica);
+    if (cands.length) {
+      const best = cands.reduce((a, b) => b[0] > a[0] ? b : a);
+      add('media_para_fase', 'fase', best[0], 'Media ' + fmt1(g) + '/5, por debajo del nivel de referencia interno para ' + faseLabel + ' (' + fmt1(best[1]) + ')', 'compass');
     }
   }
 
-  // ── Factor 3: Tendencia negativa ──
-  if (prev) {
-    const tPrev = parseFloat(avgScores(prev,'t',TECNICA_VARS.length)||0);
-    const hPrev = parseFloat(avgScores(prev,'h',HABITOS_VARS.length)||0);
-    const prevGlobal = (tPrev + hPrev) / 2;
-    const delta = globalAvg - prevGlobal;
-    if (delta < -1) {
-      score += 20;
-      factores.push('⬇ Caída fuerte respecto a sesión anterior (' + delta.toFixed(1) + ' pts)');
-    } else if (delta < -0.5) {
-      score += 10;
-      factores.push('⬇ Tendencia a la baja (' + delta.toFixed(1) + ' pts)');
+  // Proceso: variables concretas evaluadas (una puntuación baja en una variable que la media puede ocultar)
+  if (m.nT >= 2) {
+    if (bajoV('t_0', 1)) add('parada', 'proceso', 20, 'Parada ' + v('t_0') + '/5', 'user');
+    else if (bajoV('t_0', 2)) add('parada', 'proceso', 10, 'Parada ' + v('t_0') + '/5', 'user');
+    if (bajoV('t_3', 1)) add('cierre', 'proceso', 18, 'Cierre ' + v('t_3') + '/5', 'lock');
+    else if (bajoV('t_3', 2)) add('cierre', 'proceso', 10, 'Cierre ' + v('t_3') + '/5', 'lock');
+    if (v('t_0') !== null && v('t_0') >= 3) {
+      if (bajoV('t_1', 1)) add('speech', 'proceso', 12, 'Speech ' + v('t_1') + '/5 con parada ' + v('t_0') + '/5', 'mic');
+      else if (bajoV('t_1', 2)) add('speech', 'proceso', 6, 'Speech ' + v('t_1') + '/5 con parada ' + v('t_0') + '/5', 'mic');
+      if (v('t_1') !== null && v('t_1') >= 3) {
+        if (bajoV('t_2', 1)) add('rebatidas', 'proceso', 10, 'Rebatidas ' + v('t_2') + '/5 con parada y speech de 3 o más', 'msg');
+        else if (bajoV('t_2', 2)) add('rebatidas', 'proceso', 5, 'Rebatidas ' + v('t_2') + '/5 con parada y speech de 3 o más', 'msg');
+      }
     }
+  }
+  if (bajoV('h_6', 2))  add('feedback', 'proceso', 12, 'Disposición al feedback ' + v('h_6') + '/5', 'ban');
+  if (bajoV('h_3', 2))  add('negatividad', 'proceso', 10, 'Manejo de la negatividad ' + v('h_3') + '/5', 'msg');
+  if (bajoV('h_1', 2))  add('autonomia', 'proceso', 8, 'Rendimiento sin RE/RP ' + v('h_1') + '/5', 'link');
+  if (bajoV('h_10', 2)) add('estabilidad', 'proceso', 8, 'Estabilidad semanal ' + v('h_10') + '/5', 'trend-down');
+
+  // Creencias registradas
+  const nCreencias = [1,2,3,4,5].map(i => last['c' + i] || '').filter(Boolean).length;
+  if (nCreencias >= 3) add('creencias', 'creencias', 8, nCreencias + ' creencias registradas', 'bulb');
+
+  // Agregación
+  const maxDim = d => factores.filter(f => f.dim === d).reduce((a, f) => Math.max(a, f.puntos), 0);
+  const temporal = maxDim('temporal'), rendimiento = maxDim('rendimiento'), fase = maxDim('fase'),
+        evolucion = maxDim('evolucion'), creencias = maxDim('creencias');
+  const proceso = Math.min(factores.filter(f => f.dim === 'proceso').reduce((a, f) => a + f.puntos, 0), rendimiento > 0 ? 15 : 25);
+  let senales = rendimiento + fase + evolucion + proceso + creencias;
+
+  // Mejora sostenida: al menos dos comparaciones fiables seguidas, todas al alza.
+  // Descuenta hasta 15 puntos de las señales de rendimiento y proceso; nunca de la señal temporal.
+  const pares = [];
+  for (let k = 1; k < sorted.length; k++) { const e = compararEvolucion(sorted[k - 1], sorted[k]); if (e) pares.push(e.delta); }
+  let descuento = 0;
+  if (pares.length >= 2 && pares.every(d => d > 0) && senales > 0) {
+    descuento = Math.min(15, senales);
+    senales -= descuento;
+    add('mejora_sostenida', 'evolucion', -descuento, 'Mejora en ' + pares.length + ' comparaciones seguidas entre sesiones', 'trend');
   }
 
-  // ── Factor 2b: Insuficiencia por expectativa de fase ──
-  // En fases avanzadas se espera más — un 3/5 en F5 no es aceptable
-  if (globalAvg > 0) {
-    if (faseNum >= 5) {
-      if (globalAvg < 3.5)      { score += 15; factores.push('📊 Rendimiento insuficiente para F'+faseNum+' (<3.5/5)'); }
-      else if (globalAvg < 4.0) { score += 8;  factores.push('📊 Rendimiento bajo para F'+faseNum+' (<4.0/5)'); }
-    } else if (faseNum >= 3) {
-      if (globalAvg < 3.0)      { score += 15; factores.push('📊 Rendimiento insuficiente para F'+faseNum+' (<3.0/5)'); }
-      else if (globalAvg < 3.5) { score += 8;  factores.push('📊 Rendimiento bajo para F'+faseNum+' (<3.5/5)'); }
-    }
-  }
+  // Datos que faltan: se informan sin sumar puntos
+  if (!faseDisponible) add('fase_no_disponible', 'dato', 0, 'Fase no disponible: no se aplican criterios de fase', 'calendar');
+  if (!nivelOk) add('pocos_datos', 'dato', 0, 'Solo ' + m.n + (m.n === 1 ? ' variable evaluada' : ' variables evaluadas') + ': no se valoran las medias', 'info');
+  if (prev && !evo) add('sin_comparacion', 'dato', 0, 'Sin variables suficientes para comparar con la sesión anterior', 'info');
 
-  // ── Factor 2c: Técnica y hábitos evaluados por separado ──
-  // El globalAvg puede ocultar problemas cuando uno compensa al otro
-  if (tAvg > 0 && hAvg > 0) {
-    // Técnica muy baja aunque hábitos compensen
-    if (tAvg < 2) {
-      score += 18;
-      factores.push('🔧 Técnica muy baja (' + tAvg.toFixed(1) + '/5) — proceso sin interiorizar');
-    } else if (tAvg < 2.5) {
-      score += 8;
-      factores.push('🔧 Técnica baja (' + tAvg.toFixed(1) + '/5)');
-    }
-    // Hábitos muy bajos aunque técnica compense
-    if (hAvg < 2) {
-      score += 12;
-      factores.push('⚙️ Hábitos muy bajos (' + hAvg.toFixed(1) + '/5) — riesgo conductual');
-    } else if (hAvg < 2.5) {
-      score += 6;
-      factores.push('⚙️ Hábitos bajos (' + hAvg.toFixed(1) + '/5)');
-    }
-  } else if (tAvg > 0 && hAvg === 0) {
-    // Solo técnica evaluada — usar tAvg directamente con más peso
-    if (tAvg < 2) {
-      score += 20;
-      factores.push('🔧 Técnica muy baja (' + tAvg.toFixed(1) + '/5)');
-    } else if (tAvg < 2.5) {
-      score += 12;
-      factores.push('🔧 Técnica baja (' + tAvg.toFixed(1) + '/5)');
-    }
-  }
-
-  // ── Factor 2c: Fase inicial con pocas sesiones (dato incompleto = conservador) ──
-  if (faseNum <= 2 && sorted.length === 1 && globalAvg > 0 && globalAvg <= 3) {
-    score += 10;
-    factores.push('🆕 Fase inicial con solo 1 sesión registrada — perfil incompleto');
-  }
-
-  // ── Factor 4: Fase crítica ──
-  // F1 (41% pérdida), F2 (12%), F3 (13% = punto real de fuga), F4 (11% = fase más difícil)
-  if (faseNum === 1) {
-    // F1: máximo riesgo de abandono por desorientación
-    if (globalAvg < 3 && globalAvg > 0) {
-      score += 20;
-      factores.push('🆕 Fase inicial (F1) con bajo rendimiento — riesgo de abandono temprano');
-    }
-  } else if (faseNum === 2) {
-    // F2: primera mini-crisis, 12% pérdida
-    if (globalAvg < 2.8 && globalAvg > 0) {
-      score += 12;
-      factores.push('🌀 Fase 2 — primera mini-crisis (días 6-12)');
-    }
-  } else if (faseNum === 3) {
-    // F3: punto real de fuga (sonríe menos en calle)
-    if (globalAvg < 3.5 && globalAvg > 0) {
-      score += 20;
-      factores.push('⚠️ Fase 3 — punto crítico de fuga (días 13-25)');
-    }
-  } else if (faseNum === 4) {
-    // F4: falsa seguridad + desgaste
-    if (globalAvg < 3 && globalAvg > 0) {
-      score += 15;
-      factores.push('⚠️ Fase 4 — falsa seguridad sin rendimiento consolidado');
-    }
-  } else if (faseNum === 5) {
-    // F5: desconexión silenciosa
-    if (globalAvg < 3.5 && globalAvg > 0) {
-      score += 10;
-      factores.push('🔇 Fase 5 — riesgo de desconexión silenciosa');
-    }
-  }
-
-  if (isNaN(faseNum)) {
-    factores.push('🗓️ Fase sin calcular (falta la fecha de comienzo): el riesgo propio de la fase no se ha tenido en cuenta');
-  }
-
-  // ── Factor 4b: Variables técnicas individuales críticas ──
-  // Un ítem con 0/1 es un "agujero" que el promedio oculta
-  const t0 = parseFloat(last['t_0']||0); // Parada
-  const t1 = parseFloat(last['t_1']||0); // Speech
-  const t2 = parseFloat(last['t_2']||0); // Rebatidas
-  const t3 = parseFloat(last['t_3']||0); // Cierre
-  const tecScored = [t0,t1,t2,t3].filter(v=>v>0);
-
-  if (tecScored.length >= 2) { // Solo si hay suficientes datos
-    // Parada = paso 1. Sin parada, nada más importa
-    if (t0 > 0 && t0 <= 1) {
-      score += 20;
-      factores.push('🛑 Parada muy baja ('+t0+'/5) — el proceso no puede arrancar');
-    } else if (t0 > 0 && t0 <= 2) {
-      score += 10;
-      factores.push('🛑 Parada baja ('+t0+'/5) — dificulta todo el proceso');
-    }
-    // Cierre = resultado final. Sin cierre no hay conversión
-    if (t3 > 0 && t3 <= 1) {
-      score += 18;
-      factores.push('🔒 Cierre muy bajo ('+t3+'/5) — no materializa el trabajo realizado');
-    } else if (t3 > 0 && t3 <= 2) {
-      score += 10;
-      factores.push('🔒 Cierre bajo ('+t3+'/5) — el esfuerzo no se convierte en resultado');
-    }
-    // Speech bajo con parada ok
-    if (t1 > 0 && t1 <= 1 && t0 >= 3) {
-      score += 12;
-      factores.push('🎤 Speech muy bajo ('+t1+'/5) — para bien pero no genera interés');
-    } else if (t1 > 0 && t1 <= 2 && t0 >= 3) {
-      score += 6;
-      factores.push('🎤 Speech bajo ('+t1+'/5)');
-    }
-    // Rebatidas bajas cuando el resto funciona
-    if (t2 > 0 && t2 <= 1 && t0 >= 3 && t1 >= 3) {
-      score += 10;
-      factores.push('🗣️ Rebatidas muy bajas ('+t2+'/5) — se bloquea ante objeciones');
-    } else if (t2 > 0 && t2 <= 2 && t0 >= 3 && t1 >= 3) {
-      score += 5;
-      factores.push('🗣️ Rebatidas bajas ('+t2+'/5)');
-    }
-  }
-
-  // ── Factor 5: Variables de hábitos críticas ──
-  const feedbackScore    = parseFloat(last['h_6']||0);
-  const negatividadScore = parseFloat(last['h_3']||0);
-  const autonomiaScore   = parseFloat(last['h_1']||0);
-  const estabilidadScore = parseFloat(last['h_10']||0);
-
-  if (feedbackScore > 0 && feedbackScore <= 2) {
-    score += 12;
-    factores.push('🚧 Resistencia al feedback (' + feedbackScore + '/5)');
-  }
-  if (negatividadScore > 0 && negatividadScore <= 2) {
-    score += 10;
-    factores.push('😔 Bajo manejo de negatividad (' + negatividadScore + '/5)');
-  }
-  if (autonomiaScore > 0 && autonomiaScore <= 2) {
-    score += 8;
-    factores.push('🔗 Alta dependencia del acompañamiento (' + autonomiaScore + '/5)');
-  }
-  if (estabilidadScore > 0 && estabilidadScore <= 2) {
-    score += 8;
-    factores.push('📉 Estabilidad semanal muy baja (' + estabilidadScore + '/5)');
-  }
-
-  // ── Factor 6: Estado asignado ──
-  if (estado === 'riesgo') {
-    score += 15;
-    factores.push('🔴 Estado marcado como "En riesgo"');
-  } else if (estado === 'estancado') {
-    score += 8;
-    factores.push('🟡 Estado marcado como "Estancado"');
-  }
-
-  // ── Factor 7: Creencias activas ──
-  const nCreencias = [1,2,3,4,5].map(i=>last['c'+i]||'').filter(Boolean).length;
-  if (nCreencias >= 3) {
-    score += 8;
-    factores.push('🧠 ' + nCreencias + ' creencias limitantes activas');
-  }
-
-  // ── Factor positivo: mejora sostenida (funciona desde 2 sesiones) ──
-  if (sorted.length >= 2 && score >= 20) {
-    const pairs = [];
-    for (let k = 1; k < sorted.length; k++) {
-      const cur = (parseFloat(avgScores(sorted[k],'t',TECNICA_VARS.length)||0) + parseFloat(avgScores(sorted[k],'h',HABITOS_VARS.length)||0)) / 2;
-      const prv = (parseFloat(avgScores(sorted[k-1],'t',TECNICA_VARS.length)||0) + parseFloat(avgScores(sorted[k-1],'h',HABITOS_VARS.length)||0)) / 2;
-      pairs.push(cur > prv);
-    }
-    const allImproving = pairs.every(Boolean);
-    if (allImproving) {
-      const descuento = Math.min(15, score - 15);
-      score = Math.max(15, score - descuento);
-      factores.push('📈 Mejora consistente entre sesiones (−' + descuento + ' pts)');
-    }
-  }
-
-  // ── Factor positivo: buen score global ──
-  if (globalAvg >= 4.5 && globalAvg > 0) {
-    score = Math.max(0, score - 15);
-  } else if (globalAvg >= 4 && globalAvg > 0) {
-    score = Math.max(0, score - 8);
-  }
-
-  score = Math.min(100, Math.max(0, Math.round(score)));
-  const nivel = nivelRiesgo(score);
-  if (!factores.length) factores.push('✅ Sin factores de riesgo detectados');
-  return { score, nivel, factores, diasSin };
+  const score = Math.min(100, Math.max(0, Math.round(temporal + senales)));
+  factores.sort((a, b) => b.puntos - a.puntos);
+  return Object.assign(base, { score, nivel: nivelRiesgo(score), factores, delta,
+    dimensiones: { temporal, rendimiento, fase, evolucion, proceso, creencias, descuento } });
 }
 
 function riesgoHtml(riesgo, mini) {
@@ -5332,17 +5239,23 @@ function renderRiesgoCard() {
   const barFill = document.getElementById('riesgoBarFill');
   const factoresEl = document.getElementById('riesgoFactores');
   if (scoreEl) scoreEl.textContent = r.score;
-  if (nivelEl) nivelEl.textContent = n.label + ' de baja';
-  if (descEl) descEl.textContent = 'Puntuación de 0 a 100 · ' + (r.diasSin !== undefined
-    ? 'basada en ' + sessions.length + ' sesión' + (sessions.length>1?'es':'') + ' · última hace ' + r.diasSin + ' días'
-    : 'basada en ' + sessions.length + ' sesión' + (sessions.length>1?'es':''));
+  if (nivelEl) nivelEl.textContent = n.label;
+  if (descEl) descEl.textContent = 'Índice interno de 0 a 100 según las señales registradas; no es una probabilidad de baja. ' +
+    'Datos: ' + r.cobertura.evaluadas + ' de ' + r.cobertura.total + ' variables · ' + sessions.length + ' sesión' + (sessions.length>1?'es':'') +
+    (r.diasSin !== null && r.diasSin !== undefined ? ' · última intervención hace ' + r.diasSin + (r.diasSin === 1 ? ' día' : ' días') : '');
+  const manualEl = document.getElementById('riesgoManual');
+  if (manualEl) {
+    const em = r.estadoManual;
+    manualEl.textContent = em && !r.soloEstado ? 'Estado marcado por el responsable: «' + em.label + '». Se muestra como contexto; no suma al índice.' : '';
+    manualEl.hidden = !manualEl.textContent;
+  }
   if (barFill) { barFill.className = 'riesgo-card-bar-fill ' + n.fill; barFill.style.width = r.score + '%'; }
   if (factoresEl) {
-    factoresEl.innerHTML = r.factores.map(f => {
-      const p = partirEmoji(f);
-      return `<li class="riesgo-factor">${ic(iconoDeEmoji(p.emoji, 'dot'))}<span>${esc(p.texto)}</span></li>`;
-    }).join('');
+    factoresEl.innerHTML = r.factores.length
+      ? r.factores.map(f => `<li class="riesgo-factor${f.puntos === 0 ? ' meta' : ''}">${ic(f.icono || 'dot')}<span>${esc(f.label)}</span></li>`).join('')
+      : `<li class="riesgo-factor">${ic('check-circle')}<span>Sin señales de atención en los datos registrados</span></li>`;
   }
+
 }
 
 // ── Alertas en dashboard ──
@@ -5361,7 +5274,7 @@ function renderAlertas(map) {
   if (count) count.textContent = criticos.length + (criticos.length === 1 ? ' captador/a' : ' captadores');
   list.innerHTML = criticos.map(({nombre, latest, r}) => {
     const n = RIESGO_NIVELES[r.nivel];
-    const motivo = partirEmoji(r.factores[0] || '').texto;
+    const motivo = (r.factores.find(f => f.puntos > 0) || r.factores[0] || {}).label || '';
     return `<button type="button" class="alerta-item" onclick="cargarYAbrir('${latest._id}')">
       <span style="flex:1;min-width:0">
         <span class="alerta-nombre" style="display:block">${esc(nombre)}</span>
@@ -5901,53 +5814,64 @@ function actualizarSenalesResult() {
 }
 
 // ── SEMÁFORO DE PERMANENCIA ──
+// El color indica nivel de seguimiento, no una predicción sobre el futuro de la persona
 const SEMAFORO_CONFIG = {
   verde: {
-    icono: '🟢', cls: 'semaforo-verde', title: 'Consolidando',
-    accion: '<strong>Acción de crecimiento:</strong> Este captador está consolidando. Introduce un nuevo reto técnico (campaña, zona nueva, ritmo avanzado). Conversación de futuro: "¿Dónde quieres estar en 1 mes?"'
+    cls: 'semaforo-verde', title: 'Seguimiento normal',
+    accion: '<strong>Seguimiento normal.</strong> Las señales comparables no muestran caídas ni puntuaciones bajas. Buen momento para acordar un nuevo reto y hablar de objetivos: «¿Dónde quieres estar dentro de un mes?»'
   },
   amarillo: {
-    icono: '🟡', cls: 'semaforo-amarillo', title: 'Dudando',
-    accion: '<strong>Conversación de futuro esta semana (obligatoria):</strong> "¿Qué te haría quedarte con más ganas?" Explorar motivación real. Mostrar camino de desarrollo. Quien ve camino, se queda.'
+    cls: 'semaforo-amarillo', title: 'Seguimiento reforzado',
+    accion: '<strong>Seguimiento reforzado.</strong> Hay alguna señal de atención. Conviene hablar esta semana con el captador sobre cómo se ve en el equipo y qué necesita, y revisar estas señales en la próxima sesión.'
   },
   rojo: {
-    icono: '🔴', cls: 'semaforo-rojo', title: 'Desconectándose en silencio',
-    accion: '<strong>Intervención directa en las próximas 48h:</strong> No esperar a la próxima sesión programada. Conversación privada y directa sobre qué está pasando. La desconexión silenciosa es más peligrosa que la fuga visible.'
+    cls: 'semaforo-rojo', title: 'Atención prioritaria',
+    accion: '<strong>Atención prioritaria.</strong> Conviene hablar con el captador en los próximos días, sin esperar a la próxima sesión programada, para entender qué está pasando.'
   },
 };
 
-function calcSemaforo(sessions, faseId, estado) {
-  // Solo aplica en fase 46-90 (+90 también)
+/* Semáforo de seguimiento (solo F5–F6). Resume señales comparables; no predice permanencia.
+   Requisitos: fase válida F5/F6, al menos 2 sesiones y al menos 3 variables evaluadas en ambas.
+   Si no se cumplen, no se muestra color (mejor sin semáforo que con uno sin base).
+   Prioridad de las señales:
+   · Rojo: caída fuerte comparable (más de 0,8), media por debajo de 2,5 sin mejora,
+           o más de 14 días sin intervención junto con otra señal de atención.
+   · Ámbar: cualquier señal de atención: bajada leve, media por debajo de 3, más de 7 o de 14 días
+           sin intervención. La falta de seguimiento por sí sola es atención, no prueba de abandono.
+   · Verde: ninguna señal.
+   El estado manual no decide el color: se devuelve aparte como contexto.
+   En una ficha del historial no se cuentan los días transcurridos hasta hoy. */
+function evaluarSemaforo(sessions, faseId, estado, opts) {
+  opts = opts || {};
   const faseNum = numeroFase(faseId);
-  if (!(faseNum >= 5)) return null;
-
+  if (!(faseNum >= 5) || estado === 'baja') return null;
   if (!sessions || sessions.length < 2) return null;
-
   const sorted = ordenarSesiones(sessions);
-  const last = sorted[sorted.length-1];
-  const prev = sorted[sorted.length-2];
+  const last = sorted[sorted.length - 1];
+  const evo = compararEvolucion(sorted[sorted.length - 2], last);
+  if (!evo) return null;
+  const delta = evo.delta;
+  const gLast = mediasSesion(last).global;
+  const diasSin = opts.historica ? null : diasDesdeUltimaIntervencion(sorted);
 
-  const tLast = parseFloat(avgScores(last,'t',TECNICA_VARS.length)||0);
-  const hLast = parseFloat(avgScores(last,'h',HABITOS_VARS.length)||0);
-  const gLast = (tLast + hLast) / 2;
+  const senales = [];
+  if (delta < -0.8)   senales.push({ tipo:'critica', label:'Caída de ' + fmt1(-delta) + ' puntos respecto a la sesión anterior' });
+  else if (delta < 0) senales.push({ tipo:'atencion', label:'Bajada de ' + fmt1(-delta) + ' puntos respecto a la sesión anterior' });
+  if (gLast !== null && gLast < 2.5 && delta <= 0) senales.push({ tipo:'critica', label:'Media ' + fmt1(gLast) + '/5 sin mejora' });
+  else if (gLast !== null && gLast < 3)            senales.push({ tipo:'atencion', label:'Media ' + fmt1(gLast) + '/5, por debajo de 3' });
+  if (diasSin !== null && diasSin > 14)     senales.push({ tipo:'atencion', temporal:true, label: diasSin + ' días sin intervención (criterio interno: más de 14)' });
+  else if (diasSin !== null && diasSin > 7) senales.push({ tipo:'atencion', temporal:true, label: diasSin + ' días sin intervención (criterio interno: más de 7)' });
 
-  const tPrev = parseFloat(avgScores(prev,'t',TECNICA_VARS.length)||0);
-  const hPrev = parseFloat(avgScores(prev,'h',HABITOS_VARS.length)||0);
-  const gPrev = (tPrev + hPrev) / 2;
-
-  const delta = gLast - gPrev;
-  const diasSin = diasDesdeUltimaIntervencion(sorted) ?? 0;
-
-  // Rojo: tendencia negativa fuerte, o baja, o muchos días sin actualizar
-  if (estado === 'baja' || estado === 'riesgo' || delta < -0.8 || (gLast < 2.5 && delta <= 0) || diasSin > 14) {
-    return 'rojo';
-  }
-  // Amarillo: estancado o ligeramente negativo
-  if (estado === 'estancado' || delta < 0 || gLast < 3 || diasSin > 7) {
-    return 'amarillo';
-  }
-  // Verde: mejorando y rendimiento decente
-  return 'verde';
+  const hayCritica = senales.some(s => s.tipo === 'critica');
+  const otraAtencion = senales.some(s => s.tipo === 'atencion' && !s.temporal);
+  const color = hayCritica || (diasSin !== null && diasSin > 14 && otraAtencion) ? 'rojo' : senales.length ? 'amarillo' : 'verde';
+  if (delta >= 0.05) senales.push({ tipo:'positiva', label:'Mejora de ' + fmt1(delta) + ' puntos respecto a la sesión anterior' });
+  return { color, senales, delta, comparables: evo.comparables, diasSin,
+           estadoManual: ESTADOS[estado] ? { id: estado, label: ESTADOS[estado].label } : null };
+}
+function calcSemaforo(sessions, faseId, estado, opts) {
+  const r = evaluarSemaforo(sessions, faseId, estado, opts);
+  return r ? r.color : null;
 }
 
 function renderSemaforo() {
@@ -5959,22 +5883,32 @@ function renderSemaforo() {
   if (!nombre || !faseId) { card.classList.remove('visible'); return; }
 
   const dSem = recopilarDatos();
-  const tSemCur = TECNICA_VARS.reduce((s,_,i)=>s+(parseFloat(dSem['t_'+i])||0),0);
-  const hSemCur = HABITOS_VARS.reduce((s,_,i)=>s+(parseFloat(dSem['h_'+i])||0),0);
-  const sessions = sesionesConActual(nombre, dSem, (tSemCur + hSemCur) > 0);
-  const color = calcSemaforo(sessions, faseId, estado);
-  if (!color) { card.classList.remove('visible'); return; }
+  const hayEval = Object.keys(ALL_VARS_LABELS).some(k => hasScore(dSem, k));
+  let sessions = sesionesConActual(nombre, dSem, hayEval);
+  // Consulta de una ficha del historial: solo las sesiones hasta esa intervención, sin contar días hasta hoy
+  const historica = !!AppState.faseCongelada;
+  if (historica && hayEval) {
+    const i = sessions.findIndex(s => s._id === '_current');
+    if (i >= 0) sessions = sessions.slice(0, i + 1);
+  }
+  const ev = evaluarSemaforo(sessions, faseId, estado, { historica });
+  if (!ev) { card.classList.remove('visible'); return; }
 
   card.classList.add('visible');
-  const cfg = SEMAFORO_CONFIG[color];
+  const cfg = SEMAFORO_CONFIG[ev.color];
   const tones = { verde:'ok', amarillo:'warn', rojo:'bad' };
   const nombreColor = { verde:'Verde', amarillo:'Ámbar', rojo:'Rojo' };
-  card.setAttribute('data-tone', tones[color] || 'slate');
+  card.setAttribute('data-tone', tones[ev.color] || 'slate');
   const faseLabel = FASES.find(f => f.id === faseId)?.label || '';
   document.getElementById('semaforoIcono').innerHTML = ic('traffic');
-  document.getElementById('semaforoTitle').textContent = nombreColor[color] + ' · ' + cfg.title;
-  document.getElementById('semaforoDias').textContent = `${faseLabel} · ${sessions.length} sesiones registradas`;
-  document.getElementById('semaforoAccion').innerHTML = cfg.accion;
+  document.getElementById('semaforoTitle').textContent = nombreColor[ev.color] + ' · ' + cfg.title;
+  document.getElementById('semaforoDias').textContent = faseLabel + ' · comparación de ' + ev.comparables + ' variables con la sesión anterior' + (historica ? ' · consulta del historial' : '');
+  const iconoSenal = { critica:'alert', atencion:'warn', positiva:'trend' };
+  document.getElementById('semaforoAccion').innerHTML = cfg.accion +
+    (ev.senales.length ? '<ul class="riesgo-factores" style="margin-top:12px">' + ev.senales.map(s =>
+      '<li class="riesgo-factor">' + ic(s.temporal ? 'calendar' : iconoSenal[s.tipo]) + '<span>' + esc(s.label) + '</span></li>').join('') + '</ul>' : '') +
+    (ev.estadoManual ? '<p class="meta" style="margin-top:8px">Estado marcado por el responsable: «' + esc(ev.estadoManual.label) + '». Se muestra como contexto; no cambia el color.</p>' : '') +
+    '<p class="meta" style="margin-top:8px">Indicador de seguimiento según las señales disponibles. No predice si la persona seguirá.</p>';
 }
 
 // ── INDICADOR DÍAS EN FASE ──
@@ -6057,281 +5991,198 @@ function actualizarDiasFase() {
 // LO MÁS IMPORTANTE — GENERADO AUTOMÁTICAMENTE
 // ══════════════════════════════════════════
 
+// Grupo de cada variable: una misma evidencia solo puede ocupar un hueco en «Lo más importante»
+const GRUPO_VARIABLE = { t_0:'parada', t_1:'speech', t_2:'rebatidas', t_3:'cierre', h_0:'jornada', h_9:'jornada', h_1:'autonomia',
+  h_2:'equipo', h_5:'equipo', h_3:'creencias', h_4:'criterios', h_6:'feedback', h_7:'aspecto', h_8:'aspecto', h_10:'estabilidad' };
+const GRUPO_FACTOR = { dias_sin_intervencion:'seguimiento', media_global:'rendimiento', media_tecnica:'tecnica', media_habitos:'habitos',
+  caida:'evolucion', media_para_fase:'fase', parada:'parada', cierre:'cierre', speech:'speech', rebatidas:'rebatidas', feedback:'feedback',
+  negatividad:'creencias', autonomia:'autonomia', estabilidad:'estabilidad', creencias:'creencias' };
+
+/* Lo más importante ahora mismo: selecciona hasta 3 prioridades distintas para esta intervención.
+   1. Genera candidatas; cada una exige sus datos (variable evaluada, grupo con datos suficientes,
+      sesiones comparables o fase válida) y pertenece a un grupo (la evidencia en la que se basa).
+   2. Ordena por urgencia (alta › media › normal); a igual urgencia, primero lo específico de la persona
+      (seguimiento y variables evaluadas) y después el contexto de fase; si no, el orden de generación.
+   3. Una sola prioridad por grupo, máximo 3.
+   Las prioridades orientan la intervención; no explican la causa ni deciden por el responsable. */
 function calcLMI() {
   const d = recopilarDatos();
-  const prioridades = [];
-
-  // Datos de sesiones históricas — incluir sesión actual no guardada
   const nombre = (d.captador||'').trim();
-  // Fusionar sesión activa con fichas guardadas (en orden cronológico) para que el riesgo refleje cambios en tiempo real
-  const tCurLMI = TECNICA_VARS.reduce((s,_,i)=>s+(parseFloat(d['t_'+i])||0),0);
-  const hCurLMI = HABITOS_VARS.reduce((s,_,i)=>s+(parseFloat(d['h_'+i])||0),0);
-  const hasCurEvalLMI = (tCurLMI + hCurLMI) > 0;
-  const histSessions = nombre ? sesionesConActual(nombre, d, hasCurEvalLMI) : (hasCurEvalLMI ? [sesionDelFormulario(d)] : []);
+  const hayEval = Object.keys(ALL_VARS_LABELS).some(k => hasScore(d, k));
+  const histSessions = nombre ? sesionesConActual(nombre, d, hayEval) : (hayEval ? [sesionDelFormulario(d)] : []);
   const riesgo = histSessions.length ? calcRiesgo(histSessions, d.estado||'') : null;
   const faseNum = numeroFase(d.faseSelected);
+  const hayFase = !isNaN(faseNum);
   const fase = FASES.find(f=>f.id===d.faseSelected);
 
-  // Variables de puntuación
-  const tVals = TECNICA_VARS.map((_,i)=>parseFloat(d['t_'+i])||0);
-  const hVals = HABITOS_VARS.map((_,i)=>parseFloat(d['h_'+i])||0);
-  const tFilled = tVals.filter(v=>v>0);
-  const hFilled = hVals.filter(v=>v>0);
-  const tAvg = tFilled.length ? tFilled.reduce((a,b)=>a+b,0)/tFilled.length : 0;
-  const hAvg = hFilled.length ? hFilled.reduce((a,b)=>a+b,0)/hFilled.length : 0;
-  const globalAvg = (tFilled.length+hFilled.length) > 0
-    ? [...tVals,...hVals].filter(v=>v>0).reduce((a,b)=>a+b,0)/(tFilled.length+hFilled.length)
-    : 0;
-
-  // Variable más débil
-  const allScored = [
-    ...TECNICA_VARS.map((l,i)=>({l,v:d['t_'+i]||0,g:'Técnica'})),
-    ...HABITOS_VARS.map((l,i)=>({l,v:d['h_'+i]||0,g:'Hábitos'})),
-  ].filter(x=>x.v>0).sort((a,b)=>a.v-b.v);
-  const palanca = allScored.find(x=>x.v<3) || allScored[0];
-
-  // Creencias
+  const m = mediasSesion(d);
+  const tAvg = m.t, hAvg = m.h;
+  const tecSuf = m.nT >= 2, habSuf = m.nH >= 3, totalSuf = m.n >= 4;
+  const evaluadas = Object.keys(ALL_VARS_LABELS).map(k => ({ k, l: ALL_VARS_LABELS[k], v: scoreDe(d, k) })).filter(x => x.v !== null);
+  const globalAvg = evaluadas.length ? evaluadas.reduce((a, x) => a + x.v, 0) / evaluadas.length : null;
+  const s = k => scoreDe(d, k);
+  const bajo = (k, max = 2) => { const v = s(k); return v !== null && v <= max; };
+  const minimo = (k, min) => { const v = s(k); return v !== null && v >= min; };
   const nCreencias = [1,2,3,4,5].map(i=>d['c'+i]||'').filter(Boolean).length;
-  const feedback    = parseFloat(d['h_6'])||0;
-  const negatividad = parseFloat(d['h_3'])||0;
-  const autonomia   = parseFloat(d['h_1'])||0;
-  const cierre      = parseFloat(d['t_3'])||0;
-  const parada      = parseFloat(d['t_0'])||0;
-  const speech      = parseFloat(d['t_1'])||0;
-  const rebatidas   = parseFloat(d['t_2'])||0;
-  const estabilidad = parseFloat(d['h_10'])||0;
-  const puntualidad = parseFloat(d['h_0'])||0;
-  const conflictos  = parseFloat(d['h_2'])||0;
-  const criterios   = parseFloat(d['h_4'])||0;
-  const equipo      = parseFloat(d['h_5'])||0;
-  const aspecto     = parseFloat(d['h_7'])||0;
-  const praxis      = parseFloat(d['h_8'])||0;
-  const jornada     = parseFloat(d['h_9'])||0;
-  // Intervención de acompañamiento
   const intervActual = (d['ftx_'+d.faseSelected]||'').trim();
-
-  // Días sin intervención
   const diasSin = histSessions.length ? diasDesdeUltimaIntervencion(histSessions) : null;
+  const evo = histSessions.length >= 2 ? compararEvolucion(histSessions[histSessions.length-2], histSessions[histSessions.length-1]) : null;
 
-  // Tendencia
-  let tendencia = null;
-  if (histSessions.length >= 2) {
-    const prev = histSessions[histSessions.length-2];
-    const prevT = parseFloat(avgScores(prev,'t',TECNICA_VARS.length)||0);
-    const prevH = parseFloat(avgScores(prev,'h',HABITOS_VARS.length)||0);
-    tendencia = globalAvg - (prevT+prevH)/2;
-  }
+  const cand = [];
+  const add = c => cand.push(Object.assign({ esp: 2 }, c));   // esp: 3 seguimiento · 2 datos de la persona · 1 contexto de fase
 
-  // ── REGLAS DE PRIORIDAD (orden de criticidad) ──
-
-  // 🚨 URGENCIA CRÍTICA
+  // Seguimiento urgente
   if (diasSin !== null && diasSin > 14 && riesgo && riesgo.nivel === 'critico') {
-    prioridades.push({
-      urgencia:'alta', icono:'🚨',
-      titulo:'Contacto inmediato — llevas '+diasSin+' días sin intervenir',
-      desc:'Un captador en riesgo crítico sin intervención más de 14 días está muy probablemente en proceso de abandono silencioso. Contacta hoy, no mañana.'
-    });
+    add({ id:'contacto', grupo:'seguimiento', urgencia:'alta', esp:3, icono:'📞',
+      titulo:'Contactar hoy — ' + diasSin + ' días sin intervención registrada',
+      desc:'El índice de atención está en nivel prioritario y han pasado más de 14 días (criterio interno) desde la última intervención. Conviene contactar antes de planificar otra sesión y preguntar cómo le está yendo.' });
   }
 
-  // 🔴 RIESGO ALTO/CRÍTICO
-  if (riesgo && (riesgo.nivel==='critico'||riesgo.nivel==='alto') && !(diasSin>14)) {
-    const topFactor = riesgo.factores[0]?.slice(2).trim()||'';
-    prioridades.push({
-      urgencia:'alta', icono:'🔴',
-      titulo:RIESGO_NIVELES[riesgo.nivel].label+' — intervenir esta semana',
-      desc: topFactor
-        ? 'El factor de mayor riesgo detectado: '+topFactor+'. Actuar antes de la próxima sesión programada.'
-        : 'El índice de riesgo de baja está en '+riesgo.score+'/100. Revisar los factores en el tab de Diagnóstico.'
-    });
+  // Contexto de fase (según la guía de acompañamiento; solo con fase válida)
+  if (hayFase && faseNum <= 2) {
+    add({ id:'fase_inicial', grupo:'fase', urgencia:'alta', esp:1, icono:'🗓️',
+      titulo: faseNum === 1 ? 'Día 1–5: acompañamiento cercano' : 'Día 6–12: validar el progreso',
+      desc: faseNum === 1
+        ? 'En los primeros días el foco está en la integración más que en el resultado. Acompañar los turnos, reconocer un avance concreto en cada uno y evitar comparaciones con veteranos.'
+        : 'La guía de fases señala este momento como delicado: el captador puede empezar a compararse. Mostrarle avances concretos («hace unos días no hacías esto») y acompañar varios turnos esta semana.' });
   }
-
-  // 🗓️ SIN FASE — sin ella no se pueden priorizar las reglas de fase
-  if (isNaN(faseNum) && (tFilled.length + hFilled.length) > 0) {
-    prioridades.push({
-      urgencia:'media', icono:'🗓️',
+  if (hayFase && (faseNum === 3 || faseNum === 4)) {
+    add({ id:'fase_media', grupo:'fase', urgencia:'media', esp:1, icono:'🗓️',
+      titulo: faseNum === 3 ? 'Día 13–25: seguimiento cercano' : 'Día 26–45: revisión semanal',
+      desc: faseNum === 3
+        ? 'La guía de fases marca este tramo como delicado. Acompañar al menos dos turnos esta semana y hablar de los errores como parte del ajuste («estás en fase de ajuste»).'
+        : 'La guía de fases marca este tramo como exigente. Hacer una revisión semanal estructurada y, si aparecen señales de estancamiento, intervenir en menos de 48 horas.' });
+  }
+  if (!hayFase && hayEval) {
+    add({ id:'sin_fase', grupo:'fase', urgencia:'media', esp:1, icono:'🗓️',
       titulo:'Falta la fecha de comienzo — la fase no está calculada',
-      desc:'Sin fase no se pueden aplicar las prioridades propias de cada momento del proceso (primeros días, punto de fuga, conversación de futuro). Introduce la fecha de comienzo en Captador.'
-    });
+      desc:'Sin fase no se pueden aplicar las prioridades propias de cada momento del proceso. Introduce la fecha de comienzo en Captador.' });
   }
 
-  // 🚩 FASE INICIAL — acompañamiento total
-  if (faseNum <= 2) {
-    prioridades.push({
-      urgencia:'alta', icono:'🗓️',
-      titulo: faseNum<=1 ? 'Fase crítica: acompañamiento total (Día 1–5)' : 'Fase de primera crisis (Día 6–12)',
-      desc: faseNum<=1
-        ? 'El 41% de la pérdida ocurre en estos primeros días. El objetivo NO es el resultado sino la integración. Una micro victoria emocional por turno. Cero comparaciones con veteranos.'
-        : 'Primera mini-crisis habitual. El captador empieza a compararse. Validar progreso real: "hace 5 días no podías hacer esto." Acompañamiento mínimo 2–3 turnos esta semana.'
-    });
+  // Señales de la evaluación (cada una exige su variable evaluada)
+  if (bajo('h_6')) {
+    add({ id:'feedback', grupo:'feedback', urgencia:'alta', icono:'🚧',
+      titulo:'Abordar primero la disposición al feedback (' + s('h_6') + '/5)',
+      desc:'Conviene abordarla antes de añadir nuevas correcciones: hablar a solas sobre cómo vive las correcciones y acordar una sola corrección que se pueda comprobar en la próxima sesión.' });
   }
-
-  // 🔴 PUNTO DE FUGA — fase 13–25 o 26–45
-  if (faseNum===3 || faseNum===4) {
-    prioridades.push({
-      urgencia:'alta', icono:'⚠️',
-      titulo: faseNum===3 ? 'Punto real de fuga — fase 13–25' : 'Fase más difícil — Día 26–45',
-      desc: faseNum===3
-        ? 'El captador puede estar sonriendo menos en calle. Interpreta errores como incapacidad. No decir "has fallado". Decir "estás en fase de ajuste". Acompañamiento mínimo 2 turnos esta semana.'
-        : 'Falsa seguridad + desgaste. Si hay señales de estancamiento, intervención en menos de 48h. Conversación directa sobre motivación. Revisión semanal estructurada obligatoria.'
-    });
+  if (nCreencias >= 2 && bajo('h_3')) {
+    add({ id:'creencias', grupo:'creencias', urgencia:'alta', icono:'🧠',
+      titulo:'Revisar las ' + nCreencias + ' creencias registradas (negatividad ' + s('h_3') + '/5)',
+      desc:'Hay creencias registradas junto con una valoración baja en manejo de la negatividad. Conviene revisarlas con el captador y comprobar en campo si interfieren; los datos no permiten afirmar que sean la causa.' });
   }
-
-  // 🚧 RESISTENCIA AL FEEDBACK — bloquea todo lo demás
-  if (feedback > 0 && feedback <= 2) {
-    prioridades.push({
-      urgencia:'alta', icono:'🚧',
-      titulo:'Resolver la resistencia al feedback antes que cualquier cosa',
-      desc:'Con disposición al feedback de '+feedback+'/5, ninguna intervención técnica tendrá efecto real. Conversación directa sobre qué genera esa resistencia. Es el bloqueo más crítico posible.'
-    });
+  if (evo && evo.delta < -0.8) {
+    add({ id:'caida', grupo:'evolucion', urgencia:'alta', icono:'📉',
+      titulo:'Caída respecto a la sesión anterior (−' + fmt1(-evo.delta) + ' de media)',
+      desc:'Comparación de ' + evo.comparables + ' variables evaluadas en ambas sesiones. Preguntar qué ha cambiado y revisar las variables que más bajan; una sola comparación no permite saber si la caída se mantendrá.' });
   }
-
-  // 🧠 CREENCIAS ACTIVAS con negatividad baja
-  if (nCreencias >= 2 && negatividad > 0 && negatividad <= 2) {
-    prioridades.push({
-      urgencia:'alta', icono:'🧠',
-      titulo:'Intervenir sobre las '+nCreencias+' creencias detectadas — bloqueo mental',
-      desc:'Manejo de negatividad '+negatividad+'/5 con '+nCreencias+' creencias activas. El bloqueo es cognitivo, no técnico. Dedicar la próxima sesión íntegra a creencias antes de tocar proceso.'
-    });
+  if (bajo('h_1') && hayFase && faseNum >= 3) {
+    add({ id:'autonomia', grupo:'autonomia', urgencia:'media', icono:'🔗',
+      titulo:'Trabajar la autonomía — rendimiento sin RE/RP ' + s('h_1') + '/5',
+      desc:'Planificar con el captador tramos de trabajo autónomo con un objetivo concreto y revisarlos juntos después.' });
   }
-
-  // 📉 TENDENCIA NEGATIVA fuerte
-  if (tendencia !== null && tendencia < -0.8) {
-    prioridades.push({
-      urgencia:'alta', icono:'📉',
-      titulo:'Caída fuerte respecto a sesión anterior ('+tendencia.toFixed(1)+' pts)',
-      desc:'Una regresión sin intervención rápida tiende a consolidarse y afectar la motivación. Investigar qué ha cambiado antes de ajustar el plan de intervención.'
-    });
+  if (bajo('t_3') && tecSuf && tAvg >= 2.5) {
+    add({ id:'cierre', grupo:'cierre', urgencia:'media', icono:'🔒',
+      titulo:'Trabajar el cierre (' + s('t_3') + '/5)',
+      desc:'El cierre puntúa por debajo del resto de la técnica. Observar varios cierres completos, localizar dónde se interrumpe la conversación y practicar ese tramo con role-play.' });
   }
-
-  // 🔗 DEPENDENCIA DEL ACOMPAÑAMIENTO
-  if (autonomia > 0 && autonomia <= 2 && faseNum >= 3) {
-    prioridades.push({
-      urgencia:'media', icono:'🔗',
-      titulo:'Trabajar la autonomía — rendimiento sin RE/RP: '+autonomia+'/5',
-      desc:'Reducir el acompañamiento directo de forma planificada. Establecer retos autónomos con seguimiento posterior. El captador necesita demostrase a sí mismo que puede.'
-    });
+  if (tecSuf && habSuf && tAvg >= 3.5 && hAvg < 2.5) {
+    add({ id:'habitos', grupo:'habitos', urgencia:'media', icono:'⚡',
+      titulo:'Trabajar los hábitos — técnica ' + fmt1(tAvg) + ' / hábitos ' + fmt1(hAvg),
+      desc:'Hay una diferencia entre la valoración técnica y la de hábitos. Observar un tramo sin acompañamiento y anotar qué hábitos concretos no se cumplen.' });
   }
-
-  // 🔒 BLOQUEO EN CIERRE con técnica razonable
-  if (cierre > 0 && cierre <= 2 && tAvg >= 2.5 && tFilled.length >= 2) {
-    prioridades.push({
-      urgencia:'media', icono:'🔒',
-      titulo:'Desbloquear el cierre ('+cierre+'/5) — cuello de botella principal',
-      desc:'Parada y speech razonables pero el esfuerzo se pierde en el último paso. Role-play específico de cierre en la próxima sesión. El bloqueo suele ser emocional, no técnico.'
-    });
+  if (tecSuf && habSuf && hAvg >= 3.5 && tAvg < 2.5) {
+    add({ id:'tecnica', grupo:'tecnica', urgencia:'media', icono:'💪',
+      titulo:'Reforzar la técnica — hábitos ' + fmt1(hAvg) + ' / técnica ' + fmt1(tAvg),
+      desc:'Las puntuaciones sugieren buena predisposición y menor dominio del proceso. Practicar Parada y Speech con role-play antes de salir a campo.' });
   }
-
-  // ⚡ TÉCNICA ALTA + HÁBITOS BAJOS
-  if (tAvg >= 3.5 && hAvg < 2.5 && tFilled.length && hFilled.length) {
-    prioridades.push({
-      urgencia:'media', icono:'⚡',
-      titulo:'Consolidar hábitos — conoce el proceso pero no lo aplica solo',
-      desc:'Técnica '+tAvg.toFixed(1)+'/5 vs Hábitos '+hAvg.toFixed(1)+'/5. Reducir acompañamiento directo para forzar autonomía real. El bloqueo no es técnico, es conductual.'
-    });
+  if (bajo('h_10')) {
+    add({ id:'estabilidad', grupo:'estabilidad', urgencia:'media', icono:'📊',
+      titulo:'Estabilidad semanal baja (' + s('h_10') + '/5)',
+      desc:'Revisar con el captador una semana buena y una mala, anotar qué cambió y, si aparece un factor repetido, acordar una rutina de inicio de jornada.' });
   }
-
-  // 💪 HÁBITOS ALTOS + TÉCNICA BAJA
-  if (hAvg >= 3.5 && tAvg < 2.5 && tFilled.length && hFilled.length) {
-    prioridades.push({
-      urgencia:'media', icono:'💪',
-      titulo:'Intensificar el trabajo técnico — buena actitud, proceso sin interiorizar',
-      desc:'Hábitos '+hAvg.toFixed(1)+'/5 pero Técnica '+tAvg.toFixed(1)+'/5. La actitud es el activo. Trabajar Parada y Speech con role-play antes de salir a campo. El proceso llegará.'
-    });
+  if (bajo('t_2') && minimo('t_0', 2.5) && minimo('t_1', 2.5)) {
+    add({ id:'rebatidas', grupo:'rebatidas', urgencia:'media', icono:'🗣️',
+      titulo:'Trabajar las rebatidas (' + s('t_2') + '/5)',
+      desc:'Parada y speech puntúan mejor que las rebatidas. Practicar con role-play las objeciones más frecuentes en su zona.' });
   }
-
-  // 📊 ESTABILIDAD BAJA
-  if (estabilidad > 0 && estabilidad <= 2) {
-    prioridades.push({
-      urgencia:'media', icono:'📊',
-      titulo:'Estabilidad semanal muy baja ('+estabilidad+'/5) — crear protocolo de inicio',
-      desc:'La estabilidad se construye con protocolos, no con motivación. Identificar qué diferencia las semanas buenas de las malas y replicar las condiciones de las buenas.'
-    });
+  if (bajo('h_0') || bajo('h_9')) {
+    const cual = bajo('h_0') ? 'Puntualidad (' + s('h_0') + '/5)' : 'Aprovechamiento de la jornada (' + s('h_9') + '/5)';
+    add({ id:'jornada', grupo:'jornada', urgencia:'media', icono:'⏰',
+      titulo: cual + ' — acordar un cambio concreto',
+      desc:'Hablar con el captador sobre qué lo provoca y acordar un cambio concreto que se pueda comprobar en la próxima sesión.' });
   }
-
-  // 🗣️ REBATIDAS BAJAS con parada y speech razonables
-  if (rebatidas > 0 && rebatidas <= 2 && parada >= 2.5 && speech >= 2.5) {
-    prioridades.push({
-      urgencia:'media', icono:'🗣️',
-      titulo:'Rebatidas bloqueadas ('+rebatidas+'/5) — llega bien pero no supera objeciones',
-      desc:'Parada y speech funcionan pero las objeciones cortan la conversación. Role-play específico de las 3 principales objeciones de su zona. La solución está en la repetición, no en la teoría.'
-    });
+  if (bajo('h_2') || bajo('h_5')) {
+    const cual = bajo('h_2') ? 'gestión de conflictos (' + s('h_2') + '/5)' : 'dinámicas de equipo (' + s('h_5') + '/5)';
+    add({ id:'equipo', grupo:'equipo', urgencia:'media', icono:'🤝',
+      titulo:'Valoración baja en ' + cual,
+      desc:'Hablar con el captador para entender qué está pasando en el equipo y cuál es su papel en ello.' });
   }
-
-  // ⏰ PUNTUALIDAD / JORNADA BAJOS — problema de base
-  if ((puntualidad > 0 && puntualidad <= 2) || (jornada > 0 && jornada <= 2)) {
-    const cual = (puntualidad > 0 && puntualidad <= 2) ? 'Puntualidad ('+puntualidad+'/5)' : 'Aprovechamiento de jornada ('+jornada+'/5)';
-    prioridades.push({
-      urgencia:'media', icono:'⏰',
-      titulo:cual+' — resolver antes de cualquier trabajo técnico',
-      desc:'Los problemas de base anulan cualquier mejora técnica. Sin presencia completa en la jornada no hay datos útiles. Conversación directa sobre qué lo provoca y acuerdo explícito de cambio.'
-    });
+  if (bajo('h_4') && hayFase && faseNum >= 3) {
+    add({ id:'criterios', grupo:'criterios', urgencia:'media', icono:'📋',
+      titulo:'Repasar los criterios Wesser (' + s('h_4') + '/5)',
+      desc:'Sesión de repaso de los criterios con autoevaluación práctica.' });
   }
-
-  // 🤝 CONFLICTOS O DINÁMICAS DE EQUIPO BAJAS
-  if ((conflictos > 0 && conflictos <= 2) || (equipo > 0 && equipo <= 2)) {
-    prioridades.push({
-      urgencia:'media', icono:'🤝',
-      titulo:'Tensiones de equipo afectando el rendimiento individual',
-      desc:'La energía del equipo impacta en la motivación de forma directa. Identificar si el captador es fuente o receptor del conflicto. Intervención antes de que afecte a la fase de calle.'
-    });
+  if (hayFase && faseNum >= 3 && (bajo('h_7') || bajo('h_8'))) {
+    const cual = bajo('h_7') ? 'Aspecto personal (' + s('h_7') + '/5)' : 'Praxis en captación (' + s('h_8') + '/5)';
+    add({ id:'aspecto', grupo:'aspecto', urgencia:'normal', icono:'🪞',
+      titulo: cual + ' — feedback concreto',
+      desc:'Dar feedback directo y concreto sobre los detalles observados en calle.' });
   }
-
-  // 📋 CRITERIOS WESSER NO INTERIORIZADOS
-  if (criterios > 0 && criterios <= 2 && faseNum >= 3) {
-    prioridades.push({
-      urgencia:'media', icono:'📋',
-      titulo:'Criterios Wesser no interiorizados ('+criterios+'/5) — base del proceso',
-      desc:'Sin conocer los criterios no hay referencia de calidad. Sesión específica de revisión de criterios con autoevaluación práctica. No avanzar en técnica avanzada sin esta base.'
-    });
-  }
-
-  // 🪞 ASPECTO / PRAXIS en fases avanzadas
-  if (faseNum >= 3 && ((aspecto > 0 && aspecto <= 2) || (praxis > 0 && praxis <= 2))) {
-    const cual = (aspecto > 0 && aspecto <= 2) ? 'Aspecto personal ('+aspecto+'/5)' : 'Praxis en captación ('+praxis+'/5)';
-    prioridades.push({
-      urgencia:'normal', icono:'🪞',
-      titulo:cual+' — detalles que restan credibilidad en calle',
-      desc:'En fases avanzadas los detalles marcan la diferencia. El captador ya conoce el proceso pero pequeños errores de forma o presentación reducen la conversión. Feedback directo y concreto.'
-    });
-  }
-
-  // 📝 SIN REGISTRO DE INTERVENCIÓN
-  if (!intervActual && faseNum > 0 && (tFilled.length + hFilled.length) > 0) {
-    prioridades.push({
-      urgencia:'normal', icono:'📝',
+  if (!intervActual && hayFase && hayEval) {
+    add({ id:'registro', grupo:'registro', urgencia:'normal', icono:'📝',
       titulo:'Sin registro de intervención para esta fase',
-      desc:'Hay evaluación completada pero no hay notas de intervención en el tab Acompañamiento. Documentar qué se trabajó y cuál es el siguiente paso concreto para la próxima sesión.'
-    });
+      desc:'Hay evaluación pero no hay notas en Acompañamiento. Documentar qué se trabajó y cuál es el siguiente paso concreto para la próxima sesión.' });
+  }
+  if (hayFase && faseNum >= 5 && globalAvg !== null && globalAvg >= 3) {
+    add({ id:'futuro', grupo:'futuro', urgencia:'normal', icono:'🚀',
+      titulo:'Conversación de futuro',
+      desc:(fase ? fase.label + ': ' : '') + 'la guía de fases propone hablar de objetivos a medio plazo. «¿Dónde quieres estar dentro de un mes? ¿Qué meta te motiva?»' });
   }
 
-  // 🎯 VARIABLE CON MÁS PALANCA
-  if (palanca && palanca.v < 3 && prioridades.length < 3) {
-    prioridades.push({
-      urgencia:'normal', icono:'🎯',
-      titulo:'Variable con más palanca: '+palanca.l+' ('+palanca.v+'/5)',
-      desc:'De todas las variables puntuadas, '+palanca.l+' es donde hay más margen de mejora. Concentrar la próxima intervención aquí antes de trabajar otras áreas.'
-    });
+  // Índice de atención alto: refuerza la prioridad que corresponde a su señal principal o, si no hay, se añade aparte
+  if (riesgo && (riesgo.nivel === 'critico' || riesgo.nivel === 'alto') && !(diasSin > 14)) {
+    const top = riesgo.factores.find(f => f.puntos > 0);
+    const grupoTop = top ? (GRUPO_FACTOR[top.id] || top.id) : null;
+    const existente = grupoTop ? cand.find(c => c.grupo === grupoTop) : null;
+    if (existente) {
+      existente.urgencia = 'alta';
+      existente.desc += ' Es la señal que más pesa en el índice de atención (' + riesgo.score + '/100).';
+    } else {
+      add({ id:'indice', grupo: grupoTop || 'indice', urgencia:'alta', icono:'🔴',
+        titulo: RIESGO_NIVELES[riesgo.nivel].label + ' — revisar esta semana (' + riesgo.score + '/100)',
+        desc: top ? 'La señal con más peso en el índice interno es: ' + top.label + '. Revisarla antes de la próxima sesión.'
+                  : 'Revisar las señales del índice de atención en Diagnóstico.' });
+    }
   }
 
-  // 🚀 FASE AVANZADA — conversación de futuro
-  if (faseNum >= 5 && globalAvg >= 3) {
-    prioridades.push({
-      urgencia:'normal', icono:'🚀',
-      titulo:'Conversación de futuro — clave para retención en esta fase',
-      desc:(fase?fase.label+': ':'')+'Quien ve camino, se queda. Quien no ve camino, ya se ha ido aunque siga apareciendo. Esta semana: "¿Dónde quieres estar en 1 mes? ¿Qué meta te motiva?"'
-    });
+  // Variable prioritaria por puntuación: con datos suficientes y si su grupo no está ya cubierto
+  const cubiertos = new Set(cand.map(c => c.grupo));
+  const masBaja = evaluadas.slice().sort((a, b) => a.v - b.v).find(x => x.v < 3 && !cubiertos.has(GRUPO_VARIABLE[x.k] || x.k));
+  if (totalSuf && masBaja) {
+    add({ id:'variable_prioritaria', grupo: GRUPO_VARIABLE[masBaja.k] || masBaja.k, urgencia:'normal', icono:'🎯',
+      titulo:'Variable prioritaria por puntuación: ' + masBaja.l + ' (' + masBaja.v + '/5)',
+      desc:'Es la variable más baja entre las evaluadas. Conviene trabajarla en la próxima intervención; su puntuación no indica por sí sola que sea la causa del resultado.' });
   }
 
-  // 🏆 TODO BIEN
-  if (globalAvg >= 4 && tAvg >= 3.5 && hAvg >= 3.5 && prioridades.length === 0) {
-    prioridades.push({
-      urgencia:'normal', icono:'🏆',
-      titulo:'Perfil en zona de alto rendimiento — potenciar',
-      desc:'Media global '+globalAvg.toFixed(1)+'/5. Este captador está consolidado. El riesgo ahora es la complacencia. Introducir nuevos retos: campañas, zonas nuevas, rol de mentor.'
-    });
+  // Puntuaciones altas sin otras señales
+  if (!cand.length && tecSuf && habSuf && globalAvg >= 4 && tAvg >= 3.5 && hAvg >= 3.5) {
+    add({ id:'potenciar', grupo:'potenciar', urgencia:'normal', icono:'🏆',
+      titulo:'Puntuaciones altas — proponer nuevos retos',
+      desc:'Media ' + fmt1(globalAvg) + '/5. Buen momento para acordar un reto nuevo: campañas, zonas o apoyo a compañeros.' });
   }
 
-  return prioridades.slice(0, 3); // Máximo 3
+  // Selección: orden por urgencia y especificidad; una prioridad por grupo; máximo 3
+  const peso = { alta:3, media:2, normal:1 };
+  cand.forEach((c, i) => { c.orden = i; c.scorePrioridad = peso[c.urgencia] * 10 + c.esp; });
+  cand.sort((a, b) => b.scorePrioridad - a.scorePrioridad || a.orden - b.orden);
+  const vistos = new Set(), out = [];
+  for (const c of cand) {
+    if (vistos.has(c.grupo)) continue;
+    vistos.add(c.grupo);
+    out.push({ id:c.id, grupo:c.grupo, urgencia:c.urgencia, scorePrioridad:c.scorePrioridad, icono:c.icono, titulo:c.titulo, desc:c.desc });
+    if (out.length === 3) break;
+  }
+  return out;
 }
 
 function renderLMI() {
