@@ -1480,6 +1480,14 @@ function esc(s) { return htmlEsc(s); }
 // Con NaN todas las comparaciones (<=, >=, ===) dan falso: ninguna regla de fase se aplica por error.
 function numeroFase(id) { const i = FASES.findIndex(f => f.id === id); return i >= 0 ? i + 1 : NaN; }
 function faseValida(id) { return FASES.some(f => f.id === id); }
+// Puntuación real de la escala 1–5; null si la variable no está evaluada (vacía, 0 o no numérica)
+function scoreDe(data, key) {
+  const raw = data ? data[key] : null;
+  if (raw === null || raw === undefined || raw === '') return null;
+  const v = Number(raw);
+  return Number.isFinite(v) && v >= 1 && v <= 5 ? v : null;
+}
+function hasScore(data, key) { return scoreDe(data, key) !== null; }
 
 // Emoji de los datos → icono de línea equivalente
 const EMOJI_ICONO = {
@@ -3025,7 +3033,15 @@ const ALL_VARS_LABELS = {
   h_9:'Aprovechamiento de jornada', h_10:'Estabilidad semanal'
 };
 
+// Diagnóstico por reglas. Si no hay fase válida, las reglas que no dependen de ella siguen
+// funcionando y el resultado lo indica (faseDesconocida); nunca se supone una fase.
 function diagnosticar(data, sesionesAnteriores) {
+  const r = diagnosticarReglas(data, sesionesAnteriores);
+  if (r && !r.datosInsuficientes && !faseValida(data.faseSelected)) r.faseDesconocida = true;
+  return r;
+}
+
+function diagnosticarReglas(data, sesionesAnteriores) {
   // Días desde última sesión (para urgencia de contacto)
   let diasSinInterv = null;
   if (sesionesAnteriores && sesionesAnteriores.length >= 1) {
@@ -3036,8 +3052,11 @@ function diagnosticar(data, sesionesAnteriores) {
   if (!data || typeof data !== 'object') return null;
 
   // Extraer valores
-  const tVals = TECNICA_VARS.map((_,i) => data['t_'+i]||0);
-  const hVals = HABITOS_VARS.map((_,i) => data['h_'+i]||0);
+  // 0 = sin evaluar: solo sirve para filtrar; las reglas usan bajo()/alto(), que exigen puntuación real
+  const tVals = TECNICA_VARS.map((_,i) => scoreDe(data, 't_'+i) || 0);
+  const hVals = HABITOS_VARS.map((_,i) => scoreDe(data, 'h_'+i) || 0);
+  const bajo = (k, max = 2) => { const v = scoreDe(data, k); return v !== null && v <= max; };
+  const alto = (k, min) => { const v = scoreDe(data, k); return v !== null && v >= min; };
   const tFilled = tVals.filter(v=>v>0);
   const hFilled = hVals.filter(v=>v>0);
   const tAvg = tFilled.length ? tFilled.reduce((a,b)=>a+b,0)/tFilled.length : 0;
@@ -3046,6 +3065,7 @@ function diagnosticar(data, sesionesAnteriores) {
 
   const fase = data.faseSelected||'';
   const faseNum = numeroFase(fase);
+  const hayFase = !isNaN(faseNum);
   const creencias = [1,2,3,4,5].map(i=>data['c'+i]||'').filter(Boolean);
   const nCreencias = creencias.length;
 
@@ -3053,41 +3073,32 @@ function diagnosticar(data, sesionesAnteriores) {
   let tendencia = null;
   if (sesionesAnteriores && sesionesAnteriores.length >= 1) {
     const prev = sesionesAnteriores[sesionesAnteriores.length-1];
-    const prevT = parseFloat(avgScores(prev,'t',TECNICA_VARS.length)||0);
-    const prevH = parseFloat(avgScores(prev,'h',HABITOS_VARS.length)||0);
-    const prevG = (prevT+prevH)/2;
-    tendencia = globalAvg - prevG;
+    // Solo se comparan los grupos que la sesión anterior tiene evaluados (un grupo vacío no cuenta como 0)
+    const medias = [avgScores(prev,'t',TECNICA_VARS.length), avgScores(prev,'h',HABITOS_VARS.length)]
+      .filter(v => v !== null).map(parseFloat);
+    if (medias.length) tendencia = globalAvg - medias.reduce((a,b)=>a+b,0) / medias.length;
   }
 
   // Sin datos
   if (!tFilled.length && !hFilled.length) return null;
 
+  // Evidencia mínima para las reglas basadas en medias de grupo (no en una variable concreta)
+  const tecSuf = tFilled.length >= 2, habSuf = hFilled.length >= 3;
+  const nEval = tFilled.length + hFilled.length;
+  const totalSuf = nEval >= 4;
+
   // ── Variable con más palanca ──
   // La de menor puntuación entre las que están por debajo de 3
   const allScored = Object.entries(ALL_VARS_LABELS)
-    .map(([k,label]) => ({k, label, val: data[k]||0}))
+    .map(([k,label]) => ({k, label, val: scoreDe(data, k) || 0}))
     .filter(x => x.val > 0)
     .sort((a,b) => a.val - b.val);
   const palanca = allScored.find(x => x.val < 3) || allScored[0] || null;
 
   // ── REGLAS (orden de prioridad) ──
 
-  // R0: Sin fase válida no hay diagnóstico por fase: se pide el dato, nunca se asume F1
-  if (isNaN(faseNum)) {
-    return {
-      tipo: 'Falta la fase', sinFase: true,
-      diagnostico: { icon:'🗓️', color:'orange', titulo:'Fase sin calcular',
-        texto: fase
-          ? 'La fase guardada en esta ficha («' + fase + '») no es válida, así que el diagnóstico no puede tener en cuenta en qué momento del proceso está el captador.'
-          : 'No hay fecha de comienzo, así que no se sabe en qué fase está el captador. El diagnóstico depende de la fase y no se calcula sin ella.' },
-      recomendacion: { icon:'🎯', color:'blue', titulo:'Qué hacer',
-        texto: 'Introduce la fecha de comienzo en Captador. La fase se calcula sola y el diagnóstico se genera en cuanto la tenga.' },
-      palanca
-    };
-  }
-
   // R1: Fase muy inicial → integración prioritaria
-  if (faseNum <= 2) {
+  if (hayFase && faseNum <= 2) {
     return {
       tipo: 'Fase inicial',
       diagnostico: { icon:'🗓️', color:'blue', titulo:'Contexto de fase',
@@ -3095,7 +3106,7 @@ function diagnosticar(data, sesionesAnteriores) {
           ? 'Captador en sus primeros días. El objetivo no es el rendimiento sino la integración al proceso y al equipo. El acompañamiento debe ser total en esta fase.'
           : 'Segunda semana en proceso. Es normal que las puntuaciones sean bajas. Priorizar que el captador interiorice la Parada y el inicio del Speech antes de valorar el resto.' },
       recomendacion: { icon:'🎯', color:'blue', titulo:'Foco de intervención',
-        texto: (data['h_6']||0) > 0 && (data['h_6']||0) <= 2
+        texto: bajo('h_6')
           ? 'Atención: se detecta resistencia al feedback en fase inicial. Esto puede bloquear el aprendizaje desde el primer día. Abordar con conversación empática antes de continuar.'
           : 'No intervenir aún sobre hábitos ni creencias. Toda la energía va al proceso: Parada → Speech. Evaluar y felicitar pequeños avances para construir confianza inicial.' },
       palanca
@@ -3103,7 +3114,7 @@ function diagnosticar(data, sesionesAnteriores) {
   }
 
   // R1b: Contacto urgente — sin intervención >14 días en fase crítica
-  if (diasSinInterv !== null && diasSinInterv > 14 && faseNum >= 3 && faseNum <= 5) {
+  if (diasSinInterv !== null && diasSinInterv > 14 && hayFase && faseNum >= 3 && faseNum <= 5) {
     return {
       tipo: 'Contacto urgente',
       diagnostico: { icon:'🚨', color:'red', titulo:'Sin intervención reciente',
@@ -3115,7 +3126,7 @@ function diagnosticar(data, sesionesAnteriores) {
   }
 
   // R2: Disposición al feedback muy baja → bloqueo de base
-  if ((data['h_6']||0) <= 2 && hFilled.length) {
+  if (bajo('h_6')) {
     return {
       tipo: 'Resistencia al feedback',
       diagnostico: { icon:'🚧', color:'red', titulo:'Bloqueo detectado',
@@ -3127,7 +3138,7 @@ function diagnosticar(data, sesionesAnteriores) {
   }
 
   // R3: Creencias activas + manejo de negatividad bajo
-  if (nCreencias >= 2 && (data['h_3']||0) <= 2) {
+  if (nCreencias >= 2 && bajo('h_3')) {
     return {
       tipo: 'Bloqueo cognitivo',
       diagnostico: { icon:'🧠', color:'red', titulo:'Diagnóstico principal',
@@ -3139,7 +3150,7 @@ function diagnosticar(data, sesionesAnteriores) {
   }
 
   // R4: Técnica alta + Hábitos bajos
-  if (tAvg >= 3.5 && hAvg < 2.5 && tFilled.length && hFilled.length) {
+  if (tecSuf && habSuf && tAvg >= 3.5 && hAvg < 2.5) {
     const habBajos = hVals.map((v,i)=>({label:HABITOS_VARS[i],val:v})).filter(x=>x.val>0&&x.val<3).map(x=>x.label).slice(0,2).join(', ');
     return {
       tipo: 'Técnica sólida / Hábitos débiles',
@@ -3152,7 +3163,7 @@ function diagnosticar(data, sesionesAnteriores) {
   }
 
   // R5: Hábitos altos + Técnica baja
-  if (hAvg >= 3.5 && tAvg < 2.5 && tFilled.length && hFilled.length) {
+  if (tecSuf && habSuf && hAvg >= 3.5 && tAvg < 2.5) {
     const tecBaja = tVals.map((v,i)=>({label:TECNICA_VARS[i],val:v})).filter(x=>x.val>0&&x.val<3).map(x=>x.label).slice(0,2).join(' y ');
     return {
       tipo: 'Actitud buena / Proceso sin interiorizar',
@@ -3165,7 +3176,7 @@ function diagnosticar(data, sesionesAnteriores) {
   }
 
   // R6: Cierre bajo + resto técnica ok
-  if ((data['t_3']||0) <= 2 && tAvg >= 2.8 && tFilled.length >= 3) {
+  if (bajo('t_3') && tAvg >= 2.8 && tFilled.length >= 3) {
     return {
       tipo: 'Bloqueo en cierre',
       diagnostico: { icon:'🔒', color:'orange', titulo:'Cuello de botella detectado',
@@ -3177,7 +3188,7 @@ function diagnosticar(data, sesionesAnteriores) {
   }
 
   // R7: Speech bajo + Parada ok
-  if ((data['t_1']||0) <= 2 && (data['t_0']||0) >= 3) {
+  if (bajo('t_1') && alto('t_0', 3)) {
     return {
       tipo: 'Speech sin impacto',
       diagnostico: { icon:'🎤', color:'orange', titulo:'Cuello de botella detectado',
@@ -3189,7 +3200,7 @@ function diagnosticar(data, sesionesAnteriores) {
   }
 
   // R8: Rendimiento sin RE/RP bajo — solo si técnica no es el problema principal
-  if ((data['h_1']||0) <= 2 && hFilled.length && tAvg >= 2.5) {
+  if (bajo('h_1') && tecSuf && tAvg >= 2.5) {
     return {
       tipo: 'Dependencia del acompañamiento',
       diagnostico: { icon:'🔗', color:'orange', titulo:'Patrón de dependencia',
@@ -3201,7 +3212,7 @@ function diagnosticar(data, sesionesAnteriores) {
   }
 
   // R9: Estabilidad semanal baja — solo si el proceso básico está razonablemente bien
-  if ((data['h_10']||0) <= 2 && hFilled.length && tAvg >= 2.5 && (data['h_6']||0) >= 2.5) {
+  if (bajo('h_10') && tecSuf && tAvg >= 2.5 && alto('h_6', 2.5)) {
     return {
       tipo: 'Alta variabilidad',
       diagnostico: { icon:'📉', color:'orange', titulo:'Inconsistencia detectada',
@@ -3225,7 +3236,7 @@ function diagnosticar(data, sesionesAnteriores) {
   }
 
   // R11: Fase avanzada + puntuaciones bajas
-  if (faseNum >= 4 && globalAvg < 2.5 && (tFilled.length + hFilled.length) >= 4) {
+  if (hayFase && faseNum >= 4 && globalAvg < 2.5 && totalSuf) {
     return {
       tipo: 'Integración no consolidada',
       diagnostico: { icon:'⚠️', color:'red', titulo:'Señal de alerta',
@@ -3237,7 +3248,7 @@ function diagnosticar(data, sesionesAnteriores) {
   }
 
   // R12: Alto rendimiento
-  if (tAvg >= 4 && hAvg >= 4) {
+  if (tecSuf && habSuf && tAvg >= 4 && hAvg >= 4) {
     return {
       tipo: 'Alto rendimiento',
       diagnostico: { icon:'🏆', color:'green', titulo:'Zona de excelencia',
@@ -3249,7 +3260,7 @@ function diagnosticar(data, sesionesAnteriores) {
   }
 
   // R13: Progreso estable — solo si el rendimiento base es aceptable
-  if (tendencia !== null && tendencia >= 0 && globalAvg >= 2.5) {
+  if (tendencia !== null && tendencia >= 0 && totalSuf && globalAvg >= 2.5) {
     return {
       tipo: 'Progreso estable',
       diagnostico: { icon:'📈', color:'green', titulo:'Tendencia positiva',
@@ -3259,6 +3270,23 @@ function diagnosticar(data, sesionesAnteriores) {
           ? `Consolidar lo conseguido y poner foco en ${palanca.label} (${palanca.val}/5), que es donde queda más margen de mejora.`
           : 'Mantener el ritmo. Reforzar los logros conseguidos y elevar gradualmente el nivel de exigencia.' },
       palanca
+    };
+  }
+
+  // Ninguna regla con evidencia suficiente: no se afirma lo que los datos no sostienen
+  if (!hayFase || !totalSuf) {
+    const porFase = !hayFase;
+    return {
+      tipo: 'Datos insuficientes', datosInsuficientes: true, sinFase: porFase,
+      diagnostico: { icon:'🔍', color:'blue', titulo: porFase ? 'Falta la fase' : 'Pocas variables evaluadas',
+        texto: porFase
+          ? 'Ninguna regla que no dependa de la fase se cumple con los datos actuales, y sin fase no se puede valorar el resto. No se genera un diagnóstico para no suponer en qué fase está el captador.'
+          : 'Solo hay ' + nEval + (nEval === 1 ? ' variable evaluada' : ' variables evaluadas') + '. Con tan pocos datos no se puede dar un diagnóstico general fiable.' },
+      recomendacion: { icon:'🎯', color:'blue', titulo:'Qué hacer',
+        texto: porFase
+          ? 'Introduce la fecha de comienzo en Captador. La fase se calcula sola y el diagnóstico se completa en cuanto la tenga.'
+          : 'Puntúa en Evaluación al menos 4 variables que hayas podido observar, de técnica y de hábitos.' },
+      palanca: null
     };
   }
 
@@ -3313,8 +3341,11 @@ function renderDiagnostico() {
       <span class="diag-palanca-val">${esc(diag.palanca.label)}</span>
       <span class="score-pill ${pillClass(diag.palanca.val.toString())}">${diag.palanca.val} de 5</span>
     </div>` : '';
-  body.innerHTML = bloque(diag.diagnostico) + (diag.sinFase ? '' : palancaHtml) + bloque(diag.recomendacion) +
-    (diag.sinFase ? '<button type="button" class="btn btn-secondary" onclick="irAFechaInicio()">' + ic('calendar') + 'Poner la fecha de comienzo</button>' : '');
+  const avisoFase = diag.faseDesconocida
+    ? '<div class="notice" data-tone="warn">' + ic('calendar') + '<div><strong>Sin fase.</strong> Este diagnóstico no tiene en cuenta en qué fase está el captador; puede cambiar al poner la fecha de comienzo.</div></div>' : '';
+  const faltaFase = diag.sinFase || diag.faseDesconocida;
+  body.innerHTML = avisoFase + bloque(diag.diagnostico) + (diag.datosInsuficientes ? '' : palancaHtml) + bloque(diag.recomendacion) +
+    (faltaFase ? '<button type="button" class="btn btn-secondary" onclick="irAFechaInicio()">' + ic('calendar') + 'Poner la fecha de comienzo</button>' : '');
 }
 
 
