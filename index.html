@@ -1476,6 +1476,10 @@ function ic(nombre, clase) {
   return '<svg class="ic' + (clase ? ' ' + clase : '') + '" aria-hidden="true"><use href="#i-' + nombre + '"/></svg>';
 }
 function esc(s) { return htmlEsc(s); }
+// Número de fase (1–6) solo si el identificador es una fase válida; NaN si falta o no es válida.
+// Con NaN todas las comparaciones (<=, >=, ===) dan falso: ninguna regla de fase se aplica por error.
+function numeroFase(id) { const i = FASES.findIndex(f => f.id === id); return i >= 0 ? i + 1 : NaN; }
+function faseValida(id) { return FASES.some(f => f.id === id); }
 
 // Emoji de los datos → icono de línea equivalente
 const EMOJI_ICONO = {
@@ -2101,7 +2105,7 @@ function cargarDatos(data) {
   try{updateGroupAvg('h');}catch(e){}
   for(let i=1;i<=9;i++) { const el=document.getElementById('ip'+i); if(el) el.value=data['ip'+i]||''; }
   for(let i=1;i<=6;i++) { const el=document.getElementById('ih'+i); if(el) el.value=data['ih'+i]||''; }
-  if(data.faseSelected) selectFase(data.faseSelected, true); // silent=true: no autoguardar
+  if(faseValida(data.faseSelected)) selectFase(data.faseSelected, true); // silent=true: no autoguardar
   else { faseSelected=null; FASES.forEach(f=>{ const r=document.getElementById('radio_'+f.id); if(r)r.checked=false; document.getElementById('frow_'+f.id)?.classList.remove('selected-fase'); }); }
   FASES.forEach(f => { const el=document.getElementById('ftx_'+f.id); if(el) el.value=data['ftx_'+f.id]||''; });
   const lmiEl=document.getElementById('lmiNota'); if(lmiEl) lmiEl.value=data.lmiNota||data.lmi1||'';
@@ -2875,7 +2879,7 @@ function calcXP(sessions) {
   const unlockedCount = BADGES_DEF.filter(b => b.check(sessions)).length;
   xp += unlockedCount * 20;
   // XP bonus por fase avanzada
-  const maxFase = Math.max(...sessions.map(f => parseInt(f.faseSelected?.replace('f','')||0)));
+  const maxFase = Math.max(...sessions.map(f => numeroFase(f.faseSelected) || 0));
   xp += maxFase * 10;
   return Math.round(xp);
 }
@@ -3041,7 +3045,7 @@ function diagnosticar(data, sesionesAnteriores) {
   const globalAvg = (tFilled.length+hFilled.length) ? (tVals.concat(hVals).filter(v=>v>0).reduce((a,b)=>a+b,0))/(tFilled.length+hFilled.length) : 0;
 
   const fase = data.faseSelected||'';
-  const faseNum = parseInt(fase.replace('f','')||0);
+  const faseNum = numeroFase(fase);
   const creencias = [1,2,3,4,5].map(i=>data['c'+i]||'').filter(Boolean);
   const nCreencias = creencias.length;
 
@@ -3067,6 +3071,20 @@ function diagnosticar(data, sesionesAnteriores) {
   const palanca = allScored.find(x => x.val < 3) || allScored[0] || null;
 
   // ── REGLAS (orden de prioridad) ──
+
+  // R0: Sin fase válida no hay diagnóstico por fase: se pide el dato, nunca se asume F1
+  if (isNaN(faseNum)) {
+    return {
+      tipo: 'Falta la fase', sinFase: true,
+      diagnostico: { icon:'🗓️', color:'orange', titulo:'Fase sin calcular',
+        texto: fase
+          ? 'La fase guardada en esta ficha («' + fase + '») no es válida, así que el diagnóstico no puede tener en cuenta en qué momento del proceso está el captador.'
+          : 'No hay fecha de comienzo, así que no se sabe en qué fase está el captador. El diagnóstico depende de la fase y no se calcula sin ella.' },
+      recomendacion: { icon:'🎯', color:'blue', titulo:'Qué hacer',
+        texto: 'Introduce la fecha de comienzo en Captador. La fase se calcula sola y el diagnóstico se genera en cuanto la tenga.' },
+      palanca
+    };
+  }
 
   // R1: Fase muy inicial → integración prioritaria
   if (faseNum <= 2) {
@@ -3295,7 +3313,8 @@ function renderDiagnostico() {
       <span class="diag-palanca-val">${esc(diag.palanca.label)}</span>
       <span class="score-pill ${pillClass(diag.palanca.val.toString())}">${diag.palanca.val} de 5</span>
     </div>` : '';
-  body.innerHTML = bloque(diag.diagnostico) + palancaHtml + bloque(diag.recomendacion);
+  body.innerHTML = bloque(diag.diagnostico) + (diag.sinFase ? '' : palancaHtml) + bloque(diag.recomendacion) +
+    (diag.sinFase ? '<button type="button" class="btn btn-secondary" onclick="irAFechaInicio()">' + ic('calendar') + 'Poner la fecha de comienzo</button>' : '');
 }
 
 
@@ -4905,7 +4924,7 @@ function calcRiesgo(sessions, estado) {
 
   // ── Factor 1: Días sin intervención (ponderado por estado) ──
   const diasSin = Math.floor((Date.now() - new Date(last._savedAt)) / 86400000);
-  const faseNum = parseInt((last.faseSelected||'f0').replace('f',''));
+  const faseNum = numeroFase(last.faseSelected);
   if (diasSin > 14) {
     const diasPts = faseNum <= 3 ? 25 : 15; // más crítico en fases iniciales
     score += diasPts;
@@ -5033,6 +5052,10 @@ function calcRiesgo(sessions, estado) {
       score += 10;
       factores.push('🔇 Fase 5 — riesgo de desconexión silenciosa');
     }
+  }
+
+  if (isNaN(faseNum)) {
+    factores.push('🗓️ Fase sin calcular (falta la fecha de comienzo): el riesgo propio de la fase no se ha tenido en cuenta');
   }
 
   // ── Factor 4b: Variables técnicas individuales críticas ──
@@ -5737,8 +5760,8 @@ const SEMAFORO_CONFIG = {
 
 function calcSemaforo(sessions, faseId, estado) {
   // Solo aplica en fase 46-90 (+90 también)
-  const faseNum = parseInt((faseId||'f0').replace('f',''));
-  if (faseNum < 5) return null;
+  const faseNum = numeroFase(faseId);
+  if (!(faseNum >= 5)) return null;
 
   if (!sessions || sessions.length < 2) return null;
 
@@ -5894,7 +5917,7 @@ function calcLMI() {
     ? [...savedSessions, Object.assign({}, d, { _savedAt: new Date().toISOString(), _id: '_current' })]
     : savedSessions;
   const riesgo = histSessions.length ? calcRiesgo(histSessions, d.estado||'') : null;
-  const faseNum = parseInt((d.faseSelected||'f0').replace('f',''));
+  const faseNum = numeroFase(d.faseSelected);
   const fase = FASES.find(f=>f.id===d.faseSelected);
 
   // Variables de puntuación
@@ -5969,6 +5992,15 @@ function calcLMI() {
       desc: topFactor
         ? 'El factor de mayor riesgo detectado: '+topFactor+'. Actuar antes de la próxima sesión programada.'
         : 'El índice de riesgo de baja está en '+riesgo.score+'/100. Revisar los factores en el tab de Diagnóstico.'
+    });
+  }
+
+  // 🗓️ SIN FASE — sin ella no se pueden priorizar las reglas de fase
+  if (isNaN(faseNum) && (tFilled.length + hFilled.length) > 0) {
+    prioridades.push({
+      urgencia:'media', icono:'🗓️',
+      titulo:'Falta la fecha de comienzo — la fase no está calculada',
+      desc:'Sin fase no se pueden aplicar las prioridades propias de cada momento del proceso (primeros días, punto de fuga, conversación de futuro). Introduce la fecha de comienzo en Captador.'
     });
   }
 
