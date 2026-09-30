@@ -5965,7 +5965,7 @@ function calcLMI() {
     const topFactor = riesgo.factores[0]?.slice(2).trim()||'';
     prioridades.push({
       urgencia:'alta', icono:'🔴',
-      titulo:'Riesgo '+RIESGO_NIVELES[riesgo.nivel].label+' — intervenir esta semana',
+      titulo:RIESGO_NIVELES[riesgo.nivel].label+' — intervenir esta semana',
       desc: topFactor
         ? 'El factor de mayor riesgo detectado: '+topFactor+'. Actuar antes de la próxima sesión programada.'
         : 'El índice de riesgo de baja está en '+riesgo.score+'/100. Revisar los factores en el tab de Diagnóstico.'
