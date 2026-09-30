@@ -975,11 +975,11 @@ input[type=date]{scroll-margin-top:96px;}
         <h2 class="card-title" id="h-interv">Datos de la intervención</h2>
       </div>
       <div class="field-row">
-        <div class="field"><label for="d_fechainicio">Fecha de comienzo</label><input type="date" id="d_fechainicio" oninput="autoguardar();actualizarDiasFase()"></div>
+        <div class="field"><label for="d_fechainicio">Fecha de comienzo</label><input type="date" id="d_fechainicio" oninput="fechasEditadas()"></div>
         <div class="field"><label for="d_antiguedad">Antigüedad</label><input type="text" id="d_antiguedad" placeholder="Se calcula sola" readonly tabindex="-1"></div>
       </div>
       <div class="field-row">
-        <div class="field"><label for="d_fecha">Fecha de intervención</label><input type="date" id="d_fecha" oninput="autoguardar()"></div>
+        <div class="field"><label for="d_fecha">Fecha de intervención</label><input type="date" id="d_fecha" oninput="fechasEditadas()"></div>
         <div class="field"><label for="d_estado">Estado</label>
           <select id="d_estado" onchange="autoguardar()" class="field-select">
             <option value="">Sin asignar</option>
@@ -1489,6 +1489,84 @@ function scoreDe(data, key) {
 }
 function hasScore(data, key) { return scoreDe(data, key) !== null; }
 
+// ── Tiempo de las intervenciones ──
+// `fecha` = cuándo ocurrió la intervención (autoridad temporal). `_savedAt` = cuándo se guardó:
+// solo metadato, desempate y respaldo para fichas antiguas sin `fecha`.
+function fechaISOValida(s) {
+  if (typeof s !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const [y, m, d] = s.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  return dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d;
+}
+function fechaLocal(iso) { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d); }
+function aISO(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+// Día natural como número entero (sin horas ni cambio de horario)
+function numeroDia(d) { return Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000); }
+// Fecha efectiva de una intervención: `fecha` si es válida; si no, `_savedAt`; null si no hay ninguna
+function getFechaIntervencion(f) {
+  if (f && fechaISOValida(f.fecha)) return fechaLocal(f.fecha);
+  const d = f && f._savedAt ? new Date(f._savedAt) : null;
+  return d && !isNaN(d) ? d : null;
+}
+// Orden cronológico por fecha de intervención; `_savedAt` solo desempata el mismo día
+function compararSesiones(a, b) {
+  const fa = getFechaIntervencion(a), fb = getFechaIntervencion(b);
+  const da = fa ? numeroDia(fa) : -Infinity, db = fb ? numeroDia(fb) : -Infinity;
+  if (da !== db) return da < db ? -1 : 1;
+  return (new Date(a && a._savedAt).getTime() || 0) - (new Date(b && b._savedAt).getTime() || 0);
+}
+function ordenarSesiones(sesiones) { return (sesiones || []).slice().sort(compararSesiones); }
+// Días desde la última intervención (por fecha real) hasta hoy; nunca negativo
+function diasDesdeUltimaIntervencion(sesiones) {
+  const orden = ordenarSesiones(sesiones);
+  const f = getFechaIntervencion(orden[orden.length - 1]);
+  return f ? Math.max(0, numeroDia(new Date()) - numeroDia(f)) : null;
+}
+// Fase según los días entre la fecha de comienzo y la fecha de la intervención (no la de hoy)
+function calcularFasePorFecha(fechaInicio, fechaIntervencion) {
+  if (!fechaISOValida(fechaInicio) || !fechaISOValida(fechaIntervencion)) return { fase: null, dias: null, error: 'fecha' };
+  const diff = numeroDia(fechaLocal(fechaIntervencion)) - numeroDia(fechaLocal(fechaInicio));
+  if (diff < 0) return { fase: null, dias: null, error: 'inicio-posterior' };
+  const dias = Math.max(1, diff);
+  let fase = 'f6';
+  for (const [fid, [min, max]] of Object.entries(FASE_RANGOS)) {
+    if (dias >= min && dias <= max) { fase = fid; break; }
+  }
+  return { fase, dias, error: null };
+}
+// Ficha cargada en el formulario (si la hay)
+function fichaCargada() { return AppState.lastLoadedId ? cargarFichas().find(f => f._id === AppState.lastLoadedId) || null : null; }
+// Fecha de la intervención del formulario; si falta: la de la ficha cargada o, en una ficha nueva, hoy
+function fechaIntervencionFormulario() {
+  const v = document.getElementById('d_fecha')?.value;
+  if (fechaISOValida(v)) return v;
+  const f = getFechaIntervencion(fichaCargada());
+  return aISO(f || new Date());
+}
+// Intervención del formulario como sesión, con el `_savedAt` de su ficha si viene del historial
+function sesionDelFormulario(datos) {
+  const origen = fichaCargada();
+  return Object.assign({}, datos, { _id: '_current', _savedAt: origen ? origen._savedAt : new Date().toISOString() });
+}
+// Sesiones guardadas de un captador + la del formulario (sin contar dos veces la ficha cargada), en orden cronológico
+function sesionesConActual(nombre, datos, incluirActual) {
+  const guardadas = cargarFichas().filter(f => (f.captador || '').trim() === nombre);
+  if (!incluirActual) return ordenarSesiones(guardadas);
+  return ordenarSesiones(guardadas.filter(f => f._id !== AppState.lastLoadedId).concat([sesionDelFormulario(datos)]));
+}
+// Sesiones guardadas del captador anteriores (por fecha de intervención) a la del formulario
+function sesionesAnterioresA(nombre, datos) {
+  const actual = sesionDelFormulario(datos);
+  return ordenarSesiones(cargarFichas().filter(f =>
+    (f.captador || '').trim() === nombre && f._id !== AppState.lastLoadedId && compararSesiones(f, actual) < 0));
+}
+// Editar a mano una fecha es un cambio deliberado: la fase vuelve a calcularse con las fechas
+function fechasEditadas() {
+  AppState.faseCongelada = false;
+  autoguardar();
+  actualizarDiasFase();
+}
+
 // Emoji de los datos → icono de línea equivalente
 const EMOJI_ICONO = {
   '🗓':'calendar', '📅':'calendar', '🎯':'target', '🚨':'alert', '📞':'phone', '🚧':'ban', '🧠':'bulb', '⚡':'bolt',
@@ -1940,14 +2018,17 @@ function renderFaseDisplay(faseId) {
   const activo = document.activeElement;
   if (faseId && activo && activo.id === 'ftx_display_' + faseId && wrap.contains(activo)) return;
   if (!faseId) {
-    wrap.innerHTML = vacio('calendar', 'Falta la fecha de comienzo', 'Introdúcela en Captador y la fase se calcula sola.',
+    wrap.innerHTML = AppState.faseCongelada
+      ? vacio('calendar', 'Esta ficha no tiene fase registrada', 'Se muestra tal como se guardó. Si cambias las fechas en Captador, la fase se calculará con ellas.',
+      '<button type="button" class="btn btn-secondary" onclick="irAFechaInicio()">' + ic('user') + 'Ir a Captador</button>')
+      : vacio('calendar', 'Falta la fecha de comienzo', 'Introdúcela en Captador y la fase se calcula sola.',
       '<button type="button" class="btn btn-secondary" onclick="irAFechaInicio()">' + ic('user') + 'Ir a Captador</button>');
     return;
   }
   const fase = FASES.find(f => f.id === faseId);
   const guia = GUIA_FASES[faseId];
   const fi = document.getElementById('d_fechainicio')?.value;
-  const dias = fi ? Math.max(1, Math.floor((Date.now() - new Date(fi.replace(/-/g, '/'))) / 86400000)) : null;
+  const dias = fi ? calcularFasePorFecha(fi, fechaIntervencionFormulario()).dias : null;   // días en la intervención
   const ftxVal = document.getElementById('ftx_' + faseId)?.value || '';
   const puntos = guia && guia.garantizar ? guia.garantizar.slice(0, 3) : [];
   const senales = guia && guia.senales ? guia.senales.slice(0, 2) : [];
@@ -1958,7 +2039,7 @@ function renderFaseDisplay(faseId) {
       '<div class="fd-hero">' +
         '<div class="fd-hero-num"><span class="cifra">' + (dias || '—') + '</span><span class="cifra-unit">días</span></div>' +
         '<div class="fd-hero-info">' +
-          '<p class="eyebrow">Fase actual</p>' +
+          '<p class="eyebrow">Fase en esta intervención</p>' +
           '<h2 class="fd-hero-fase" id="h-fase-actual">' + esc(fase ? fase.label : '—') + '</h2>' +
           (guia ? '<p class="fd-hero-perdida">' + ic('chart', 'ic-sm') + esc(fraseNormal(guia.perdida)) + '</p>' : '') +
         '</div>' +
@@ -2193,6 +2274,7 @@ function guardarFicha() {
   invalidarCache();
   fichas.push(data);
   salvarFichas(fichas);
+  AppState.lastLoadedId = data._id;
   actualizarContador();
   marcarGuardado(`Ficha de "${data.captador}" guardada`);
   renderDiagnostico();
@@ -2223,6 +2305,7 @@ function cargarFichaEnFormulario(id) {
   const ficha = cargarFichas().find(f => f._id === id);
   if(!ficha) return;
   AppState.lastLoadedId = id;
+  AppState.faseCongelada = true;   // consultar no modifica: se respeta la fase guardada
   cargarDatos(ficha);
   cerrarPantalla('panel', true);
   goTab(0);
@@ -2235,6 +2318,7 @@ function cargarFichaEnFormulario(id) {
 function nuevaFicha() {
   if(!confirm('¿Limpiar el formulario para empezar una ficha nueva?')) return;
   AppState.lastLoadedId = null;
+  AppState.faseCongelada = false;
   _hasUnsavedChanges = false;
   try{sessionStorage.removeItem('wesser_borrador');}catch(e){}
   document.querySelectorAll('main input[type=text],main input[type=date],main textarea').forEach(el=>el.value='');
@@ -2310,7 +2394,7 @@ function renderEvolucion() {
   const el=document.getElementById('evoContent');
   if(!el) return;
   if(!nombre){ el.innerHTML=vacio('trend','Evolución','Elige un captador/a para ver cómo han cambiado sus puntuaciones.'); return; }
-  const sessions=cargarFichas().filter(f=>(f.captador||'').trim()===nombre).sort((a,b)=>new Date(a._savedAt)-new Date(b._savedAt));
+  const sessions=ordenarSesiones(cargarFichas().filter(f=>(f.captador||'').trim()===nombre));
   if(sessions.length<1){ el.innerHTML=vacio('trend','Sin sesiones','Este captador/a no tiene sesiones guardadas.'); return; }
 
   const tAvgs=sessions.map(f=>avgScores(f,'t',TECNICA_VARS.length));
@@ -2453,7 +2537,7 @@ function drawEvoChart(labels, tAvgs, hAvgs) {
 }
 
 function renderPanelFichas() {
-  const fichas=cargarFichas().slice().reverse();
+  const fichas=ordenarSesiones(cargarFichas()).reverse();   // de la intervención más reciente a la más antigua
   const el=document.getElementById('pview-fichas');
   if(!el) return;
   if(!fichas.length){ el.innerHTML=vacio('folder','No hay fichas guardadas','Rellena el formulario y pulsa Guardar.'); return; }
@@ -2532,8 +2616,7 @@ function generarPDF(){
   const d = recopilarDatos();
   const captadorNombre = d.captador || 'captador';
   const histSessions = d.captador
-    ? cargarFichas().filter(f=>(f.captador||'').trim()===d.captador.trim())
-        .sort((a,b)=>new Date(a._savedAt)-new Date(b._savedAt))
+    ? ordenarSesiones(cargarFichas().filter(f=>(f.captador||'').trim()===d.captador.trim()))
     : [];
 
   const tAvgCur = parseFloat(avgScores(d,'t',TECNICA_VARS.length)||0);
@@ -2650,7 +2733,7 @@ function generarPDF(){
   y+=2;
 
   // Diagnóstico
-  const diagResult = (() => { try{ return diagnosticar(d, histSessions.length>1?histSessions.slice(0,-1):null); }catch(e){return null;} })();
+  const diagResult = (() => { try{ return diagnosticar(d, d.captador ? sesionesAnterioresA(d.captador.trim(), d) : null); }catch(e){return null;} })();
   if(diagResult){ sec('DIAGN\u00d3STICO AUTOM\u00c1TICO', AZUL);
     chk(8); doc.setFillColor(232,234,246); doc.rect(M-2,y-4,cw+4,7,'F');
     doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(...AZUL);
@@ -2783,8 +2866,9 @@ function renderDashboard(){
     const k=(f.captador||'').trim();
     if(!map[k])map[k]={sessions:[],latest:f};
     map[k].sessions.push(f);
-    if(new Date(f._savedAt)>new Date(map[k].latest._savedAt))map[k].latest=f;
+    if(compararSesiones(f, map[k].latest) > 0)map[k].latest=f;   // última por fecha de intervención
   });
+  Object.values(map).forEach(m=>{ m.sessions = ordenarSesiones(m.sessions); });
   const total=Object.keys(map).length;
   const pe={progreso:0,estancado:0,riesgo:0,baja:0};
   Object.values(map).forEach(({latest})=>{const e=latest.estado;if(pe[e]!==undefined)pe[e]++;});
@@ -2901,7 +2985,7 @@ function calcNivel(xp) {
 
 function calcRacha(sessions) {
   if(!sessions.length) return 0;
-  const sorted = sessions.slice().sort((a,b)=>new Date(a._savedAt)-new Date(b._savedAt));
+  const sorted = ordenarSesiones(sessions);
   let racha = 1, max = 1;
   for(let i=1;i<sorted.length;i++) {
     const tA=parseFloat(avgScores(sorted[i-1],'t',TECNICA_VARS.length)||0);
@@ -2915,7 +2999,7 @@ function calcRacha(sessions) {
 }
 
 function getNivelMiniHtml(sessions) {
-  const xp = calcXP(sessions);
+  const xp = calcXP(ordenarSesiones(sessions));
   const n = calcNivel(xp);
   return `<span class="nivel-mini" data-tone="${NIVEL_TONO[n.id]||'slate'}">${ic(NIVEL_ICONO[n.id]||iconoDeEmoji(n.icono))}${esc(n.nombre)}</span>`;
 }
@@ -2935,9 +3019,7 @@ function renderPerfil() {
   const el = document.getElementById('perfilContent'); if(!el) return;
   if(!nombre) { el.innerHTML=vacio('trophy','Perfil','Elige un captador/a para ver su nivel, sus cifras y sus logros.'); return; }
 
-  const sessions = cargarFichas()
-    .filter(f=>(f.captador||'').trim()===nombre)
-    .sort((a,b)=>new Date(a._savedAt)-new Date(b._savedAt));
+  const sessions = ordenarSesiones(cargarFichas().filter(f=>(f.captador||'').trim()===nombre));
   if(!sessions.length) { el.innerHTML=vacio('trophy','Sin sesiones','Este captador/a no tiene sesiones guardadas.'); return; }
 
   const xp = calcXP(sessions);
@@ -3043,11 +3125,9 @@ function diagnosticar(data, sesionesAnteriores) {
 
 function diagnosticarReglas(data, sesionesAnteriores) {
   // Días desde última sesión (para urgencia de contacto)
-  let diasSinInterv = null;
-  if (sesionesAnteriores && sesionesAnteriores.length >= 1) {
-    const last = sesionesAnteriores[sesionesAnteriores.length-1];
-    if (last._savedAt) diasSinInterv = Math.floor((Date.now() - new Date(last._savedAt)) / 86400000);
-  }
+  // Las sesiones anteriores se ordenan por fecha de intervención (no por fecha de guardado)
+  sesionesAnteriores = sesionesAnteriores && sesionesAnteriores.length ? ordenarSesiones(sesionesAnteriores) : null;
+  const diasSinInterv = sesionesAnteriores ? diasDesdeUltimaIntervencion(sesionesAnteriores) : null;
   // Validación de entrada
   if (!data || typeof data !== 'object') return null;
 
@@ -3315,12 +3395,8 @@ function renderDiagnostico() {
   const hFilled = HABITOS_VARS.filter((_,i) => (data['h_'+i]||0) > 0);
   if (!tFilled.length && !hFilled.length) { card.classList.remove('visible'); return; }
 
-  let prevSessions = [];
-  if (data.captador.trim()) {
-    prevSessions = cargarFichas()
-      .filter(f => (f.captador||'').trim() === data.captador.trim())
-      .sort((a,b) => new Date(a._savedAt)-new Date(b._savedAt));
-  }
+  // Solo las intervenciones anteriores (por fecha) a la del formulario, sin contarse a sí misma
+  const prevSessions = data.captador.trim() ? sesionesAnterioresA(data.captador.trim(), data) : [];
   const diag = diagnosticar(data, prevSessions);
   if (!diag) { card.classList.remove('visible'); return; }
 
@@ -4793,9 +4869,7 @@ function renderRadar() {
     radarSessions = [];
     return;
   }
-  radarSessions = cargarFichas()
-    .filter(f => (f.captador||'').trim() === nombre)
-    .sort((a,b) => new Date(a._savedAt) - new Date(b._savedAt));
+  radarSessions = ordenarSesiones(cargarFichas().filter(f => (f.captador||'').trim() === nombre));
   if (!radarSessions.length) {
     el.innerHTML = vacio('radar', 'Sin sesiones', 'Este captador/a no tiene sesiones guardadas.');
     return;
@@ -4949,12 +5023,12 @@ function calcRiesgo(sessions, estado) {
 
   let score = 0;
   const factores = [];
-  const sorted = sessions.slice().sort((a,b) => new Date(a._savedAt)-new Date(b._savedAt));
+  const sorted = ordenarSesiones(sessions);
   const last = sorted[sorted.length-1];
   const prev = sorted.length > 1 ? sorted[sorted.length-2] : null;
 
   // ── Factor 1: Días sin intervención (ponderado por estado) ──
-  const diasSin = Math.floor((Date.now() - new Date(last._savedAt)) / 86400000);
+  const diasSin = diasDesdeUltimaIntervencion(sorted) ?? 0;
   const faseNum = numeroFase(last.faseSelected);
   if (diasSin > 14) {
     const diasPts = faseNum <= 3 ? 25 : 15; // más crítico en fases iniciales
@@ -5221,16 +5295,10 @@ function renderRiesgoCard() {
   const estado = document.getElementById('d_estado')?.value||'';
   if (!nombre) { card.classList.remove('visible'); return; }
 
-  const savedSessions = cargarFichas()
-    .filter(f => (f.captador||'').trim() === nombre)
-    .sort((a,b) => new Date(a._savedAt)-new Date(b._savedAt));
   const currentData = recopilarDatos();
   const tCur = TECNICA_VARS.reduce((s,_,i) => s + (parseFloat(currentData['t_'+i])||0), 0);
   const hCur = HABITOS_VARS.reduce((s,_,i) => s + (parseFloat(currentData['h_'+i])||0), 0);
-  const hasCurEval = (tCur + hCur) > 0;
-  const sessions = (hasCurEval && (!savedSessions.length || savedSessions[savedSessions.length-1]._id !== currentData._id))
-    ? [...savedSessions, Object.assign({}, currentData, { _savedAt: new Date().toISOString(), _id: '_current' })]
-    : savedSessions;
+  const sessions = sesionesConActual(nombre, currentData, (tCur + hCur) > 0);
   if (!sessions.length) { card.classList.remove('visible'); return; }
 
   const r = calcRiesgo(sessions, estado);
@@ -5796,7 +5864,7 @@ function calcSemaforo(sessions, faseId, estado) {
 
   if (!sessions || sessions.length < 2) return null;
 
-  const sorted = sessions.slice().sort((a,b) => new Date(a._savedAt)-new Date(b._savedAt));
+  const sorted = ordenarSesiones(sessions);
   const last = sorted[sorted.length-1];
   const prev = sorted[sorted.length-2];
 
@@ -5809,7 +5877,7 @@ function calcSemaforo(sessions, faseId, estado) {
   const gPrev = (tPrev + hPrev) / 2;
 
   const delta = gLast - gPrev;
-  const diasSin = Math.floor((Date.now() - new Date(last._savedAt)) / 86400000);
+  const diasSin = diasDesdeUltimaIntervencion(sorted) ?? 0;
 
   // Rojo: tendencia negativa fuerte, o baja, o muchos días sin actualizar
   if (estado === 'baja' || estado === 'riesgo' || delta < -0.8 || (gLast < 2.5 && delta <= 0) || diasSin > 14) {
@@ -5831,15 +5899,10 @@ function renderSemaforo() {
   const estado = document.getElementById('d_estado')?.value||'';
   if (!nombre || !faseId) { card.classList.remove('visible'); return; }
 
-  const savedSem = cargarFichas()
-    .filter(f => (f.captador||'').trim() === nombre)
-    .sort((a,b) => new Date(a._savedAt)-new Date(b._savedAt));
   const dSem = recopilarDatos();
   const tSemCur = TECNICA_VARS.reduce((s,_,i)=>s+(parseFloat(dSem['t_'+i])||0),0);
   const hSemCur = HABITOS_VARS.reduce((s,_,i)=>s+(parseFloat(dSem['h_'+i])||0),0);
-  const sessions = (tSemCur + hSemCur) > 0
-    ? [...savedSem, Object.assign({}, dSem, { _savedAt: new Date().toISOString(), _id: '_current_sem' })]
-    : savedSem;
+  const sessions = sesionesConActual(nombre, dSem, (tSemCur + hSemCur) > 0);
   const color = calcSemaforo(sessions, faseId, estado);
   if (!color) { card.classList.remove('visible'); return; }
 
@@ -5885,6 +5948,7 @@ function calcAntiguedad(fechaInicio) {
 function actualizarDiasFase() {
   const wrap = document.getElementById('diasFaseBadgeWrap');
   const fechaInicio = document.getElementById('d_fechainicio')?.value;
+  // Antigüedad actual (comienzo → hoy): dato distinto de la antigüedad en la intervención
   const antiguedadEl = document.getElementById('d_antiguedad');
   if (antiguedadEl) {
     const ant = calcAntiguedad(fechaInicio);
@@ -5893,37 +5957,41 @@ function actualizarDiasFase() {
   if (!wrap) return;
   if (!fechaInicio) { wrap.innerHTML = ''; return; }
 
-  const inicio = new Date(fechaInicio);
-  const hoy = new Date();
-  if (inicio > hoy) {
+  // Días y fase en la fecha de la intervención (comienzo → intervención), no a día de hoy
+  const calc = calcularFasePorFecha(fechaInicio, fechaIntervencionFormulario());
+  if (calc.error === 'inicio-posterior') {
     wrap.innerHTML = '<div class="notice" data-tone="bad" role="alert">' + ic('warn') +
-      '<div><strong>La fecha de comienzo es futura.</strong> Revísala para que la fase se calcule bien.</div></div>';
+      '<div><strong>La fecha de comienzo es posterior a la de intervención.</strong> Revisa las dos fechas para que la fase se calcule bien.</div></div>';
     return;
   }
-  const dias = Math.max(1, Math.floor((hoy - inicio) / 86400000));
-  let faseCalculada = 'f6';
-  for (const [fid, [min, max]] of Object.entries(FASE_RANGOS)) {
-    if (dias >= min && dias <= max) { faseCalculada = fid; break; }
-  }
-  if (faseSelected !== faseCalculada) selectFase(faseCalculada, true);
+  if (calc.error) { wrap.innerHTML = ''; return; }
 
-  const fl = FASES.find(f => f.id === faseCalculada);
-  const [min, max] = FASE_RANGOS[faseCalculada] || [1, 999];
+  // Ficha nueva o fechas editadas: la fase se calcula. Ficha del historial: se respeta la guardada.
+  if (!AppState.faseCongelada && faseSelected !== calc.fase) selectFase(calc.fase, true);
+  const faseMostrada = AppState.faseCongelada ? faseSelected : calc.fase;
+  if (!faseValida(faseMostrada)) {
+    wrap.innerHTML = '<div class="notice" data-tone="neutral">' + ic('info') +
+      '<div><strong>Esta ficha no tiene fase registrada.</strong> Se muestra tal como se guardó. Si cambias la fecha de comienzo o la de intervención, la fase se calculará con ellas.</div></div>';
+    return;
+  }
+  const fl = FASES.find(f => f.id === faseMostrada);
+  const [min, max] = FASE_RANGOS[faseMostrada] || [1, 999];
   const rangoLabel = max >= 999 ? 'Día ' + min + ' en adelante' : 'Días ' + min + ' a ' + max;
   const estado = document.getElementById('d_estado')?.value || '';
   const est = ESTADOS[estado];
 
   wrap.innerHTML =
-    '<section class="card dias-fase-block" data-tone="' + (FASE_TONO[faseCalculada] || 'slate') + '" aria-label="Días en el proceso y fase">' +
-      '<div class="dias-fase-num"><span class="cifra cifra-xl">' + dias + '</span><span class="cifra-unit">días</span></div>' +
+    '<section class="card dias-fase-block" data-tone="' + (FASE_TONO[faseMostrada] || 'slate') + '" aria-label="Días en el proceso y fase de esta intervención">' +
+      '<div class="dias-fase-num"><span class="cifra cifra-xl">' + calc.dias + '</span><span class="cifra-unit">días</span></div>' +
       '<div class="dias-fase-info">' +
-        '<p class="eyebrow">Fase actual</p>' +
-        '<div class="dias-fase-nombre">' + esc(fl ? fl.label : faseCalculada) + '</div>' +
+        '<p class="eyebrow">Fase en esta intervención</p>' +
+        '<div class="dias-fase-nombre">' + esc(fl ? fl.label : faseMostrada) + '</div>' +
         '<div class="dias-fase-rango">' + rangoLabel + '</div>' +
         (est ? '<span class="status-pill ' + est.cls + '">' + esc(est.label) + '</span>' : '') +
       '</div>' +
     '</section>';
 }
+
 
 
 // ══════════════════════════════════════════
@@ -5936,17 +6004,11 @@ function calcLMI() {
 
   // Datos de sesiones históricas — incluir sesión actual no guardada
   const nombre = (d.captador||'').trim();
-  const savedSessions = nombre
-    ? cargarFichas().filter(f=>(f.captador||'').trim()===nombre)
-        .sort((a,b)=>new Date(a._savedAt)-new Date(b._savedAt))
-    : [];
-  // Fusionar sesión activa con fichas guardadas para que el riesgo refleje cambios en tiempo real
+  // Fusionar sesión activa con fichas guardadas (en orden cronológico) para que el riesgo refleje cambios en tiempo real
   const tCurLMI = TECNICA_VARS.reduce((s,_,i)=>s+(parseFloat(d['t_'+i])||0),0);
   const hCurLMI = HABITOS_VARS.reduce((s,_,i)=>s+(parseFloat(d['h_'+i])||0),0);
   const hasCurEvalLMI = (tCurLMI + hCurLMI) > 0;
-  const histSessions = hasCurEvalLMI
-    ? [...savedSessions, Object.assign({}, d, { _savedAt: new Date().toISOString(), _id: '_current' })]
-    : savedSessions;
+  const histSessions = nombre ? sesionesConActual(nombre, d, hasCurEvalLMI) : (hasCurEvalLMI ? [sesionDelFormulario(d)] : []);
   const riesgo = histSessions.length ? calcRiesgo(histSessions, d.estado||'') : null;
   const faseNum = numeroFase(d.faseSelected);
   const fase = FASES.find(f=>f.id===d.faseSelected);
@@ -5990,9 +6052,7 @@ function calcLMI() {
   const intervActual = (d['ftx_'+d.faseSelected]||'').trim();
 
   // Días sin intervención
-  const diasSin = histSessions.length
-    ? Math.floor((Date.now()-new Date(histSessions[histSessions.length-1]._savedAt))/86400000)
-    : null;
+  const diasSin = histSessions.length ? diasDesdeUltimaIntervencion(histSessions) : null;
 
   // Tendencia
   let tendencia = null;
@@ -6306,7 +6366,7 @@ function renderHistorialTab() {
     return;
   }
   el.innerHTML = '<div class="list-card">' + nombres.map(nombre => {
-    const sessions = grupos[nombre].slice().sort((a,b)=>new Date(a._savedAt)-new Date(b._savedAt));
+    const sessions = ordenarSesiones(grupos[nombre]);
     const uid = 'h2_'+nombre.replace(/\W/g,'_');
     const entries = sessions.map((f,idx) => {
       const tA=avgScores(f,'t',TECNICA_VARS.length), hA=avgScores(f,'h',HABITOS_VARS.length);
@@ -6395,6 +6455,7 @@ const AppState = {
   panelOpen: false,
   currentSubtab: 'equipo',
   lastLoadedId: null,
+  faseCongelada: false,   // ficha del historial cargada: su fase no se recalcula
   get hasUnsaved()  { return _hasUnsavedChanges; },
   get isLoading()   { return _isLoading; },
   get fase()        { return faseSelected; },
