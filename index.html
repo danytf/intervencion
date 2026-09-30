@@ -468,7 +468,13 @@ input[type=date]{scroll-margin-top:96px;}
 .diag-block-title{font-family:var(--font-brand);font-size:var(--t-md);font-weight:700;color:var(--ink);margin-bottom:4px;}
 .diag-block-text{font-size:var(--t-md);line-height:1.65;color:var(--ink-2);}
 .diag-palanca{display:flex;align-items:center;flex-wrap:wrap;gap:var(--s-2) var(--s-3);background:var(--surface-2);border-radius:var(--r-md);padding:var(--s-3) var(--s-4);}
-.diag-palanca-val{font-family:var(--font-brand);font-size:var(--t-md);font-weight:700;color:var(--ink);flex:1;min-width:0;}
+.diag-evid{list-style:none;display:flex;flex-wrap:wrap;gap:6px;margin-top:2px;}
+.diag-evid .pill{white-space:normal;min-height:28px;line-height:1.35;}
+.diag-palanca-val{font-family:var(--font-brand);font-size:var(--t-md);font-weight:700;color:var(--ink);flex:1 1 140px;min-width:0;}
+/* Tipo de lectura: con nombres largos pasa debajo del título en lugar de estrecharlo */
+#diagCard .card-head{flex-wrap:wrap;}
+#diagCard .card-head .card-title{flex:1 1 180px;}
+#diagTipo{white-space:normal;}
 .diag-footer{display:flex;align-items:center;gap:6px;margin-top:var(--s-4);padding-top:var(--s-3);border-top:1px solid var(--line);font-size:var(--t-xs);color:var(--ink-3);}
 .pill-type{background:var(--surface-hi);color:var(--ink-2);}
 
@@ -1155,7 +1161,7 @@ input[type=date]{scroll-margin-top:96px;}
         <span class="pill pill-type" id="diagTipo">—</span>
       </div>
       <div class="diag-body" id="diagBody"></div>
-      <div class="diag-footer"><svg class="ic ic-xs" aria-hidden="true"><use href="#i-gear"/></svg>Generado por reglas a partir de la evaluación y la fase</div>
+      <div class="diag-footer"><svg class="ic ic-xs" aria-hidden="true"><use href="#i-gear"/></svg>Lectura generada por reglas a partir de la evaluación y la fase: orienta, no sustituye la observación en campo</div>
     </section>
 
     <section class="card senales-card" id="senalesCard" style="display:none" aria-labelledby="h-senales">
@@ -3155,13 +3161,13 @@ function diagnosticarReglas(data, sesionesAnteriores) {
   const nCreencias = creencias.length;
 
   // Tendencia respecto a sesión anterior
-  let tendencia = null;
+  let tendencia = null, mediaAnterior = null, sesionPrevia = null;
   if (sesionesAnteriores && sesionesAnteriores.length >= 1) {
     const prev = sesionesAnteriores[sesionesAnteriores.length-1];
     // Solo se comparan los grupos que la sesión anterior tiene evaluados (un grupo vacío no cuenta como 0)
     const medias = [avgScores(prev,'t',TECNICA_VARS.length), avgScores(prev,'h',HABITOS_VARS.length)]
       .filter(v => v !== null).map(parseFloat);
-    if (medias.length) tendencia = globalAvg - medias.reduce((a,b)=>a+b,0) / medias.length;
+    if (medias.length) { mediaAnterior = medias.reduce((a,b)=>a+b,0) / medias.length; tendencia = globalAvg - mediaAnterior; sesionPrevia = prev; }
   }
 
   // Sin datos
@@ -3180,213 +3186,208 @@ function diagnosticarReglas(data, sesionesAnteriores) {
     .sort((a,b) => a.val - b.val);
   const palanca = allScored.find(x => x.val < 3) || allScored[0] || null;
 
+  // ── Construcción de la lectura: evidencia → lectura → intervención → revisión ──
+  // Cada regla describe solo lo que sus datos muestran; las causas posibles se presentan como hipótesis.
+  const fmt = n => n.toFixed(1).replace('.', ',');
+  const ev = k => hasScore(data, k) ? ALL_VARS_LABELS[k] + ': ' + scoreDe(data, k) + '/5' : null;
+  const media = (nombre, valor, n, total) => nombre + ' ' + fmt(valor) + '/5 (' + n + ' de ' + total + ' evaluadas)';
+  const mediaT = () => tFilled.length ? media('Técnica', tAvg, tFilled.length, TECNICA_VARS.length) : null;
+  const mediaH = () => hFilled.length ? media('Hábitos', hAvg, hFilled.length, HABITOS_VARS.length) : null;
+  const nombreFase = FASES.find(f => f.id === fase)?.label || fase;
+  const listaTxt = arr => arr.length > 1 ? arr.slice(0, -1).join(', ') + ' y ' + arr[arr.length - 1] : (arr[0] || '');
+  const bajas = (prefijo, vars) => vars.map((l, i) => ({ l, v: scoreDe(data, prefijo + '_' + i) })).filter(x => x.v !== null && x.v < 3);
+  // Cambios por variable respecto a la sesión anterior (solo variables evaluadas en ambas)
+  const cambios = sesionPrevia ? Object.keys(ALL_VARS_LABELS).map(k => {
+    const a = scoreDe(sesionPrevia, k), b = scoreDe(data, k);
+    return a !== null && b !== null && a !== b ? { k, a, b, d: b - a } : null;
+  }).filter(Boolean) : [];
+  const cambiosTxt = signo => cambios.filter(c => signo < 0 ? c.d < 0 : c.d > 0).sort((x, y) => signo < 0 ? x.d - y.d : y.d - x.d)
+    .slice(0, 3).map(c => ALL_VARS_LABELS[c.k] + ' ' + c.a + '→' + c.b);
+  const comparacion = () => sesionPrevia ? 'Media ' + fmt(globalAvg) + '/5 frente a ' + fmt(mediaAnterior) + '/5 en la sesión del ' +
+    formatFecha(aISO(getFechaIntervencion(sesionPrevia))) + ' (' + (tendencia >= 0 ? '+' : '−') + fmt(Math.abs(tendencia)) + ')' : null;
+  const res = o => ({
+    regla: o.regla, tipo: o.tipo, nivelEvidencia: o.nivel,
+    evidencia: (o.evidencia || []).filter(Boolean),
+    diagnostico: { icon: o.icono || '🔍', color: o.color || 'blue', titulo: o.tituloLectura || 'Lectura', texto: o.lectura },
+    recomendacion: { icon: '🎯', color: o.colorAccion || o.color || 'blue', titulo: o.tituloAccion || 'Intervención', texto: o.accion },
+    revision: { texto: o.revision },
+    palanca: o.palanca !== undefined ? o.palanca : palanca,
+    ...(o.extra || {})
+  });
+
   // ── REGLAS (orden de prioridad) ──
 
   // R1: Fase muy inicial → integración prioritaria
   if (hayFase && faseNum <= 2) {
-    return {
-      tipo: 'Fase inicial',
-      diagnostico: { icon:'🗓️', color:'blue', titulo:'Contexto de fase',
-        texto: faseNum===1
-          ? 'Captador en sus primeros días. El objetivo no es el rendimiento sino la integración al proceso y al equipo. El acompañamiento debe ser total en esta fase.'
-          : 'Segunda semana en proceso. Es normal que las puntuaciones sean bajas. Priorizar que el captador interiorice la Parada y el inicio del Speech antes de valorar el resto.' },
-      recomendacion: { icon:'🎯', color:'blue', titulo:'Foco de intervención',
-        texto: bajo('h_6')
-          ? 'Atención: se detecta resistencia al feedback en fase inicial. Esto puede bloquear el aprendizaje desde el primer día. Abordar con conversación empática antes de continuar.'
-          : 'No intervenir aún sobre hábitos ni creencias. Toda la energía va al proceso: Parada → Speech. Evaluar y felicitar pequeños avances para construir confianza inicial.' },
-      palanca
-    };
+    const inicio = [ev('t_0'), ev('t_1')].filter(Boolean);
+    return res({ regla:'R1', tipo:'Fase inicial', nivel:'alto', icono:'🗓️', color:'blue',
+      evidencia: ['Fase: ' + nombreFase, nEval + (nEval === 1 ? ' variable evaluada' : ' variables evaluadas'), ev('t_0'), ev('t_1'), bajo('h_6') ? ev('h_6') : null],
+      lectura: 'El captador está en la fase de incorporación. En este momento las puntuaciones describen un punto de partida; todavía no permiten valorar un rendimiento consolidado.',
+      accion: (faseNum === 1
+          ? 'Acompañar los turnos y centrar el trabajo en la Parada y el inicio del Speech. Reconocer los avances concretos que observes.'
+          : 'Centrar el trabajo en que la Parada y el Speech salgan con soltura antes de valorar el resto del proceso. Reconocer los avances concretos que observes.') +
+        (bajo('h_6') ? ' La valoración baja en disposición al feedback (' + scoreDe(data, 'h_6') + '/5) aconseja preguntar cómo está recibiendo las correcciones antes de añadir otras nuevas.' : ''),
+      revision: 'En la próxima sesión, volver a puntuar Parada y Speech' + (inicio.length ? ' y compararlos con hoy (' + inicio.join(' · ') + ').' : '.') });
   }
 
   // R1b: Contacto urgente — sin intervención >14 días en fase crítica
   if (diasSinInterv !== null && diasSinInterv > 14 && hayFase && faseNum >= 3 && faseNum <= 5) {
-    return {
-      tipo: 'Contacto urgente',
-      diagnostico: { icon:'🚨', color:'red', titulo:'Sin intervención reciente',
-        texto: `Llevas ${diasSinInterv} días sin registrar una intervención en ${FASES.find(f=>f.id===fase)?.label||fase}. En esta fase, un captador sin seguimiento durante más de 14 días puede estar ya en proceso de abandono silencioso.` },
-      recomendacion: { icon:'📞', color:'red', titulo:'Contactar hoy',
-        texto: 'Prioriza el contacto antes de cualquier otra intervención. No planifiques, contacta. Una llamada corta esta semana vale más que una sesión de acompañamiento la semana que viene.' },
-      palanca
-    };
+    return res({ regla:'R1b', tipo:'Contacto urgente', nivel:'alto', icono:'📞', color:'red',
+      evidencia: [diasSinInterv + ' días desde la última intervención registrada', 'Fase: ' + nombreFase],
+      lectura: 'Hace ' + diasSinInterv + ' días que no hay una intervención registrada, en una fase en la que el seguimiento cercano es especialmente importante. Los datos no indican qué ha pasado en ese tiempo.',
+      tituloAccion: 'Intervención', colorAccion: 'red',
+      accion: 'Contactar con el captador esta semana, antes de planificar otra intervención, y preguntarle cómo le está yendo.',
+      revision: 'Registrar el contacto como intervención y comprobar que el siguiente seguimiento no supera los 14 días.' });
   }
 
-  // R2: Disposición al feedback muy baja → bloqueo de base
+  // R2: Disposición al feedback baja
   if (bajo('h_6')) {
-    return {
-      tipo: 'Resistencia al feedback',
-      diagnostico: { icon:'🚧', color:'red', titulo:'Bloqueo detectado',
-        texto: 'El captador muestra resistencia a recibir o aplicar feedback. Este es el bloqueo más crítico posible: sin apertura al aprendizaje, ninguna intervención técnica tendrá efecto real.' },
-      recomendacion: { icon:'🎯', color:'orange', titulo:'Intervención prioritaria',
-        texto: 'Antes de trabajar cualquier variable técnica, hay que resolver la relación con el feedback. Conversación directa sobre qué genera esa resistencia. Puede ser experiencia previa negativa, miedo al juicio o baja autoestima profesional.' },
-      palanca
-    };
+    return res({ regla:'R2', tipo:'Feedback con valoración baja', nivel: totalSuf ? 'alto' : 'medio', icono:'🚧', color:'orange',
+      evidencia: [ev('h_6'), mediaH()],
+      lectura: 'Se observa una valoración baja en disposición para recibir o aplicar feedback, lo que puede limitar el efecto de otras correcciones. Conviene explorar qué dificulta recibirlas o aplicarlas. Hipótesis a explorar, no comprobadas: cómo y cuándo se da el feedback, experiencias anteriores con correcciones o cómo se siente al recibirlas.',
+      accion: 'Hablar a solas con el captador sobre cómo vive las correcciones y qué le cuesta aplicar. Acordar una sola corrección concreta y cómo se va a comprobar.',
+      revision: 'En la próxima sesión, comprobar si ha aplicado la corrección acordada y volver a valorar la disposición al feedback.' });
   }
 
-  // R3: Creencias activas + manejo de negatividad bajo
+  // R3: Creencias registradas + manejo de la negatividad bajo
   if (nCreencias >= 2 && bajo('h_3')) {
-    return {
-      tipo: 'Bloqueo cognitivo',
-      diagnostico: { icon:'🧠', color:'red', titulo:'Diagnóstico principal',
-        texto: `Se detectan ${nCreencias} creencias activas y bajo manejo de la negatividad. El bloqueo es mental antes que técnico. Las creencias identificadas están frenando la ejecución directamente.` },
-      recomendacion: { icon:'🎯', color:'orange', titulo:'Intervención prioritaria',
-        texto: 'Dedicar la próxima sesión íntegra a trabajar creencias. No añadir presión de técnica ni resultados hasta que el captador tenga herramientas para gestionar el rechazo. El proceso técnico llegará solo cuando la mentalidad esté más estable.' },
-      palanca
-    };
+    return res({ regla:'R3', tipo:'Creencias y manejo de la negatividad', nivel: totalSuf ? 'alto' : 'medio', icono:'🧠', color:'orange',
+      evidencia: [nCreencias + ' creencias registradas', ev('h_3')],
+      lectura: 'Se observan creencias registradas junto con una valoración baja en manejo de la negatividad. Esto hace razonable explorar si estas creencias están interfiriendo en la ejecución; los datos no permiten afirmar que sean la causa.',
+      accion: 'Dedicar parte de la próxima sesión a revisar con el captador las creencias registradas, empezando por la que más aparezca en calle, y acordar cómo responder cuando surja. Puedes apoyarte en la Biblioteca de creencias.',
+      revision: 'En la siguiente intervención, comprobar si esas creencias siguen apareciendo en campo y volver a valorar el manejo de la negatividad.' });
   }
 
   // R4: Técnica alta + Hábitos bajos
   if (tecSuf && habSuf && tAvg >= 3.5 && hAvg < 2.5) {
-    const habBajos = hVals.map((v,i)=>({label:HABITOS_VARS[i],val:v})).filter(x=>x.val>0&&x.val<3).map(x=>x.label).slice(0,2).join(', ');
-    return {
-      tipo: 'Técnica sólida / Hábitos débiles',
-      diagnostico: { icon:'⚡', color:'orange', titulo:'Patrón detectado',
-        texto: `El captador conoce el proceso (Técnica ${tAvg.toFixed(1)}/5) pero no lo aplica con consistencia fuera del acompañamiento directo. El bloqueo es conductual, no técnico. ${habBajos?'Debilidad especial en: '+habBajos+'.':''}` },
-      recomendacion: { icon:'🎯', color:'orange', titulo:'Foco de intervención',
-        texto: 'Reducir acompañamiento directo progresivamente para forzar autonomía. Introducir seguimiento de resultados propios sin presencia del RE/RP. El captador necesita demostrase a sí mismo que puede, no que le enseñen más.' },
-      palanca
-    };
+    const hb = bajas('h', HABITOS_VARS).map(x => x.l);
+    const foco = listaTxt(hb.slice(0, 2)) || 'los hábitos con menor puntuación';
+    return res({ regla:'R4', tipo:'Técnica alta / hábitos bajos', nivel: (tFilled.length >= 3 && hFilled.length >= 6) ? 'alto' : 'medio', icono:'⚡', color:'orange',
+      evidencia: [mediaT(), mediaH(), hb.length ? hb.length + (hb.length === 1 ? ' hábito' : ' hábitos') + ' por debajo de 3' : null],
+      lectura: 'Existe una diferencia entre la valoración técnica y la de hábitos. Conviene comprobar si la ejecución autónoma, sin acompañamiento, explica esa diferencia.',
+      accion: 'Observar un tramo de trabajo sin acompañamiento directo y anotar qué hábitos concretos no se cumplen. Empezar por ' + foco + '.',
+      revision: 'En la próxima sesión, volver a valorar ' + foco + ' y comprobar si la técnica se mantiene sin acompañamiento.' });
   }
 
   // R5: Hábitos altos + Técnica baja
   if (tecSuf && habSuf && hAvg >= 3.5 && tAvg < 2.5) {
-    const tecBaja = tVals.map((v,i)=>({label:TECNICA_VARS[i],val:v})).filter(x=>x.val>0&&x.val<3).map(x=>x.label).slice(0,2).join(' y ');
-    return {
-      tipo: 'Actitud buena / Proceso sin interiorizar',
-      diagnostico: { icon:'💪', color:'blue', titulo:'Patrón detectado',
-        texto: `Buena predisposición y actitud (Hábitos ${hAvg.toFixed(1)}/5) pero el proceso no está interiorizado. El captador quiere pero no sabe. Debilidad técnica en ${tecBaja||'el proceso general'}.` },
-      recomendacion: { icon:'🎯', color:'blue', titulo:'Foco de intervención',
-        texto: 'Trabajar Parada y Speech con role-play antes de salir a campo. No añadir complejidad hasta que los primeros pasos del proceso sean automáticos. La actitud es el activo: aprovecharlo para construir técnica paso a paso.' },
-      palanca
-    };
+    const tb = bajas('t', TECNICA_VARS).map(x => x.l);
+    const foco = listaTxt(tb.slice(0, 2)) || 'el proceso';
+    return res({ regla:'R5', tipo:'Hábitos altos / técnica baja', nivel: (tFilled.length >= 3 && hFilled.length >= 6) ? 'alto' : 'medio', icono:'💪', color:'blue',
+      evidencia: [mediaH(), mediaT(), ...bajas('t', TECNICA_VARS).map(x => x.l + ': ' + x.v + '/5')],
+      lectura: 'Las puntuaciones sugieren buena predisposición y menor dominio del proceso' + (tb.length ? ', sobre todo en ' + foco : '') + '.',
+      accion: 'Practicar ' + foco + ' con role-play antes de salir a campo y observarlo después en situaciones reales. No añadir pasos nuevos del proceso hasta que ese tramo salga con soltura.',
+      revision: 'En la próxima observación, volver a puntuar ' + foco + ' y compararlo con hoy.' });
   }
 
-  // R6: Cierre bajo + resto técnica ok
+  // R6: Cierre bajo + resto de la técnica aceptable
   if (bajo('t_3') && tAvg >= 2.8 && tFilled.length >= 3) {
-    return {
-      tipo: 'Bloqueo en cierre',
-      diagnostico: { icon:'🔒', color:'orange', titulo:'Cuello de botella detectado',
-        texto: `El captador ejecuta bien las fases iniciales del proceso (Parada, Speech) pero no materializa el cierre (${data['t_3']||0}/5). El esfuerzo se pierde en el último paso.` },
-      recomendacion: { icon:'🎯', color:'orange', titulo:'Intervención específica',
-        texto: 'El bloqueo en cierre suele ser emocional: miedo al rechazo final o inseguridad en el momento de pedir. Trabajar creencias ligadas al "no" y practicar el cierre aislado en role-play hasta que sea automático.' },
-      palanca
-    };
+    return res({ regla:'R6', tipo:'Cierre por debajo del resto', nivel: tFilled.length === TECNICA_VARS.length ? 'alto' : 'medio', icono:'🔒', color:'orange',
+      evidencia: [ev('t_0'), ev('t_1'), ev('t_2'), ev('t_3')],
+      lectura: 'El dato diferencial de esta evaluación está en el cierre (' + scoreDe(data, 't_3') + '/5) frente al resto del proceso. La hipótesis de trabajo es una dificultad específica en esa fase; conviene comprobar si está en la técnica, en el momento de pedir o en otro factor.',
+      accion: 'Observar varios cierres completos en campo, identificar en qué punto se interrumpe la conversación y practicar ese tramo con role-play.',
+      revision: 'En la próxima intervención, observar de nuevo el cierre y volver a puntuarlo para ver si mejora.' });
   }
 
-  // R7: Speech bajo + Parada ok
+  // R7: Speech bajo + Parada aceptable
   if (bajo('t_1') && alto('t_0', 3)) {
-    return {
-      tipo: 'Speech sin impacto',
-      diagnostico: { icon:'🎤', color:'orange', titulo:'Cuello de botella detectado',
-        texto: `La Parada funciona (${data['t_0']||0}/5) pero el Speech no convence (${data['t_1']||0}/5). El captador para a la gente pero no logra despertar interés en los primeros segundos.` },
-      recomendacion: { icon:'🎯', color:'blue', titulo:'Intervención específica',
-        texto: 'Trabajar el speech con acompañamiento y grabación si es posible. El problema suele ser falta de convicción propia en el mensaje o estructura deficiente. Reforzar primero la creencia en la causa antes de mejorar la forma.' },
-      palanca
-    };
+    return res({ regla:'R7', tipo:'Speech por debajo de la parada', nivel: totalSuf ? 'alto' : 'medio', icono:'🎤', color:'orange',
+      evidencia: [ev('t_0'), ev('t_1')],
+      lectura: 'La parada puntúa más alto que el speech. Los datos apuntan a que la conversación se pierde en los primeros segundos después de parar; conviene comprobar si influye la estructura del mensaje, el tono o la adaptación a la persona.',
+      colorAccion: 'blue',
+      accion: 'Escuchar el speech en campo (o grabado, si el captador está de acuerdo), compararlo con la estructura de referencia y practicar la apertura.',
+      revision: 'En la próxima observación, comparar la ejecución de la parada y del speech y volver a puntuar el speech.' });
   }
 
-  // R8: Rendimiento sin RE/RP bajo — solo si técnica no es el problema principal
+  // R8: Rendimiento sin RE/RP bajo — solo si la técnica no es el problema principal
   if (bajo('h_1') && tecSuf && tAvg >= 2.5) {
-    return {
-      tipo: 'Dependencia del acompañamiento',
-      diagnostico: { icon:'🔗', color:'orange', titulo:'Patrón de dependencia',
-        texto: `El captador rinde significativamente menos sin supervisión directa (Rendimiento sin RE/RP: ${data['h_1']||0}/5). Existe riesgo de que el acompañamiento se convierta en muleta en lugar de herramienta.` },
-      recomendacion: { icon:'🎯', color:'orange', titulo:'Plan de autonomía',
-        texto: 'Reducir la frecuencia de acompañamiento de forma planificada y comunicada. Establecer retos de resultados autónomos con seguimiento posterior. El objetivo es que el captador confíe en su propio proceso.' },
-      palanca
-    };
+    return res({ regla:'R8', tipo:'Rendimiento sin acompañamiento bajo', nivel: totalSuf ? 'alto' : 'medio', icono:'🔗', color:'orange',
+      evidencia: [ev('h_1'), mediaT()],
+      lectura: 'La valoración del rendimiento sin acompañamiento es baja respecto al resto de indicadores. Conviene comprobar qué ocurre cuando trabaja sin supervisión directa.',
+      accion: 'Planificar con el captador tramos de trabajo autónomo con un objetivo concreto, y revisarlos juntos después.',
+      revision: 'En la próxima sesión, comparar lo ocurrido en los tramos autónomos con los tramos acompañados.' });
   }
 
   // R9: Estabilidad semanal baja — solo si el proceso básico está razonablemente bien
   if (bajo('h_10') && tecSuf && tAvg >= 2.5 && alto('h_6', 2.5)) {
-    return {
-      tipo: 'Alta variabilidad',
-      diagnostico: { icon:'📉', color:'orange', titulo:'Inconsistencia detectada',
-        texto: `La estabilidad semanal es baja (${data['h_10']||0}/5). Hay semanas buenas pero no se consolidan. El rendimiento depende más del estado emocional o factores externos que del proceso interiorizado.` },
-      recomendacion: { icon:'🎯', color:'blue', titulo:'Foco de intervención',
-        texto: 'Identificar qué diferencia las semanas buenas de las malas. Puede ser la zona, el equipo cercano, factores personales o falta de rutina de inicio de jornada. Crear un protocolo de inicio estable reduce la variabilidad.' },
-      palanca
-    };
+    return res({ regla:'R9', tipo:'Estabilidad semanal baja', nivel: totalSuf ? 'alto' : 'medio', icono:'📉', color:'orange',
+      evidencia: [ev('h_10'), mediaT(), ev('h_6')],
+      lectura: 'Se observa variabilidad entre periodos. Conviene identificar qué factores están presentes en las semanas de mejor y de peor rendimiento, como la zona, el horario, el equipo o la rutina de inicio.',
+      colorAccion: 'blue',
+      accion: 'Revisar con el captador una semana buena y una mala y anotar qué cambió entre ellas. Si aparece un factor repetido, acordar una rutina de inicio de jornada estable.',
+      revision: 'Volver a valorar la estabilidad semanal cuando haya pasado un tiempo con esa rutina.' });
   }
 
-  // R10: Tendencia de regresión
+  // R10: Caída respecto a la sesión anterior
   if (tendencia !== null && tendencia < -0.5) {
-    return {
-      tipo: 'Regresión detectada',
-      diagnostico: { icon:'📉', color:'red', titulo:'Tendencia negativa',
-        texto: `Se detecta una caída de ${Math.abs(tendencia).toFixed(1)} puntos respecto a la sesión anterior. La regresión puede ser puntual o indicar un cambio de contexto que hay que identificar.` },
-      recomendacion: { icon:'🎯', color:'orange', titulo:'Intervención urgente',
-        texto: 'Antes de ajustar el plan, entender la causa. Preguntar directamente al captador qué ha cambiado. Una regresión sin intervención rápida tiende a consolidarse y afectar la motivación.' },
-      palanca
-    };
+    const bajan = cambiosTxt(-1);
+    return res({ regla:'R10', tipo:'Caída respecto a la sesión anterior', nivel:'medio', icono:'📉', color:'orange',
+      evidencia: [comparacion(), bajan.length ? 'Bajan: ' + bajan.join(' · ') : null],
+      lectura: 'Se observa una caída respecto a la intervención anterior. Una sola comparación no permite saber si es un cambio puntual o una tendencia sostenida.',
+      accion: 'Preguntar al captador qué ha cambiado desde la última sesión y revisar juntos las variables que más han bajado.',
+      revision: 'Registrar al menos una intervención más antes de concluir si la caída se mantiene.' });
   }
 
   // R11: Fase avanzada + puntuaciones bajas
   if (hayFase && faseNum >= 4 && globalAvg < 2.5 && totalSuf) {
-    return {
-      tipo: 'Integración no consolidada',
-      diagnostico: { icon:'⚠️', color:'red', titulo:'Señal de alerta',
-        texto: `El captador lleva tiempo en el proceso (${FASES.find(f=>f.id===fase)?.label||fase}) pero el rendimiento no está consolidado (media ${globalAvg.toFixed(1)}/5). Es una señal de alerta que requiere revisión del enfoque.` },
-      recomendacion: { icon:'🎯', color:'red', titulo:'Revisión de plan',
-        texto: 'Analizar si el problema es de proceso, de actitud o de contexto externo. Puede ser necesario replantear el acompañamiento desde un nivel más básico o tener una conversación directa sobre expectativas.' },
-      palanca
-    };
+    const masBajas = allScored.slice(0, 2).map(x => x.label + ' ' + x.val + '/5');
+    return res({ regla:'R11', tipo:'Puntuaciones bajas para la fase', nivel: nEval >= 8 ? 'alto' : 'medio', icono:'⚠️', color:'red',
+      evidencia: ['Fase: ' + nombreFase, 'Media ' + fmt(globalAvg) + '/5 (' + nEval + ' variables evaluadas)', masBajas.length ? 'Más bajas: ' + masBajas.join(' · ') : null],
+      lectura: 'Hay una diferencia entre el tiempo en el proceso y las puntuaciones actuales. Los datos no indican la causa; conviene revisar qué competencia concreta está impidiendo la consolidación.',
+      accion: 'Revisar con el captador las variables más bajas, acordar un objetivo concreto para la siguiente sesión y hablar abiertamente de las expectativas de ambas partes. Si el acompañamiento actual no da resultado, plantear un enfoque distinto.',
+      revision: 'En la próxima sesión, comprobar si mejora la variable trabajada.' });
   }
 
-  // R12: Alto rendimiento
+  // R12: Puntuaciones altas
   if (tecSuf && habSuf && tAvg >= 4 && hAvg >= 4) {
-    return {
-      tipo: 'Alto rendimiento',
-      diagnostico: { icon:'🏆', color:'green', titulo:'Zona de excelencia',
-        texto: `Técnica ${tAvg.toFixed(1)}/5 y Hábitos ${hAvg.toFixed(1)}/5. El captador está en zona de alto rendimiento. El riesgo ahora es la complacencia o el estancamiento por falta de nuevos retos.` },
-      recomendacion: { icon:'🎯', color:'green', titulo:'Siguiente nivel',
-        texto: 'Introducir objetivos de calidad o mentoring de compañeros. Un captador en este nivel necesita nuevos desafíos para seguir creciendo. Plantear el paso a un rol de mayor responsabilidad si es posible.' },
-      palanca: allScored.find(x => x.val < 5) || null
-    };
+    return res({ regla:'R12', tipo:'Puntuaciones altas', nivel: (tFilled.length === TECNICA_VARS.length && hFilled.length >= 8) ? 'alto' : 'medio', icono:'🏆', color:'green',
+      evidencia: [mediaT(), mediaH()],
+      lectura: 'Las puntuaciones registradas son altas en técnica y en hábitos. Con este nivel, el siguiente paso puede centrarse en consolidar, ganar autonomía o asumir nuevos retos.',
+      accion: 'Acordar con el captador un reto nuevo (calidad, campañas, apoyo a compañeros) y, si procede, valorar responsabilidades adicionales.',
+      revision: 'Comprobar en las próximas sesiones si el nivel alto se mantiene.',
+      palanca: allScored.find(x => x.val < 5) || null });
   }
 
-  // R13: Progreso estable — solo si el rendimiento base es aceptable
+  // R13: Mejora o mantenimiento respecto a la sesión anterior — solo si el nivel base es aceptable
   if (tendencia !== null && tendencia >= 0 && totalSuf && globalAvg >= 2.5) {
-    return {
-      tipo: 'Progreso estable',
-      diagnostico: { icon:'📈', color:'green', titulo:'Tendencia positiva',
-        texto: `El captador mantiene o mejora sus puntuaciones respecto a la sesión anterior (+${tendencia.toFixed(1)} pts). El plan de intervención está funcionando. Mantener la dirección.` },
-      recomendacion: { icon:'🎯', color:'green', titulo:'Siguiente paso',
-        texto: palanca && palanca.val < 3
-          ? `Consolidar lo conseguido y poner foco en ${palanca.label} (${palanca.val}/5), que es donde queda más margen de mejora.`
-          : 'Mantener el ritmo. Reforzar los logros conseguidos y elevar gradualmente el nivel de exigencia.' },
-      palanca
-    };
+    const mejora = tendencia >= 0.05;
+    const suben = cambiosTxt(1);
+    return res({ regla:'R13', tipo: mejora ? 'Mejora respecto a la sesión anterior' : 'Puntuaciones estables', nivel:'medio', icono:'📈', color:'green',
+      evidencia: [comparacion(), suben.length ? 'Suben: ' + suben.join(' · ') : null],
+      lectura: (mejora ? 'Las puntuaciones mejoran respecto a la sesión anterior.' : 'Las puntuaciones se mantienen respecto a la sesión anterior.') +
+        ' Una sola comparación no basta para afirmar que ' + (mejora ? 'la mejora' : 'el nivel') + ' se mantendrá.',
+      accion: palanca && palanca.val < 3
+        ? 'Mantener lo que se está haciendo y trabajar ' + palanca.label + ' (' + palanca.val + '/5), la variable con más margen de mejora entre las evaluadas.'
+        : 'Mantener lo que se está haciendo y subir poco a poco el nivel de exigencia.',
+      revision: 'Comprobar en las próximas intervenciones si ' + (mejora ? 'la mejora' : 'el nivel') + ' se mantiene.' });
   }
 
   // Ninguna regla con evidencia suficiente: no se afirma lo que los datos no sostienen
   if (!hayFase || !totalSuf) {
     const porFase = !hayFase;
-    return {
-      tipo: 'Datos insuficientes', datosInsuficientes: true, sinFase: porFase,
-      diagnostico: { icon:'🔍', color:'blue', titulo: porFase ? 'Falta la fase' : 'Pocas variables evaluadas',
-        texto: porFase
-          ? 'Ninguna regla que no dependa de la fase se cumple con los datos actuales, y sin fase no se puede valorar el resto. No se genera un diagnóstico para no suponer en qué fase está el captador.'
-          : 'Solo hay ' + nEval + (nEval === 1 ? ' variable evaluada' : ' variables evaluadas') + '. Con tan pocos datos no se puede dar un diagnóstico general fiable.' },
-      recomendacion: { icon:'🎯', color:'blue', titulo:'Qué hacer',
-        texto: porFase
-          ? 'Introduce la fecha de comienzo en Captador. La fase se calcula sola y el diagnóstico se completa en cuanto la tenga.'
-          : 'Puntúa en Evaluación al menos 4 variables que hayas podido observar, de técnica y de hábitos.' },
-      palanca: null
-    };
+    return res({ regla:'R0', tipo:'Datos insuficientes', nivel:'bajo', icono:'🔍', color:'blue', palanca: null,
+      extra: { datosInsuficientes: true, sinFase: porFase },
+      tituloLectura: porFase ? 'Falta la fase' : 'Pocas variables evaluadas', tituloAccion: 'Qué hacer',
+      evidencia: [nEval + (nEval === 1 ? ' variable evaluada' : ' variables evaluadas'), porFase ? 'Fase sin calcular' : null],
+      lectura: porFase
+        ? 'Ninguna regla que no dependa de la fase se cumple con los datos actuales, y sin fase no se puede valorar el resto. No se genera una lectura para no suponer en qué fase está el captador.'
+        : 'Con tan pocos datos no se puede hacer una lectura general fiable.',
+      accion: porFase
+        ? 'Introduce la fecha de comienzo en Captador. La fase se calcula sola y la lectura se completa en cuanto la tenga.'
+        : 'Puntúa en Evaluación al menos 4 variables que hayas podido observar, de técnica y de hábitos.',
+      revision: 'Cuando estén esos datos, la lectura se genera sola.' });
   }
 
-  // Fallback: ninguna regla específica disparó — usar la variable con más palanca
-  const nivelGlobal = globalAvg >= 4 ? 'alto' : globalAvg >= 3 ? 'medio-alto' : globalAvg >= 2 ? 'medio' : 'bajo';
-  return {
-    tipo: 'Perfil equilibrado',
-    diagnostico: { icon:'🔍', color:'blue', titulo:`Nivel ${nivelGlobal} — sin bloqueos críticos`,
-      texto: `Técnica ${tAvg?tAvg.toFixed(1):'—'}/5, Hábitos ${hAvg?hAvg.toFixed(1):'—'}/5. No se detectan bloqueos específicos dominantes. El perfil es relativamente equilibrado en esta fase.` },
-    recomendacion: { icon:'🎯', color:'blue', titulo:'Variable con más palanca',
-      texto: palanca && palanca.val < 4
-        ? `Concentrar la siguiente sesión en ${palanca.label} (${palanca.val}/5). Es la variable con más margen de mejora relativa y mayor impacto esperado en el rendimiento.`
-        : 'El perfil es sólido. Mantener el seguimiento y valorar introducir nuevos retos para evitar estancamiento.' },
-    palanca
-  };
+  // Sin patrón destacado: se propone la variable prioritaria por puntuación (no se le atribuye causalidad)
+  return res({ regla:'R14', tipo:'Sin patrón destacado', nivel: nEval >= 8 ? 'alto' : 'medio', icono:'🔍', color:'blue',
+    evidencia: [mediaT(), mediaH(), palanca ? 'Variable más baja: ' + palanca.label + ' ' + palanca.val + '/5' : null],
+    lectura: 'No aparece ninguno de los patrones que revisa la herramienta. Las puntuaciones no muestran una diferencia marcada entre áreas.',
+    accion: palanca && palanca.val < 4
+      ? 'Centrar la siguiente sesión en ' + palanca.label + ' (' + palanca.val + '/5), la variable prioritaria por puntuación entre las evaluadas.'
+      : 'Mantener el seguimiento y valorar con el captador nuevos retos.',
+    revision: palanca && palanca.val < 4
+      ? 'En la próxima sesión, volver a puntuar ' + palanca.label + ' y compararla con hoy.'
+      : 'Comprobar en las próximas sesiones si el nivel se mantiene.' });
 }
 
 function renderDiagnostico() {
@@ -3408,24 +3409,37 @@ function renderDiagnostico() {
   card.classList.add('visible');
   tipoBadge.textContent = diag.tipo;
   const toneDe = c => ({red:'bad', orange:'warn', blue:'blue', green:'ok'}[c] || 'blue');
-  const bloque = b => `
+  // Un bloque de la lectura: icono en cuadrado tintado, título y contenido
+  const bloque = (icono, tone, titulo, contenido) => `
     <div class="diag-block">
-      <span class="tile tile-sm" data-tone="${toneDe(b.color)}">${ic(iconoDeEmoji(b.icon,'info'))}</span>
+      <span class="tile tile-sm" data-tone="${tone}">${ic(icono)}</span>
       <div class="diag-block-content">
-        <h3 class="diag-block-title">${esc(b.titulo)}</h3>
-        <p class="diag-block-text">${esc(b.texto)}</p>
+        <h3 class="diag-block-title">${titulo}</h3>
+        ${contenido}
       </div>
     </div>`;
-  const palancaHtml = diag.palanca ? `
+  const texto = t => '<p class="diag-block-text">' + esc(t) + '</p>';
+  const NIVEL = { alto:{ txt:'Evidencia suficiente', cls:'good' }, medio:{ txt:'Evidencia parcial', cls:'mid' }, bajo:{ txt:'Sin evidencia suficiente', cls:'' } };
+  const nv = NIVEL[diag.nivelEvidencia] || NIVEL.medio;
+  const evidencia = (diag.evidencia || []).length
+    ? '<ul class="diag-evid">' + diag.evidencia.map(e => '<li class="pill">' + esc(e) + '</li>').join('') + '</ul>'
+    : texto('No hay datos que mostrar.');
+  const palancaHtml = diag.palanca && !diag.datosInsuficientes ? `
     <div class="diag-palanca">
-      <span class="eyebrow">Variable clave</span>
+      <span class="eyebrow">Variable prioritaria por puntuación</span>
       <span class="diag-palanca-val">${esc(diag.palanca.label)}</span>
       <span class="score-pill ${pillClass(diag.palanca.val.toString())}">${diag.palanca.val} de 5</span>
     </div>` : '';
   const avisoFase = diag.faseDesconocida
-    ? '<div class="notice" data-tone="warn">' + ic('calendar') + '<div><strong>Sin fase.</strong> Este diagnóstico no tiene en cuenta en qué fase está el captador; puede cambiar al poner la fecha de comienzo.</div></div>' : '';
+    ? '<div class="notice" data-tone="warn">' + ic('calendar') + '<div><strong>Sin fase.</strong> Esta lectura no tiene en cuenta en qué fase está el captador; puede cambiar al poner la fecha de comienzo.</div></div>' : '';
   const faltaFase = diag.sinFase || diag.faseDesconocida;
-  body.innerHTML = avisoFase + bloque(diag.diagnostico) + (diag.datosInsuficientes ? '' : palancaHtml) + bloque(diag.recomendacion) +
+  body.innerHTML = avisoFase +
+    '<div><span class="score-pill ' + nv.cls + '">' + nv.txt + '</span></div>' +
+    bloque('chart', 'slate', 'Evidencia', evidencia) +
+    bloque(iconoDeEmoji(diag.diagnostico.icon, 'search'), toneDe(diag.diagnostico.color), esc(diag.diagnostico.titulo), texto(diag.diagnostico.texto)) +
+    bloque('target', toneDe(diag.recomendacion.color), esc(diag.recomendacion.titulo), texto(diag.recomendacion.texto)) +
+    (diag.revision ? bloque('check-circle', 'ok', 'Revisión', texto(diag.revision.texto)) : '') +
+    palancaHtml +
     (faltaFase ? '<button type="button" class="btn btn-secondary" onclick="irAFechaInicio()">' + ic('calendar') + 'Poner la fecha de comienzo</button>' : '');
 }
 
