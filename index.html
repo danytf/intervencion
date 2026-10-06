@@ -1151,7 +1151,7 @@ input[type=date]{scroll-margin-top:96px;}
         <span class="tile tile-sm" data-tone="slate"><svg class="ic" aria-hidden="true"><use href="#i-scale"/></svg></span>
         <div class="card-head-text"><p class="eyebrow">Decisión</p><h2 class="card-title" id="h-criterios">Evalúa los 4 criterios</h2><p class="card-sub">El resultado es el último criterio, no el primero.</p></div>
       </div>
-      <button type="button" class="btn btn-secondary btn-block" onclick="sugerirMatriz(true)"><svg class="ic" aria-hidden="true"><use href="#i-bolt"/></svg>Sugerir desde la evaluación</button>
+      <button type="button" class="btn btn-secondary btn-block" onclick="sugerirMatriz()"><svg class="ic" aria-hidden="true"><use href="#i-bolt"/></svg>Sugerir desde la evaluación</button>
       <div class="notice" id="matrizSugerenciaBanner" style="display:none;margin-top:12px" role="status"></div>
       <div class="mz-grid" style="margin-top:16px">
         <div class="mz-crit" id="mc_esfuerzo">
@@ -1474,9 +1474,41 @@ function sesionDelFormulario(datos) {
   const origen = fichaCargada();
   return Object.assign({}, datos, { _id: '_current', _savedAt: origen ? origen._savedAt : new Date().toISOString() });
 }
-// Sesiones guardadas de un captador + la del formulario (sin contar dos veces la ficha cargada), en orden cronológico
+// ── Identidad de la persona (agrupa su historial) ──
+// Con NIP, la identidad es el NIP (sin espacios en los extremos, como se guarda): sus sesiones forman un solo historial
+// aunque el nombre se escriba distinto. Sin NIP (fichas antiguas o que no lo tienen), se agrupa por nombre, como antes.
+// Una ficha con NIP no se mezcla con fichas sin NIP aunque el nombre coincida. El NIP nunca se deduce del nombre.
+function claveIdentidad(f) {
+  const nip = f && typeof f.nip === 'string' ? f.nip.trim() : '';
+  if (nip) return 'nip:' + nip;
+  const nombre = f && typeof f.captador === 'string' ? f.captador.trim() : '';
+  return 'nombre:' + (nombre || 'Sin nombre');
+}
+// Agrupa sesiones por identidad: clave → { sesiones (orden cronológico), ultima, nombre a mostrar }
+function agruparPorIdentidad(fichas) {
+  const g = {};
+  fichas.forEach(f => { const k = claveIdentidad(f); (g[k] = g[k] || []).push(f); });
+  const out = {};
+  Object.keys(g).forEach(k => {
+    const sesiones = ordenarSesiones(g[k]);
+    const ultima = sesiones[sesiones.length - 1];
+    out[k] = { sesiones, ultima, nombre: (ultima.captador || '').trim() || 'Sin nombre' };
+  });
+  return out;
+}
+// Nombre para listas: si dos personas distintas comparten nombre, se añade el NIP (o «sin NIP») para distinguirlas
+function etiquetaIdentidad(grupos, k) {
+  const g = grupos[k];
+  const repetido = Object.keys(grupos).some(o => o !== k && grupos[o].nombre === g.nombre);
+  if (!repetido) return g.nombre;
+  return g.nombre + (k.startsWith('nip:') ? ' · NIP ' + k.slice(4) : ' · sin NIP');
+}
+
+// Sesiones guardadas de la persona de `datos` (misma identidad) + la del formulario (sin contar dos veces la ficha
+// cargada), en orden cronológico. `nombre` se mantiene por compatibilidad de las llamadas: la identidad sale de `datos`.
 function sesionesConActual(nombre, datos, incluirActual) {
-  const guardadas = cargarFichas().filter(f => (f.captador || '').trim() === nombre);
+  const clave = claveIdentidad(datos);
+  const guardadas = cargarFichas().filter(f => claveIdentidad(f) === clave);
   if (!incluirActual) return ordenarSesiones(guardadas);
   return ordenarSesiones(guardadas.filter(f => f._id !== AppState.lastLoadedId).concat([sesionDelFormulario(datos)]));
 }
@@ -1492,14 +1524,15 @@ function sesionesHastaActual(nombre, datos, incluirActual) {
 // Sesiones guardadas del captador anteriores (por fecha de intervención) a la del formulario
 function sesionesAnterioresA(nombre, datos) {
   const actual = sesionDelFormulario(datos);
+  const clave = claveIdentidad(datos);
   return ordenarSesiones(cargarFichas().filter(f =>
-    (f.captador || '').trim() === nombre && f._id !== AppState.lastLoadedId && compararSesiones(f, actual) < 0));
+    claveIdentidad(f) === clave && f._id !== AppState.lastLoadedId && compararSesiones(f, actual) < 0));
 }
 // Editar a mano una fecha es un cambio deliberado: la fase vuelve a calcularse con las fechas
 function fechasEditadas() {
   AppState.faseCongelada = false;
+  actualizarDiasFase();   // primero la fase, para que el autoguardado ya la lleve actualizada (o sin fase)
   autoguardar();
-  actualizarDiasFase();
 }
 
 // Emoji de los datos → icono de línea equivalente
@@ -1687,7 +1720,7 @@ const AYUDA_TABS = [
     desc: 'Ficha de identificación del captador y datos de la intervención activa.',
     secciones: [
       { titulo: 'Sesión nueva o sesión guardada', texto: 'La tarjeta superior indica si estás registrando una sesión nueva o editando una guardada. «Guardar» añade una sesión nueva al historial; «Actualizar» guarda los cambios en la sesión cargada. Para registrar otra intervención de la misma persona usa «Nueva sesión de este captador/a»: conserva sus datos y deja en blanco evaluación, registro y decisión.' },
-      { titulo: 'Datos del captador/a', texto: 'Nombre completo, NIP (identificador único Wesser), responsable directo y provincia. El NIP permite vincular este captador con su historial en el sistema.' },
+      { titulo: 'Datos del captador/a', texto: 'Nombre completo, NIP (identificador Wesser), responsable directo y provincia. Las sesiones con el mismo NIP forman un solo historial aunque el nombre se escriba distinto. Las sesiones sin NIP se agrupan por nombre, y una sesión con NIP no se junta con las que no lo tienen.' },
       { titulo: 'Fecha de comienzo', texto: 'Fecha en que el captador inició su actividad. Permite calcular automáticamente la fase actual (F1–F6) y los días de antigüedad.' },
       { titulo: 'Badge de fase', texto: 'Se actualiza solo al introducir la fecha de comienzo. Muestra los días activos, la fase actual, el rango de días de esa fase y el estado del captador.' },
       { titulo: 'Fecha de intervención', texto: 'Fecha de esta sesión concreta. Puede ser diferente al día de hoy si se rellena a posteriori.' },
@@ -1744,7 +1777,7 @@ const AYUDA_TABS = [
     desc: 'Resumen, historial y evolución de todos los captadores del equipo.',
     secciones: [
       { titulo: 'Resumen', texto: 'Tabla con todos los captadores guardados: estado, medias de técnica y hábitos, fase, nivel de atención, semáforo, sesiones y última intervención. Filtra por nombre, provincia o estado. Pulsa una fila para cargar esa ficha.' },
-      { titulo: 'Historial', texto: 'El único lugar para recuperar sesiones guardadas, agrupadas por captador/a. Busca por nombre, NIP o provincia; cada sesión muestra fecha, medias, fase y su registro. Puedes cargarla para consultarla o actualizarla, eliminarla, empezar una sesión nueva de esa persona o ver su evolución. También se abre desde el menú «Más acciones».' },
+      { titulo: 'Historial', texto: 'El único lugar para recuperar sesiones guardadas, agrupadas por persona: por NIP cuando lo tienen y, si no, por nombre. Busca por nombre, NIP o provincia; cada sesión muestra fecha, medias, fase y su registro. Puedes cargarla para consultarla o actualizarla, eliminarla, empezar una sesión nueva de esa persona o ver su evolución. También se abre desde el menú «Más acciones».' },
       { titulo: 'Evolución', texto: 'Gráfico de línea con la evolución de técnica y hábitos a lo largo del tiempo, detalle por variable de cada sesión y progresión de fase.' },
     ],
     siguiente: null,
@@ -1789,15 +1822,46 @@ const ESTADOS={progreso:{label:'En progreso',cls:'sp-progreso',dot:'🟢'},estan
 const LS_KEY = 'wesser_fichas_v2';
 const LS_PLANTILLAS_PROPIAS = 'wesser_plantillas_propias_v1';
 
+// ── Identificadores internos ──
+// Un _id es un identificador opaco: solo letras, números, «_» y «-». Se valida al entrar (importar o cargar del
+// almacenamiento) porque se usa dentro de handlers inline (onclick="…('id')"), donde escapar HTML no basta.
+const RE_ID_SEGURO = /^[A-Za-z0-9_-]{1,64}$/;
+function idSeguro(id) { return typeof id === 'string' && RE_ID_SEGURO.test(id); }
+function nuevoId(prefijo) { return (prefijo || '') + Date.now().toString() + Math.random().toString(36).slice(2, 8); }
+// Devuelve el id válido (los enteros se pasan a texto) o null si no lo es
+function normalizarId(id) {
+  if (typeof id === 'number' && Number.isSafeInteger(id) && id >= 0) id = String(id);
+  return idSeguro(id) ? id : null;
+}
+// Sustituye en la lista los _id que falten, no sean válidos o estén repetidos; devuelve cuántos ha cambiado
+function asegurarIds(lista, prefijo) {
+  const vistos = new Set();
+  let cambiados = 0;
+  lista.forEach(x => {
+    if (!x || typeof x !== 'object') return;
+    let id = normalizarId(x._id);
+    if (id === null || vistos.has(id)) { do { id = nuevoId(prefijo); } while (vistos.has(id)); }
+    if (id !== x._id) { x._id = id; cambiados++; }
+    vistos.add(id);
+  });
+  return cambiados;
+}
+// Defensa en el punto de uso: nunca se escribe en un atributo un id que no sea seguro
+function idAttr(id) { return idSeguro(id) ? id : ''; }
+
 function cargarPlantillasPropias() {
-  try { return JSON.parse(localStorage.getItem(LS_PLANTILLAS_PROPIAS)) || []; }
+  let items;
+  try { items = JSON.parse(localStorage.getItem(LS_PLANTILLAS_PROPIAS)) || []; }
   catch(e) { return []; }
+  if (!Array.isArray(items)) return [];
+  if (asegurarIds(items, 'propia_')) { try { salvarPlantillasPropias(items); } catch(e) {} }
+  return items;
 }
 function salvarPlantillasPropias(items) {
   localStorage.setItem(LS_PLANTILLAS_PROPIAS, JSON.stringify(items));
 }
 function getNuevaPlantillaId() {
-  return 'propia_' + Date.now().toString(36);
+  return nuevoId('propia_');
 }
 
 // ── SCORES ──
@@ -1912,11 +1976,12 @@ function buildFases() {
     wrap.appendChild(radio);
   });
 }
+// selectFase(null) deja la ficha sin fase: todo lo que depende de la fase deja de usar la anterior
 function selectFase(id, silent) {
+  if (!faseValida(id)) id = null;
   faseSelected = id;
   AppState.fase = id;
-  const radio = document.getElementById('radio_'+id);
-  if(radio) radio.checked = true;
+  FASES.forEach(f => { const r = document.getElementById('radio_'+f.id); if (r) r.checked = f.id === id; });
   try{ renderFaseDisplay(id); }catch(e){}
   try{ renderGuiaFase(id); }catch(e){}
   try{ renderSenales(id); }catch(e){}
@@ -1925,6 +1990,7 @@ function selectFase(id, silent) {
   // La fase cambia el diagnóstico y el índice de atención: se actualizan también
   try{ renderRiesgoCard(); }catch(e){}
   try{ renderDiagnostico(); }catch(e){}
+  try{ calcMatriz(); }catch(e){}   // los requisitos para valorar una salida dependen de la fase
   if (!silent) autoguardar();
 }
 
@@ -2119,6 +2185,8 @@ function cargarDatos(data) {
   _isLoading = true;
   if(!data) return;
   ['captador','responsable','provincia','antiguedad','fecha','estado','nip','fechainicio'].forEach(k => { const el=document.getElementById('d_'+k); if(el) el.value=data[k]||''; });
+  // Los campos de fecha solo admiten AAAA-MM-DD (en todos los navegadores, también donde el campo se comporta como texto)
+  ['fecha','fechainicio'].forEach(k => { const el=document.getElementById('d_'+k); if(el && !fechaISOValida(el.value)) el.value=''; });
   for(let i=1;i<=5;i++) { const el=document.getElementById('c'+i); if(el) el.value=data['c'+i]||''; }
   for(let i=1;i<=6;i++) { const el=document.getElementById('ic'+i); if(el) el.value=data['ic'+i]||''; }
   TECNICA_VARS.forEach((_,i) => { const k='t_'+i; scores[k]=data[k]||0; renderStars(k); });
@@ -2172,20 +2240,74 @@ function autoguardar() {
   try{actualizarModoSesion();}catch(e){}
 }
 
-// ── FICHAS (localStorage) ──
-// ── Caché de fichas ──
+// ── FICHAS (localStorage), con varias pestañas abiertas ──
+// Cada pestaña recuerda cómo era cada ficha cuando la leyó (_fichasBase). Al guardar no escribe su copia entera:
+// relee lo guardado en ese momento y aplica solo lo que ella ha cambiado respecto a su base (altas, modificaciones
+// y borrados). Así un guardado no pisa los cambios que otra pestaña haya hecho en otras fichas.
+// Misma ficha cambiada en dos pestañas: gana el último guardado (la ficha entera). Si una la borró y la otra la
+// guarda después con cambios, queda la de la otra.
 let _fichasCache = null;
+let _fichasBase = null;   // id → JSON de la ficha tal como la conoce esta pestaña
+function leerFichasGuardadas() {
+  let a;
+  try { a = JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch(e) { a = []; }
+  return Array.isArray(a) ? a : [];
+}
+function instantaneaFichas(lista) {
+  const m = new Map();
+  lista.forEach(f => { if (f && f._id) m.set(f._id, JSON.stringify(f)); });
+  return m;
+}
 function cargarFichas() {
   if (_fichasCache !== null) return _fichasCache;
-  try { _fichasCache = JSON.parse(localStorage.getItem(LS_KEY)) || []; }
-  catch(e) { _fichasCache = []; }
+  _fichasCache = leerFichasGuardadas();
+  // Fichas guardadas antes de validar los identificadores: los no válidos se sustituyen y se guardan
+  if (asegurarIds(_fichasCache)) { try { localStorage.setItem(LS_KEY, JSON.stringify(_fichasCache)); } catch(e) {} }
+  _fichasBase = instantaneaFichas(_fichasCache);
   return _fichasCache;
 }
 function salvarFichas(fichas) {
-  _fichasCache = fichas;
+  const actual = leerFichasGuardadas();
+  const base = _fichasBase || instantaneaFichas(actual);   // sin base conocida no se deduce ningún borrado
+  const local = new Map();
+  fichas.forEach(f => { if (f && f._id) local.set(f._id, f); });
+  // Lo que ha cambiado esta pestaña respecto a lo que conocía
+  const borradas = new Set([...base.keys()].filter(id => !local.has(id)));
+  const cambiadas = new Map([...local].filter(([id, f]) => base.get(id) !== JSON.stringify(f)));
+  // Se aplica sobre lo guardado ahora, que puede incluir cambios de otras pestañas
+  const resultado = actual
+    .filter(f => !(f && borradas.has(f._id)))
+    .map(f => (f && cambiadas.has(f._id)) ? cambiadas.get(f._id) : f);
+  const presentes = new Set(resultado.map(f => f && f._id));
+  cambiadas.forEach((f, id) => { if (!presentes.has(id)) resultado.push(f); });   // altas
+  localStorage.setItem(LS_KEY, JSON.stringify(resultado));
+  _fichasCache = resultado;
+  _fichasBase = instantaneaFichas(resultado);
+}
+// Importar sin combinar: sustituye deliberadamente todo el conjunto de fichas
+function reemplazarFichas(fichas) {
   localStorage.setItem(LS_KEY, JSON.stringify(fichas));
+  _fichasCache = fichas;
+  _fichasBase = instantaneaFichas(fichas);
 }
 function invalidarCache() { _fichasCache = null; }
+
+// Otra pestaña ha cambiado las fichas: la caché se descarta y se actualiza lo que se muestra de ellas
+window.addEventListener('storage', function(e) {
+  if (e.key !== null && e.key !== LS_KEY) return;
+  const id = AppState.lastLoadedId;
+  const antes = id && _fichasBase ? _fichasBase.get(id) : null;
+  _fichasCache = null; _fichasBase = null;
+  const fichas = cargarFichas();
+  if (id && antes) {
+    const ahora = fichas.find(f => f._id === id);
+    if (!ahora) toast('Esta sesión se ha eliminado en otra pestaña. Si la guardas aquí, se guardará como sesión nueva.', {ms:6000});
+    else if (JSON.stringify(ahora) !== antes) toast('Esta sesión se ha modificado en otra pestaña. Si la guardas aquí, prevalecerán los cambios de esta pestaña.', {ms:6000});
+  }
+  try{ actualizarContador(); actualizarModoSesion(); }catch(err){}
+  try{ renderHistorialTab(); renderDashboard(); populateEvoSelect(); }catch(err){}
+  try{ renderRiesgoCard(); renderSemaforo(); renderLMI(); renderDiagnostico(); }catch(err){}
+});
 
 // La sesión del formulario es una sesión guardada (se está editando) o una sesión nueva
 function sesionEditada() { return AppState.lastLoadedId ? cargarFichas().find(f => f._id === AppState.lastLoadedId) || null : null; }
@@ -2239,7 +2361,7 @@ function guardarFicha() {
     fichas[idx] = data;
     msg = `Sesión de "${data.captador}" actualizada`;
   } else {
-    const mismoDia = fichas.some(f => (f.captador||'').trim() === data.captador && f.fecha && f.fecha === data.fecha);
+    const mismoDia = fichas.some(f => claveIdentidad(f) === claveIdentidad(data) && f.fecha && f.fecha === data.fecha);
     if (mismoDia && !confirm(`Ya hay una sesión de "${data.captador}" con fecha ${formatFecha(data.fecha)}. ¿Guardar otra sesión ese mismo día?\n\nSi querías corregir esa sesión, cárgala desde Equipo › Historial y pulsa «Actualizar».`)) return;
     data._id=Date.now().toString();
     data._savedAt=new Date().toISOString();
@@ -2259,6 +2381,7 @@ function guardarFicha() {
 
 function eliminarFicha(id) {
   if(!confirm('¿Eliminar esta sesión? Podrás deshacerlo durante unos segundos.')) return;
+  invalidarCache();   // se busca en lo guardado ahora (puede venir de otra pestaña), no en una caché antigua
   const fichaBackup = cargarFichas().find(f => f._id === id);
   if(!fichaBackup) return;
   invalidarCache();
@@ -2377,7 +2500,9 @@ function avgScores(data, prefix, count) {
   return n ? (s/n).toFixed(1) : null;
 }
 function pillClass(v) { if(!v)return''; const x=parseFloat(v); return x>=4?'good':x>=2.5?'mid':'low'; }
-function formatFecha(iso) { if(!iso)return'—'; try{const[y,m,d]=iso.split('-');return`${d}/${m}/${y}`;}catch(e){return iso;} }
+// AAAA-MM-DD → DD/MM/AAAA. Cualquier otro valor (vacío, otro formato o manipulado) se trata como fecha no válida: «—».
+// La salida solo contiene dígitos y «/», así que es segura dentro de HTML aunque el dato venga de un JSON importado.
+function formatFecha(iso) { if (!fechaISOValida(iso)) return '—'; const [y, m, d] = iso.split('-'); return `${d}/${m}/${y}`; }
 function formatSaved(iso) { try{return new Date(iso).toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'});}catch(e){return iso;} }
 function miniBar(val) {
   const v=val?Math.round(parseFloat(val)):0;
@@ -2389,28 +2514,28 @@ function abrirHistorial() {
   goTab(4);
   switchSubtab('historial');
 }
-function verEvolucion(nombre) {
+function verEvolucion(clave) {
   goTab(4);
   switchSubtab('evolucion');
   const sel = document.getElementById('evoSelect');
-  if (sel) { sel.value = nombre; renderEvolucion(); }
+  if (sel) { sel.value = clave; renderEvolucion(); }
 }
 
 function populateEvoSelect() {
-  const fichas=cargarFichas();
-  const nombres=[...new Set(fichas.map(f=>(f.captador||'').trim()).filter(Boolean))].sort();
+  const grupos=agruparPorIdentidad(cargarFichas());
+  const claves=Object.keys(grupos).sort((a,b)=>etiquetaIdentidad(grupos,a).localeCompare(etiquetaIdentidad(grupos,b),'es'));
   const sel=document.getElementById('evoSelect');
   const prev=sel.value;
-  sel.innerHTML='<option value="">Selecciona un captador/a</option>'+nombres.map(n=>`<option value="${esc(n)}"${n===prev?' selected':''}>${esc(n)}</option>`).join('');
+  sel.innerHTML='<option value="">Selecciona un captador/a</option>'+claves.map(k=>`<option value="${esc(k)}"${k===prev?' selected':''}>${esc(etiquetaIdentidad(grupos,k))}</option>`).join('');
   renderEvolucion();
 }
 
 function renderEvolucion() {
-  const nombre=(document.getElementById('evoSelect')?.value||'').trim();
+  const clave=document.getElementById('evoSelect')?.value||'';
   const el=document.getElementById('evoContent');
   if(!el) return;
-  if(!nombre){ el.innerHTML=vacio('trend','Evolución','Elige un captador/a para ver cómo han cambiado sus puntuaciones.'); return; }
-  const sessions=ordenarSesiones(cargarFichas().filter(f=>(f.captador||'').trim()===nombre));
+  if(!clave){ el.innerHTML=vacio('trend','Evolución','Elige un captador/a para ver cómo han cambiado sus puntuaciones.'); return; }
+  const sessions=ordenarSesiones(cargarFichas().filter(f=>claveIdentidad(f)===clave));
   if(sessions.length<1){ el.innerHTML=vacio('trend','Sin sesiones','Este captador/a no tiene sesiones guardadas.'); return; }
 
   const tAvgs=sessions.map(f=>avgScores(f,'t',TECNICA_VARS.length));
@@ -2450,13 +2575,13 @@ function renderEvolucion() {
     }).join('');
     return `<tr><td>${esc(label)}</td>${cells}</tr>`;
   }
-  const sesHeaders=sessions.map((_,i)=>`<th scope="col" colspan="2">S${i+1}<small>${formatFecha(sessions[i].fecha)}</small></th>`).join('');
+  const sesHeaders=sessions.map((_,i)=>`<th scope="col" colspan="2">S${i+1}<small>${esc(formatFecha(sessions[i].fecha))}</small></th>`).join('');
   const tecnicaRows=TECNICA_VARS.map((v,i)=>varRow(v,'t',i)).join('');
   const habitosRows=HABITOS_VARS.map((v,i)=>varRow(v,'h',i)).join('');
 
   const faseItems=sessions.map((f,i)=>{
     const fl=FASES.find(x=>x.id===f.faseSelected);
-    return fl?`<li class="evo-fase-item"><span class="evo-fase-date">S${i+1} · ${formatFecha(f.fecha)}</span><span class="fase-badge" data-tone="${FASE_TONO[fl.id]||'slate'}">${esc(fl.label)}</span></li>`:'';
+    return fl?`<li class="evo-fase-item"><span class="evo-fase-date">S${i+1} · ${esc(formatFecha(f.fecha))}</span><span class="fase-badge" data-tone="${FASE_TONO[fl.id]||'slate'}">${esc(fl.label)}</span></li>`:'';
   }).filter(Boolean).join('');
 
   el.innerHTML = `
@@ -2531,17 +2656,26 @@ function drawEvoChart(labels, tAvgs, hAvgs) {
     const pts=avgs.map((v,i)=>({x:pad.left+(n>1?i/(n-1):0.5)*cw, y:v?pad.top+ch-(parseFloat(v)/5)*ch:null}));
     const valid=pts.filter(p=>p.y!==null);
     if(valid.length<1) return;
-    ctx.beginPath();
-    ctx.moveTo(valid[0].x, pad.top+ch);
-    valid.forEach(p=>ctx.lineTo(p.x,p.y));
-    ctx.lineTo(valid[valid.length-1].x, pad.top+ch);
-    ctx.closePath();
-    ctx.fillStyle=conAlfa(color,.10);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.strokeStyle=color; ctx.lineWidth=2.5; ctx.lineJoin='round';
-    valid.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
-    ctx.stroke();
+    // Tramos de sesiones consecutivas con dato: una sesión sin dato corta la línea y el área (no se interpola sobre ella)
+    const tramos=[]; let tramo=[];
+    pts.forEach(p=>{ if(p.y===null){ if(tramo.length) tramos.push(tramo); tramo=[]; } else tramo.push(p); });
+    if(tramo.length) tramos.push(tramo);
+    const lineas=tramos.filter(t=>t.length>1);
+    if(lineas.length){
+      ctx.beginPath();
+      lineas.forEach(t=>{
+        ctx.moveTo(t[0].x, pad.top+ch);
+        t.forEach(p=>ctx.lineTo(p.x,p.y));
+        ctx.lineTo(t[t.length-1].x, pad.top+ch);
+        ctx.closePath();
+      });
+      ctx.fillStyle=conAlfa(color,.10);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.strokeStyle=color; ctx.lineWidth=2.5; ctx.lineJoin='round';
+      lineas.forEach(t=>t.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y)));
+      ctx.stroke();
+    }
     valid.forEach(p=>{
       ctx.beginPath(); ctx.arc(p.x,p.y,4,0,Math.PI*2);
       ctx.fillStyle=C.surface; ctx.fill();
@@ -2588,15 +2722,16 @@ function generarPDF(){
   // Datos
   const d = recopilarDatos();
   const captadorNombre = d.captador || 'captador';
-  const histSessions = d.captador
-    ? ordenarSesiones(cargarFichas().filter(f=>(f.captador||'').trim()===d.captador.trim()))
-    : [];
+  // Corte histórico: el informe representa la sesión del formulario. Solo entran las sesiones del captador hasta
+  // ella (incluida), en el orden de la app: fecha de intervención y, el mismo día, momento de guardado.
+  const hsPdf   = d.captador ? sesionesHastaActual(d.captador.trim(), d, true) : null;
+  const histSessions = hsPdf ? hsPdf.sessions : [];
 
   const tAvgCur = parseFloat(avgScores(d,'t',TECNICA_VARS.length)||0);
   const hAvgCur = parseFloat(avgScores(d,'h',HABITOS_VARS.length)||0);
-  const hsPdf   = d.captador ? sesionesHastaActual(d.captador.trim(), d, true) : null;
-  const riesgo  = hsPdf && hsPdf.sessions.length ? calcRiesgo(hsPdf.sessions, d.estado||'', { historica: hsPdf.historica }) : null;
-  const diasProc= d.fechainicio ? Math.max(1,Math.floor((Date.now()-new Date(d.fechainicio))/86400000)) : null;
+  const riesgo  = histSessions.length ? calcRiesgo(histSessions, d.estado||'', { historica: hsPdf.historica }) : null;
+  // Día en la intervención del informe (comienzo → fecha de esa sesión), no a día de hoy; sin fechas válidas, «—»
+  const diasProc= calcularFasePorFecha(d.fechainicio, d.fecha).dias;
   const faseObj = FASES.find(x=>x.id===d.faseSelected);
 
   // Inicializar doc
@@ -2819,14 +2954,10 @@ function renderDashboard(){
   const q=(document.getElementById('dashSearch')?.value||'').toLowerCase();
   const estFiltro=document.getElementById('dashEstado')?.value||'';
   const fichas=cargarFichas();
+  // Una fila por persona (identidad: NIP o, sin NIP, nombre); se muestra el nombre de su última sesión
+  const grupos=agruparPorIdentidad(fichas);
   const map={};
-  fichas.forEach(f=>{
-    const k=(f.captador||'').trim();
-    if(!map[k])map[k]={sessions:[],latest:f};
-    map[k].sessions.push(f);
-    if(compararSesiones(f, map[k].latest) > 0)map[k].latest=f;   // última por fecha de intervención
-  });
-  Object.values(map).forEach(m=>{ m.sessions = ordenarSesiones(m.sessions); });
+  Object.keys(grupos).forEach(k=>{ map[k]={ sessions:grupos[k].sesiones, latest:grupos[k].ultima, nombre:etiquetaIdentidad(grupos,k) }; });
   const total=Object.keys(map).length;
   const pe={progreso:0,estancado:0,riesgo:0,baja:0};
   Object.values(map).forEach(({latest})=>{const e=latest.estado;if(pe[e]!==undefined)pe[e]++;});
@@ -2836,11 +2967,11 @@ function renderDashboard(){
     <div class="dash-stat" data-tone="ok"><div class="dash-stat-val">${pe.progreso}</div><div class="dash-stat-label"><i class="dot"></i>En progreso</div></div>
     <div class="dash-stat" data-tone="warn"><div class="dash-stat-val">${pe.estancado+pe.riesgo}</div><div class="dash-stat-label"><i class="dot"></i>Estancado o en riesgo</div></div>
     <div class="dash-stat" data-tone="neutral"><div class="dash-stat-val">${pe.baja}</div><div class="dash-stat-label"><i class="dot"></i>Baja</div></div>`;
-  let rows=Object.entries(map).filter(([n,{latest}])=>{
-    const mq=!q||n.toLowerCase().includes(q)||(latest.provincia||'').toLowerCase().includes(q);
+  let rows=Object.entries(map).filter(([k,{sessions,latest}])=>{
+    const mq=!q||sessions.some(f=>(f.captador||'').toLowerCase().includes(q))||(latest.provincia||'').toLowerCase().includes(q)||(latest.nip||'').toLowerCase().includes(q);
     const me=!estFiltro||(latest.estado||'')===estFiltro;
     return mq&&me;
-  }).sort((a,b)=>a[0].localeCompare(b[0],'es'));
+  }).sort((a,b)=>a[1].nombre.localeCompare(b[1].nombre,'es'));
   const tbody=document.getElementById('dashTbody');
   const empty=document.getElementById('dashEmpty');
   const wrap=document.querySelector('.dash-table-wrap');
@@ -2857,7 +2988,7 @@ function renderDashboard(){
   if(wrap)wrap.style.display='';
   if(empty){ empty.style.display='none'; empty.innerHTML=''; }
   renderAlertas(map);
-  tbody.innerHTML=rows.map(([nombre,{sessions,latest}])=>{
+  tbody.innerHTML=rows.map(([clave,{sessions,latest,nombre}])=>{
     const tA=avgScores(latest,'t',TECNICA_VARS.length),hA=avgScores(latest,'h',HABITOS_VARS.length);
     const faseObj=FASES.find(x=>x.id===latest.faseSelected);
     const est=latest.estado&&ESTADOS[latest.estado]?ESTADOS[latest.estado]:null;
@@ -2865,8 +2996,8 @@ function renderDashboard(){
     const riesgo = calcRiesgo(sessions, latest.estado||'');
     const sc = calcSemaforo(sessions, latest.faseSelected, latest.estado||'');
     const semaTxt = { verde:'Verde', amarillo:'Ámbar', rojo:'Rojo' };
-    return`<tr onclick="cargarYAbrir('${latest._id}')">
-      <td><button type="button" class="dash-row-btn" onclick="event.stopPropagation();cargarYAbrir('${latest._id}')">${esc(nombre)}</button>
+    return`<tr onclick="cargarYAbrir('${idAttr(latest._id)}')">
+      <td><button type="button" class="dash-row-btn" onclick="event.stopPropagation();cargarYAbrir('${idAttr(latest._id)}')">${esc(nombre)}</button>
         <div class="dash-sub">${ic('map','ic-xs')}${esc(latest.provincia||'—')}${latest.nip?' · NIP '+esc(latest.nip):''}</div></td>
       <td>${estHtml}</td>
       <td>${tA?`<span class="score-pill ${pillClass(tA)}">${miniBar(tA)} ${tA}</span>`:'<span class="meta">—</span>'}</td>
@@ -2875,7 +3006,7 @@ function renderDashboard(){
       <td>${riesgoHtml(riesgo, true)}</td>
       <td>${sc ? `<span class="sema-cell"><span class="sema-dot sema-${sc}"></span>${semaTxt[sc]}</span>` : '<span class="meta">No aplica</span>'}</td>
       <td class="num-cell">${sessions.length}</td>
-      <td class="meta">${formatFecha(latest.fecha)}</td>
+      <td class="meta">${esc(formatFecha(latest.fecha))}</td>
     </tr>`;
   }).join('');
 }
@@ -3765,7 +3896,7 @@ function filtrarPlantillas() {
   lista.innerHTML = items.map(function(p) {
     const globalIdx = PLANTILLAS.indexOf(p);
     const isPropia = !!p._propia;
-    const pid = p._id || '';
+    const pid = idAttr(p._id);
     const usar = isPropia ? "insertarPlantillaPropia('" + pid + "')" : 'insertarPlantilla(' + globalIdx + ')';
     const editBtns = isPropia
       ? '<button type="button" class="icon-btn icon-btn-sm" aria-label="Editar plantilla" onclick="editarPlantillaPropia(\'' + pid + '\', this)">' + ic('pencil') + '</button>'
@@ -4557,6 +4688,99 @@ function exportarJSON() {
   cerrarJsonModal();
 }
 
+// ── Validación de fichas importadas ──
+// Modelo real de una ficha: lo que producen recopilarDatos() y guardarFicha() (y exporta exportarJSON()).
+// Una ficha que no encaja se rechaza entera; los campos que no forman parte del modelo no se guardan.
+let _modeloFicha = null;   // se calcula al usarlo: depende de constantes declaradas más abajo
+function modeloFicha() {
+  if (_modeloFicha) return _modeloFicha;
+  const textos = ['responsable','provincia','antiguedad'];
+  for (let i = 1; i <= 5; i++) textos.push('c' + i);
+  for (let i = 1; i <= 6; i++) textos.push('ic' + i, 'ih' + i);
+  for (let i = 1; i <= 9; i++) textos.push('ip' + i);
+  REGISTRO_CAMPOS.forEach(({k}) => textos.push(k));
+  NOTAS_ANTERIORES.forEach(({k}) => textos.push(k));
+  return _modeloFicha = {
+    textos,
+    puntuaciones: TECNICA_VARS.map((_, i) => 't_' + i).concat(HABITOS_VARS.map((_, i) => 'h_' + i)),
+    clsMatriz: new Set(MATRIZ_REGLAS.map(r => r.cls)),
+  };
+}
+const RE_FECHA_HORA = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})?$/;
+const esObjeto = v => v !== null && typeof v === 'object' && !Array.isArray(v);
+// Devuelve { ficha } con solo los campos del modelo, ya validados, o { error } con el motivo de rechazo
+function validarFichaImportada(f) {
+  if (!esObjeto(f)) return { error: 'no es una ficha' };
+  const out = {};
+  const ausente = v => v === undefined || v === null;
+  // Identidad. El _id lo valida y, si hace falta, lo sustituye la importación (S1); aquí solo se conserva
+  if (typeof f.captador !== 'string' || !f.captador.trim()) return { error: 'falta el nombre del captador/a' };
+  if (f.captador.trim().length > 100) return { error: 'nombre del captador/a demasiado largo' };
+  out.captador = f.captador.trim();
+  if (!ausente(f._id)) out._id = f._id;
+  if (!ausente(f.nip)) {
+    if (typeof f.nip !== 'string') return { error: 'tipo incorrecto en un campo de texto' };
+    if (f.nip.trim().length > 30) return { error: 'NIP demasiado largo' };
+    out.nip = f.nip.trim();
+  }
+  for (const k of ['_savedAt', '_editedAt']) {
+    if (ausente(f[k])) continue;
+    if (typeof f[k] !== 'string' || !RE_FECHA_HORA.test(f[k]) || isNaN(Date.parse(f[k]))) return { error: 'marca de tiempo no válida' };
+    out[k] = f[k];
+  }
+  // Textos libres
+  for (const k of modeloFicha().textos) {
+    if (ausente(f[k])) continue;
+    if (typeof f[k] !== 'string') return { error: 'tipo incorrecto en un campo de texto' };
+    out[k] = f[k];
+  }
+  // Fechas: vacías o AAAA-MM-DD reales (un campo ausente sigue ausente)
+  for (const k of ['fecha', 'fechainicio']) {
+    if (ausente(f[k])) continue;
+    if (f[k] === '') { out[k] = ''; continue; }
+    if (typeof f[k] !== 'string' || !fechaISOValida(f[k])) return { error: 'fecha no válida' };
+    out[k] = f[k];
+  }
+  // Enumeraciones
+  if (ausente(f.estado)) { /* sin estado */ }
+  else if (f.estado === '') out.estado = '';
+  else if (typeof f.estado === 'string' && Object.prototype.hasOwnProperty.call(ESTADOS, f.estado)) out.estado = f.estado;
+  else return { error: 'estado no válido' };
+  if (f.faseSelected === undefined) { /* sin fase registrada */ }
+  else if (f.faseSelected === null || f.faseSelected === '') out.faseSelected = null;
+  else if (faseValida(f.faseSelected)) out.faseSelected = f.faseSelected;
+  else return { error: 'fase no válida' };
+  // Puntuaciones: enteros de 0 a 5 (0 = sin evaluar)
+  for (const k of modeloFicha().puntuaciones) {
+    if (ausente(f[k])) continue;
+    if (typeof f[k] !== 'number' || !Number.isInteger(f[k]) || f[k] < 0 || f[k] > 5) return { error: 'puntuación fuera de la escala 0–5' };
+    out[k] = f[k];
+  }
+  // Decisión: matriz (null / true / false), resultado coherente con ella y checklist de booleanos
+  if (!ausente(f.decisionMatrix)) {
+    const m = f.decisionMatrix;
+    if (!esObjeto(m) || Object.keys(m).some(k => !CRITERIOS_MATRIZ.includes(k)) ||
+        CRITERIOS_MATRIZ.some(k => !(m[k] === undefined || m[k] === null || m[k] === true || m[k] === false))) return { error: 'matriz de decisión no válida' };
+    out.decisionMatrix = copiaMatriz(m);
+  }
+  if (f.decisionResult === null) out.decisionResult = null;   // la app lo guarda así cuando no hay recomendación
+  else if (f.decisionResult !== undefined) {
+    const r = f.decisionResult, esperado = out.decisionMatrix ? resultadoMatriz(out.decisionMatrix) : null;
+    if (!esObjeto(r) || Object.keys(r).some(k => !['regla', 'cls', 'sinBaseSalida'].includes(k)) ||
+        typeof r.regla !== 'string' || typeof r.cls !== 'string' || !modeloFicha().clsMatriz.has(r.cls) ||
+        !(r.sinBaseSalida === undefined || r.sinBaseSalida === true) ||
+        !esperado || esperado.regla !== r.regla || esperado.cls !== r.cls) return { error: 'resultado de la decisión no válido' };
+    out.decisionResult = { regla: r.regla, cls: r.cls };
+    if (r.sinBaseSalida) out.decisionResult.sinBaseSalida = true;
+  }
+  if (!ausente(f.checklistDespido)) {
+    const c = f.checklistDespido;
+    if (!Array.isArray(c) || c.length > casillasChecklist().length || c.some(x => typeof x !== 'boolean')) return { error: 'checklist no válido' };
+    out.checklistDespido = c.slice();
+  }
+  return { ficha: out };
+}
+
 function importarJSON(input) {
   const file = input.files[0];
   if (!file) return;
@@ -4568,7 +4792,7 @@ function importarJSON(input) {
       let nuevasFichas = [];
       if (Array.isArray(data)) {
         nuevasFichas = data;
-      } else if (data.fichas && Array.isArray(data.fichas)) {
+      } else if (esObjeto(data) && Array.isArray(data.fichas)) {
         nuevasFichas = data.fichas;
       } else {
         throw new Error('Formato no reconocido');
@@ -4576,19 +4800,54 @@ function importarJSON(input) {
       const merge = document.getElementById('jsonMerge')?.checked;
       let existentes = merge ? cargarFichas() : [];
       const existingIds = new Set(existentes.map(f => f._id));
-      let added = 0, skipped = 0;
-      nuevasFichas.forEach(f => {
-        if (!f._id) f._id = Date.now().toString() + Math.random().toString(36).slice(2);
+      let added = 0, skipped = 0, idsSustituidos = 0;
+      const motivos = {};
+      nuevasFichas.forEach(original => {
+        const v = validarFichaImportada(original);
+        if (v.error) { motivos[v.error] = (motivos[v.error] || 0) + 1; return; }
+        const f = v.ficha;
+        const id = normalizarId(f._id);
+        if (id === null) {
+          if (f._id !== undefined && f._id !== null && f._id !== '') idsSustituidos++;
+          let nuevo; do { nuevo = nuevoId(); } while (existingIds.has(nuevo));
+          f._id = nuevo;
+        } else f._id = id;
         if (merge && existingIds.has(f._id)) { skipped++; return; }
         existentes.push(f);
         existingIds.add(f._id);
         added++;
       });
-      salvarFichas(existentes);
+      const rechazadas = Object.values(motivos).reduce((a, b) => a + b, 0);
+      const motivosTxt = rechazadas ? ', ' + rechazadas + (rechazadas === 1 ? ' rechazada' : ' rechazadas') + ' (' +
+        Object.entries(motivos).map(([m, n]) => m + (n > 1 ? ' ×' + n : '')).join('; ') + ')' : '';
+      // Sustituir todo por una importación sin ninguna ficha válida borraría los datos: no se toca nada
+      if (!merge && added === 0) {
+        resultEl.className = 'json-import-result err';
+        resultEl.textContent = 'No se ha importado nada: el archivo no tiene ninguna ficha válida' + motivosTxt + '. Tus fichas no se han modificado.';
+        input.value = '';
+        return;
+      }
+      // Reemplazar es destructivo: con fichas guardadas, se pide confirmación explícita antes de tocar nada
+      if (!merge) {
+        const actuales = cargarFichas().length;
+        if (actuales > 0 && !confirm(
+          'Vas a REEMPLAZAR tus ' + actuales + (actuales === 1 ? ' ficha guardada' : ' fichas guardadas') +
+          ' por ' + (added === 1 ? 'la única ficha válida' : 'las ' + added + ' fichas válidas') + ' de este archivo.' +
+          (rechazadas ? '\n\n' + rechazadas + (rechazadas === 1 ? ' ficha del archivo no es válida y no se importará.' : ' fichas del archivo no son válidas y no se importarán.') : '') +
+          '\n\nLas fichas que tienes ahora se perderán. Si quieres conservarlas, cancela y marca «Combinar con las fichas que ya tienes».\n\n¿Reemplazar?')) {
+          resultEl.className = 'json-import-result';
+          resultEl.textContent = 'Importación cancelada: tus fichas no se han modificado.';
+          input.value = '';
+          return;
+        }
+      }
+      asegurarIds(existentes);   // sin repetidos dentro de lo importado
+      if (merge) salvarFichas(existentes); else reemplazarFichas(existentes);
       actualizarContador(); actualizarModoSesion();
       try{ renderHistorialTab(); }catch(e){} populateEvoSelect(); renderDashboard();
       resultEl.className = 'json-import-result ok';
-      resultEl.textContent = added + ' fichas importadas' + (skipped ? ', ' + skipped + ' omitidas (ya existían)' : '') + '.';
+      resultEl.textContent = added + ' fichas importadas' + (skipped ? ', ' + skipped + ' omitidas (ya existían)' : '') +
+        (idsSustituidos ? ', ' + idsSustituidos + ' con identificador no válido (se ha sustituido)' : '') + motivosTxt + '.';
       input.value = '';
     } catch(err) {
       resultEl.className = 'json-import-result err';
@@ -4871,7 +5130,7 @@ function renderAlertas(map) {
   const count = document.getElementById('alertasCount');
   if (!card || !list) return;
   const criticos = Object.entries(map)
-    .map(([nombre, {sessions, latest}]) => ({ nombre, latest, sessions, r: calcRiesgo(sessions, latest.estado||'') }))
+    .map(([clave, {sessions, latest, nombre}]) => ({ nombre, latest, sessions, r: calcRiesgo(sessions, latest.estado||'') }))
     .filter(x => x.r && (x.r.nivel === 'critico' || x.r.nivel === 'alto'))
     .sort((a,b) => b.r.score - a.r.score)
     .slice(0, 5);
@@ -4881,7 +5140,7 @@ function renderAlertas(map) {
   list.innerHTML = criticos.map(({nombre, latest, r}) => {
     const n = RIESGO_NIVELES[r.nivel];
     const motivo = (r.factores.find(f => f.puntos > 0) || r.factores[0] || {}).label || '';
-    return `<button type="button" class="alerta-item" onclick="cargarYAbrir('${latest._id}')">
+    return `<button type="button" class="alerta-item" onclick="cargarYAbrir('${idAttr(latest._id)}')">
       <span style="flex:1;min-width:0">
         <span class="alerta-nombre" style="display:block">${esc(nombre)}</span>
         <span class="alerta-motivo" style="display:block">${esc(motivo)}</span>
@@ -5215,7 +5474,7 @@ function calcMatriz() {
   var cs = document.getElementById('checklistSection');
   if (cs) cs.style.display = (regla.cls === 'mr-despedir') ? 'block' : 'none';
   // Aquí solo se actualizan los puntos de progreso: setMatriz() ya llama a autoguardar().
-  // (Llamar aquí a autoguardar() hacía que sugerirMatriz(true) se llamase a sí misma sin fin.)
+  // (Llamar aquí a autoguardar() hacía que sugerirMatriz() se llamase a sí misma sin fin.)
   try { actualizarDots(); } catch(e) {}
 }
 
@@ -5507,10 +5766,13 @@ function actualizarDiasFase() {
     if (antiguedadEl.value !== ant) antiguedadEl.value = ant;
   }
   if (!wrap) return;
-  if (!fechaInicio) { wrap.innerHTML = ''; return; }
 
   // Días y fase en la fecha de la intervención (comienzo → intervención), no a día de hoy
   const calc = calcularFasePorFecha(fechaInicio, fechaIntervencionFormulario());
+  // Sin fecha de comienzo válida no hay fase: una ficha nueva o con fechas editadas no conserva la anterior.
+  // (Una ficha del historial sin editar mantiene la fase con la que se guardó.)
+  if (calc.error && !AppState.faseCongelada && faseSelected !== null) selectFase(null, true);
+  if (!fechaInicio) { wrap.innerHTML = ''; return; }
   if (calc.error === 'inicio-posterior') {
     wrap.innerHTML = '<div class="notice" data-tone="bad" role="alert">' + ic('warn') +
       '<div><strong>La fecha de comienzo es posterior a la de intervención.</strong> Revisa las dos fechas para que la fase se calcule bien.</div></div>';
@@ -5845,34 +6107,30 @@ function switchSubtab(name) {
 
 function renderHistorialTab() {
   const q = (document.getElementById('histSearch2')?.value||'').toLowerCase();
-  const fichas = cargarFichas();
-  const grupos = {};
-  fichas.forEach(f => {
-    const k=(f.captador||'Sin nombre').trim();
-    if(!grupos[k]) grupos[k]=[];
-    grupos[k].push(f);
-  });
-  const coincide = (k) => !q || k.toLowerCase().includes(q) ||
-    grupos[k].some(f => (f.nip||'').toLowerCase().includes(q) || (f.provincia||'').toLowerCase().includes(q));
-  const nombres = Object.keys(grupos).filter(coincide).sort((a,b)=>a.localeCompare(b,'es'));
+  // Un grupo por persona (identidad: NIP o, sin NIP, nombre); se muestra el nombre de su última sesión
+  const grupos = agruparPorIdentidad(cargarFichas());
+  const coincide = (k) => !q || grupos[k].sesiones.some(f => (f.captador||'').toLowerCase().includes(q) ||
+    (f.nip||'').toLowerCase().includes(q) || (f.provincia||'').toLowerCase().includes(q));
+  const claves = Object.keys(grupos).filter(coincide).sort((a,b)=>etiquetaIdentidad(grupos,a).localeCompare(etiquetaIdentidad(grupos,b),'es'));
   const el = document.getElementById('histList2');
   if(!el) return;
-  if(!nombres.length) {
+  if(!claves.length) {
     el.innerHTML = q ? vacio('search','Sin resultados','Ningún captador/a coincide con «' + esc(q) + '».')
                      : vacio('clock','Aún no hay historial','Cada sesión que guardes aparecerá aquí, agrupada por captador/a.');
     return;
   }
-  el.innerHTML = '<div class="list-card">' + nombres.map(nombre => {
-    const sessions = ordenarSesiones(grupos[nombre]);
-    const uid = 'h2_'+nombre.replace(/\W/g,'_');
-    const ultima = sessions[sessions.length-1];
+  el.innerHTML = '<div class="list-card">' + claves.map((clave, gi) => {
+    const sessions = grupos[clave].sesiones;
+    const nombre = grupos[clave].nombre;
+    const uid = 'h2_' + gi;
+    const ultima = grupos[clave].ultima;
     const sub = [ultima.nip ? 'NIP ' + ultima.nip : '', ultima.provincia || ''].filter(Boolean).join(' · ');
     const entries = sessions.map((f,idx) => {
       const tA=avgScores(f,'t',TECNICA_VARS.length), hA=avgScores(f,'h',HABITOS_VARS.length);
       const faseObj=FASES.find(x=>x.id===f.faseSelected);
       const registro = registroDe(f);
       return `<div class="hist-entry">
-        <div class="hist-entry-date">Sesión ${idx+1} · ${f.fecha?formatFecha(f.fecha):'—'} · guardada el ${formatSaved(f._savedAt)}</div>
+        <div class="hist-entry-date">Sesión ${idx+1} · ${esc(formatFecha(f.fecha))} · guardada el ${formatSaved(f._savedAt)}</div>
         <div class="hist-entry-scores">
           ${tA?`<span class="score-pill ${pillClass(tA)}">Técnica ${miniBar(tA)} ${tA}</span>`:'<span class="score-pill">Técnica —</span>'}
           ${hA?`<span class="score-pill ${pillClass(hA)}">Hábitos ${miniBar(hA)} ${hA}</span>`:'<span class="score-pill">Hábitos —</span>'}
@@ -5880,8 +6138,8 @@ function renderHistorialTab() {
         </div>
         ${registro.length ? `<div class="hist-nota">${registroHtml(registro)}</div>` : ''}
         <div class="hist-entry-actions">
-          <button type="button" class="btn btn-secondary btn-sm" onclick="cargarFichaEnFormulario('${f._id}')">${ic('upload')}Cargar</button>
-          <button type="button" class="btn btn-quiet btn-sm" onclick="eliminarFicha('${f._id}')">${ic('trash')}Eliminar</button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="cargarFichaEnFormulario('${idAttr(f._id)}')">${ic('upload')}Cargar</button>
+          <button type="button" class="btn btn-quiet btn-sm" onclick="eliminarFicha('${idAttr(f._id)}')">${ic('trash')}Eliminar</button>
         </div>
       </div>`;
     }).join('');
@@ -5895,8 +6153,8 @@ function renderHistorialTab() {
       <div class="hist-sessions" id="${uid}">
         <div class="hist-timeline">${entries}</div>
         <div class="hist-entry-actions">
-          <button type="button" class="btn btn-secondary btn-sm" onclick="nuevaSesionDe('${ultima._id}')">${ic('plus')}Nueva sesión</button>
-          <button type="button" class="btn btn-quiet btn-sm" onclick="verEvolucion(this.dataset.nombre)" data-nombre="${esc(nombre)}">${ic('trend')}Ver evolución</button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="nuevaSesionDe('${idAttr(ultima._id)}')">${ic('plus')}Nueva sesión</button>
+          <button type="button" class="btn btn-quiet btn-sm" onclick="verEvolucion(this.dataset.clave)" data-clave="${esc(clave)}">${ic('trend')}Ver evolución</button>
         </div>
       </div>
     </div>`;
@@ -6170,7 +6428,8 @@ function avisoMatriz(banner, tone, icono, html) {
   banner.innerHTML = ic(icono) + '<div>' + html + '</div>';
   banner.style.display = 'flex';
 }
-function sugerirMatriz(force) {
+// Una decisión ya tomada (sí/no) nunca se cambia por una sugerencia: solo se rellenan los criterios sin decidir (null)
+function sugerirMatriz() {
   const d = recopilarDatos();
   const banner = document.getElementById('matrizSugerenciaBanner');
 
@@ -6195,24 +6454,22 @@ function sugerirMatriz(force) {
     else { suggest[k] = null; faltan.push(labels[k] + ' (' + FUENTES[k].map(function(x){ return ALL_VARS_LABELS[x]; }).join(', ') + ')'); }
   });
 
-  var changed = 0;
+  var aplicados = [], respetados = [];
   Object.keys(suggest).forEach(function(k) {
     var v = suggest[k];
-    if (v !== null && (force || matrizState[k] === null)) {
-      setMatriz(k, v);
-      changed++;
-    }
+    if (v === null) return;
+    if (matrizState[k] !== null) { respetados.push(labels[k]); return; }   // decidido: se respeta
+    setMatriz(k, v);
+    aplicados.push(labels[k] + ': ' + (v ? 'sí' : 'no'));
   });
 
   if (banner) {
     var faltanTxt = faltan.length ? ' <strong>Sin datos suficientes</strong> (hacen falta al menos dos variables evaluadas) para: ' + esc(faltan.join(' · ')) + '.' : '';
-    if (changed > 0) {
-      var parts = Object.keys(suggest)
-        .filter(function(k){ return suggest[k]!==null; })
-        .map(function(k){ return labels[k]+': '+(suggest[k]?'sí':'no'); });
-      avisoMatriz(banner, 'blue', 'bolt', '<strong>Sugerido desde la evaluación.</strong> ' + parts.join(' · ') + '. Revísalo y cambia lo que no encaje.' + faltanTxt);
+    var respetadosTxt = respetados.length ? ' Se mantienen tus decisiones en: ' + esc(respetados.join(', ')) + '.' : '';
+    if (aplicados.length) {
+      avisoMatriz(banner, 'blue', 'bolt', '<strong>Sugerido desde la evaluación.</strong> ' + aplicados.join(' · ') + '. Revísalo y cambia lo que no encaje.' + respetadosTxt + faltanTxt);
     } else {
-      avisoMatriz(banner, 'warn', 'warn', '<strong>No se ha propuesto ningún criterio.</strong>' + faltanTxt);
+      avisoMatriz(banner, 'warn', 'warn', '<strong>No se ha propuesto ningún criterio.</strong>' + respetadosTxt + faltanTxt);
     }
   }
 }
