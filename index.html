@@ -381,7 +381,6 @@ input[type=date]{scroll-margin-top:96px;}
 .fd-hero-num .cifra{font-size:34px;}
 .fd-hero-info{flex:1;min-width:0;}
 .fd-hero-fase{font-family:var(--font-brand);font-size:var(--t-xl);font-weight:700;line-height:1.25;color:var(--ink);}
-.fd-hero-perdida{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:var(--t-sm);font-weight:600;color:var(--tone-ink);}
 .fd-hero-estado{font-size:var(--t-md);color:var(--ink-2);line-height:1.55;margin-top:6px;}
 .fd-ref-list{list-style:none;display:flex;flex-direction:column;}
 .fd-ref-list li{display:flex;gap:var(--s-3);align-items:flex-start;padding:var(--s-3) 0;border-bottom:1px solid var(--line);font-size:var(--t-md);line-height:1.5;color:var(--ink);}
@@ -463,10 +462,8 @@ input[type=date]{scroll-margin-top:96px;}
 .diag-block-content{flex:1;min-width:0;}
 .diag-block-title{font-family:var(--font-brand);font-size:var(--t-md);font-weight:700;color:var(--ink);margin-bottom:4px;}
 .diag-block-text{font-size:var(--t-md);line-height:1.65;color:var(--ink-2);}
-.diag-palanca{display:flex;align-items:center;flex-wrap:wrap;gap:var(--s-2) var(--s-3);background:var(--surface-2);border-radius:var(--r-md);padding:var(--s-3) var(--s-4);}
 .diag-evid{list-style:none;display:flex;flex-wrap:wrap;gap:6px;margin-top:2px;}
 .diag-evid .pill{white-space:normal;min-height:28px;line-height:1.35;}
-.diag-palanca-val{font-family:var(--font-brand);font-size:var(--t-md);font-weight:700;color:var(--ink);flex:1 1 140px;min-width:0;}
 /* Tipo de lectura: con nombres largos pasa debajo del título en lugar de estrecharlo */
 #diagCard .card-head{flex-wrap:wrap;}
 #diagCard .card-head .card-title{flex:1 1 180px;}
@@ -567,6 +564,13 @@ input[type=date]{scroll-margin-top:96px;}
 .evo-fase-item:last-child{border-bottom:none;}
 .evo-fase-date{width:120px;flex-shrink:0;color:var(--ink-3);font-variant-numeric:tabular-nums;}
 
+.lmi-revision{display:flex;gap:6px;align-items:flex-start;margin-top:var(--s-2);font-size:var(--t-sm);line-height:1.5;color:var(--ink-2);}
+.lmi-revision .ic{margin-top:3px;color:var(--ok);flex-shrink:0;}
+/* Sesión nueva / sesión guardada (Captador) */
+.sesion-ctx{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--s-3);}
+.sesion-ctx-info{display:flex;gap:var(--s-3);align-items:flex-start;flex:1 1 260px;min-width:0;}
+.sesion-ctx-desc{font-size:var(--t-sm);line-height:1.5;color:var(--ink-2);margin-top:2px;}
+.sesion-ctx-acciones{display:flex;gap:var(--s-2);flex-wrap:wrap;}
 /* Registro de la sesión (Acompañamiento) */
 .registro-campos{display:flex;flex-direction:column;gap:var(--s-4);}
 .registro-campos .eyebrow-row{margin:0;}
@@ -864,11 +868,12 @@ input[type=date]{scroll-margin-top:96px;}
       </div>
     </div>
     <div class="hdr-actions">
-      <button type="button" class="btn-save" id="btnGuardar" onclick="guardarFicha()" aria-label="Guardar ficha"><svg class="ic" aria-hidden="true"><use href="#i-save"/></svg><span class="lb">Guardar</span><span class="save-dot" id="unsavedDot"></span></button>
+      <button type="button" class="btn-save" id="btnGuardar" onclick="guardarFicha()" aria-label="Guardar sesión nueva"><svg class="ic" aria-hidden="true"><use href="#i-save"/></svg><span class="lb" id="btnGuardarLb">Guardar</span><span class="save-dot" id="unsavedDot"></span></button>
       <button type="button" class="icon-btn" onclick="abrirAyuda(this)" aria-label="Abrir ayuda de esta sección"><svg class="ic" aria-hidden="true"><use href="#i-help"/></svg></button>
       <button type="button" class="icon-btn" id="hdrMenuBtn" onclick="toggleHdrMenu()" aria-label="Más acciones" aria-haspopup="true" aria-expanded="false" aria-controls="hdrDropdown"><svg class="ic" aria-hidden="true"><use href="#i-menu"/></svg></button>
       <div class="hdr-dropdown" id="hdrDropdown">
-        <button type="button" class="hdr-drop-item" onclick="cerrarHdrMenu();nuevaFicha()"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg><span class="hdr-drop-label">Nueva ficha</span></button>
+        <button type="button" class="hdr-drop-item" onclick="cerrarHdrMenu();nuevaSesion()"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg><span class="hdr-drop-label">Nueva sesión de este captador/a</span></button>
+        <button type="button" class="hdr-drop-item" onclick="cerrarHdrMenu();nuevaFicha()"><svg class="ic" aria-hidden="true"><use href="#i-user"/></svg><span class="hdr-drop-label">Nuevo captador/a</span></button>
         <button type="button" class="hdr-drop-item" onclick="cerrarHdrMenu();abrirHistorial()"><svg class="ic" aria-hidden="true"><use href="#i-clock"/></svg><span class="hdr-drop-label">Historial</span><span class="hdr-drop-badge" id="fichaCount">0</span></button>
         <div class="hdr-drop-sep"></div>
         <button type="button" class="hdr-drop-item" onclick="cerrarHdrMenu();abrirRecursosDesdeMenu()"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg><span class="hdr-drop-label">Recursos</span></button>
@@ -901,6 +906,18 @@ input[type=date]{scroll-margin-top:96px;}
       <span class="tile tile-lg" data-tone="brand"><svg class="ic" aria-hidden="true"><use href="#i-user"/></svg></span>
       <div><h1 class="page-title" id="h-tab0">Captador/a</h1><p class="page-sub">Identificación e intervención</p></div>
     </div>
+
+    <!-- Qué se está registrando: una sesión nueva o una sesión guardada -->
+    <section class="card sesion-ctx" id="sesionCtx" aria-labelledby="sesionCtxTitulo" aria-live="polite">
+      <div class="sesion-ctx-info">
+        <span class="tile tile-sm" data-tone="brand" id="sesionCtxIcon"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></span>
+        <div><h2 class="eyebrow" id="sesionCtxTitulo">Sesión nueva</h2><p class="sesion-ctx-desc" id="sesionCtxDesc"></p></div>
+      </div>
+      <div class="sesion-ctx-acciones">
+        <button type="button" class="btn btn-secondary btn-sm" id="btnNuevaSesion" onclick="nuevaSesion()"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>Nueva sesión de este captador/a</button>
+        <button type="button" class="btn btn-quiet btn-sm" onclick="nuevaFicha()"><svg class="ic" aria-hidden="true"><use href="#i-user"/></svg>Nuevo captador/a</button>
+      </div>
+    </section>
 
     <div id="diasFaseBadgeWrap"></div>
 
@@ -1182,7 +1199,7 @@ input[type=date]{scroll-margin-top:96px;}
     <section class="card" id="checklistSection" style="display:none" aria-labelledby="h-checklist">
       <div class="card-head">
         <span class="tile tile-sm" data-tone="bad"><svg class="ic" aria-hidden="true"><use href="#i-clipboard"/></svg></span>
-        <div class="card-head-text"><p class="eyebrow">Antes de una salida</p><h2 class="card-title" id="h-checklist">Checklist antes del despido</h2>
+        <div class="card-head-text"><p class="eyebrow">Antes de una salida</p><h2 class="card-title" id="h-checklist">Checklist antes de valorar una salida</h2>
         <p class="card-sub">Si alguno de estos puntos falta, no es el momento de decidir.</p></div>
       </div>
       <div class="checklist-list">
@@ -1463,6 +1480,15 @@ function sesionesConActual(nombre, datos, incluirActual) {
   if (!incluirActual) return ordenarSesiones(guardadas);
   return ordenarSesiones(guardadas.filter(f => f._id !== AppState.lastLoadedId).concat([sesionDelFormulario(datos)]));
 }
+// Sesiones del captador hasta la del formulario (incluida). `historica`: la del formulario no es la última registrada,
+// así que el índice, el semáforo y las prioridades describen esa sesión y no cuentan los días hasta hoy.
+function sesionesHastaActual(nombre, datos, incluirActual) {
+  let sessions = sesionesConActual(nombre, datos, incluirActual);
+  const i = sessions.findIndex(s => s._id === '_current');
+  const historica = i >= 0 && i < sessions.length - 1;
+  if (i >= 0) sessions = sessions.slice(0, i + 1);
+  return { sessions, historica };
+}
 // Sesiones guardadas del captador anteriores (por fecha de intervención) a la del formulario
 function sesionesAnterioresA(nombre, datos) {
   const actual = sesionDelFormulario(datos);
@@ -1515,7 +1541,7 @@ const TONO_COLOR = {
 function tono(color) { return TONO_COLOR[String(color || '').toLowerCase()] || 'slate'; }
 const FASE_TONO  = { f1:'blue', f2:'blue', f3:'amber', f4:'green', f5:'green', f6:'slate' };
 const ESTADO_TONO = { progreso:'ok', estancado:'warn', riesgo:'bad', baja:'neutral' };
-const RIESGO_TONO = { bajo:'ok', moderado:'warn', alto:'bad', critico:'bad' };
+const RIESGO_TONO = { bajo:'ok', moderado:'warn', alto:'bad', critico:'bad', baja:'neutral' };
 const URG = { alta:{ tone:'bad', label:'Urgente' }, media:{ tone:'warn', label:'Esta semana' }, normal:{ tone:'blue', label:'A trabajar' } };
 
 // Colores del tema para los gráficos (canvas)
@@ -1660,6 +1686,7 @@ const AYUDA_TABS = [
     icon: '👤',
     desc: 'Ficha de identificación del captador y datos de la intervención activa.',
     secciones: [
+      { titulo: 'Sesión nueva o sesión guardada', texto: 'La tarjeta superior indica si estás registrando una sesión nueva o editando una guardada. «Guardar» añade una sesión nueva al historial; «Actualizar» guarda los cambios en la sesión cargada. Para registrar otra intervención de la misma persona usa «Nueva sesión de este captador/a»: conserva sus datos y deja en blanco evaluación, registro y decisión.' },
       { titulo: 'Datos del captador/a', texto: 'Nombre completo, NIP (identificador único Wesser), responsable directo y provincia. El NIP permite vincular este captador con su historial en el sistema.' },
       { titulo: 'Fecha de comienzo', texto: 'Fecha en que el captador inició su actividad. Permite calcular automáticamente la fase actual (F1–F6) y los días de antigüedad.' },
       { titulo: 'Badge de fase', texto: 'Se actualiza solo al introducir la fecha de comienzo. Muestra los días activos, la fase actual, el rango de días de esa fase y el estado del captador.' },
@@ -1687,9 +1714,9 @@ const AYUDA_TABS = [
     icon: '🗓️',
     desc: 'Guía de intervención según la fase actual del captador.',
     secciones: [
-      { titulo: 'Hero de fase', texto: 'Muestra los días activos, el nombre de la fase y el estado emocional típico del captador en ese momento. El color cambia según la fase: azul (F1–F2), naranja (F3), verde (F4–F5), gris (F6).' },
+      { titulo: 'Hero de fase', texto: 'Muestra los días en el proceso, el nombre de la fase y lo que es frecuente que viva el captador en ese momento. El color cambia según la fase: azul (F1–F2), naranja (F3), verde (F4–F5), gris (F6).' },
       { titulo: 'Garantizar ahora', texto: 'Los 3 puntos más importantes a trabajar en esta fase según la metodología Wesser. Referencia rápida antes de salir al campo.' },
-      { titulo: 'Señales de alarma', texto: 'Las 2 señales más relevantes de esta fase que indican riesgo de fuga o bajo rendimiento. Si aparecen, actúa en menos de 48h.' },
+      { titulo: 'Señales de alarma', texto: 'Dos conductas observables de esta fase. Si aparecen, conviene intervenir en menos de 48 h.' },
       { titulo: 'Registro de la sesión', texto: 'El único lugar donde se escribe la sesión: qué observé, qué trabajamos, qué acordamos y siguiente paso. Se guarda con la fecha de intervención y aparece en el historial. En fichas antiguas se muestran aquí, como solo lectura, las notas guardadas con el formato anterior.' },
       { titulo: 'Plantillas por fase', texto: 'El botón Plantillas de «Qué trabajamos» abre Recursos con las plantillas de la fase actual (Días 1–5, Días 6–12, hasta +90 días). «Usar plantilla» la inserta en el campo.' },
     ],
@@ -1700,14 +1727,14 @@ const AYUDA_TABS = [
     icon: '🔍',
     desc: 'Un solo recorrido: qué veo, qué significa, qué haría ahora, nivel de atención, señales y, al final, la decisión.',
     secciones: [
-      { titulo: 'Qué veo · Qué significa', texto: 'Diagnóstico automático: la evidencia disponible, una lectura prudente, la intervención propuesta y qué revisar. Categoriza la situación según reglas de prioridad e indica la variable prioritaria por puntuación. Una variable sin evaluar no cuenta como puntuación baja.' },
-      { titulo: 'Qué haría ahora', texto: 'Propone hasta 3 prioridades distintas para esta intervención, ordenadas por urgencia, a partir de la evaluación, la fase y el seguimiento. Orientan la intervención; la decisión es del responsable.' },
-      { titulo: 'Nivel de atención', texto: 'Índice interno de 0 a 100 calculado con reglas a partir de las señales registradas: seguimiento, puntuaciones, evolución y variables concretas. No es una probabilidad de baja. Niveles: baja, moderada, alta o prioritaria.' },
+      { titulo: 'Qué veo · Qué significa', texto: 'La evidencia disponible y una lectura prudente de lo que muestra, generadas por reglas a partir de la evaluación y la fase. Una variable sin evaluar no cuenta como puntuación baja, y la comparación con la sesión anterior usa solo las variables evaluadas en ambas.' },
+      { titulo: 'Qué haría ahora', texto: 'Hasta 3 prioridades para esta intervención, ordenadas por urgencia: la que propone la lectura (con qué revisar la próxima vez) y las de otros ámbitos, sin repetir. Orientan la intervención; la decisión es del responsable.' },
+      { titulo: 'Nivel de atención', texto: 'Índice interno de 0 a 100 calculado con reglas a partir de las señales registradas: seguimiento, puntuaciones, evolución y variables concretas. No es una probabilidad de baja. Niveles: baja, moderada, alta o prioritaria. En los Días 1–12 no se valoran las medias (son un punto de partida) y con estado «Baja» no se calcula.' },
       { titulo: 'Semáforo de seguimiento', texto: 'Visible a partir del Día 46. Compara las dos últimas sesiones (solo las variables evaluadas en ambas) y los días sin intervención para indicar el nivel de seguimiento: normal, reforzado o prioritario. No predice si la persona seguirá.' },
       { titulo: 'Señales de alarma', texto: 'Señales observables en esta fase. Márcalas si las has detectado: el resumen indica la urgencia del seguimiento. No se guardan con la ficha ni cambian el índice de atención.' },
-      { titulo: 'Decisión: los 4 criterios', texto: 'Esfuerzo (busca volumen, atiende feedback), Aprendizaje (aplica correcciones, mejora), Proceso (sigue la secuencia, puntual), Resultado (cierra algo, tendencia ascendente). Marca SÍ o NO en cada uno. «Sugerir desde la evaluación» los propone a partir de las puntuaciones; revísalos siempre.' },
-      { titulo: 'Recomendación', texto: 'Resultado de las 16 reglas de la matriz. Va desde Potenciar hasta Evaluar salida o Despido. El resultado es el ÚLTIMO criterio — si hay esfuerzo y aprendizaje, es recuperable.' },
-      { titulo: 'Antes de una salida', texto: 'Checklist de 10 puntos. Solo aparece si la recomendación es despido. Verifica que se han cumplido todos los pasos obligatorios antes de tomar esa decisión.' },
+      { titulo: 'Decisión: los 4 criterios', texto: 'Esfuerzo (busca volumen, atiende feedback), Aprendizaje (aplica correcciones, mejora), Proceso (sigue la secuencia, puntual), Resultado (cierra algo, tendencia ascendente). Marca SÍ o NO en cada uno. «Sugerir desde la evaluación» propone cada criterio solo si hay al menos dos de sus variables evaluadas; revísalos siempre.' },
+      { titulo: 'Recomendación', texto: 'Resultado de las 16 combinaciones de la matriz, de «Potenciar» a «Valorar una salida». El resultado es el último criterio: si hay esfuerzo y aprendizaje, se prioriza el acompañamiento. Valorar una salida solo se recomienda a partir del Día 13, con al menos dos intervenciones registradas y evidencia suficiente.' },
+      { titulo: 'Antes de una salida', texto: 'Checklist de 10 puntos. Solo aparece cuando la recomendación es valorar una salida. Sirve para revisar que se ha hecho todo el acompañamiento necesario; la decisión es del responsable, contrastada con el RP/RE.' },
     ],
     siguiente: 'Equipo — consulta el historial y la evolución de todos tus captadores.',
   },
@@ -1717,7 +1744,7 @@ const AYUDA_TABS = [
     desc: 'Resumen, historial y evolución de todos los captadores del equipo.',
     secciones: [
       { titulo: 'Resumen', texto: 'Tabla con todos los captadores guardados: estado, medias de técnica y hábitos, fase, nivel de atención, semáforo, sesiones y última intervención. Filtra por nombre, provincia o estado. Pulsa una fila para cargar esa ficha.' },
-      { titulo: 'Historial', texto: 'El único lugar para recuperar sesiones guardadas, agrupadas por captador/a. Busca por nombre, NIP o provincia; cada sesión muestra fecha, medias, fase y su registro. Puedes cargarla, eliminarla o ver la evolución de esa persona. También se abre desde el menú «Más acciones».' },
+      { titulo: 'Historial', texto: 'El único lugar para recuperar sesiones guardadas, agrupadas por captador/a. Busca por nombre, NIP o provincia; cada sesión muestra fecha, medias, fase y su registro. Puedes cargarla para consultarla o actualizarla, eliminarla, empezar una sesión nueva de esa persona o ver su evolución. También se abre desde el menú «Más acciones».' },
       { titulo: 'Evolución', texto: 'Gráfico de línea con la evolución de técnica y hábitos a lo largo del tiempo, detalle por variable de cada sesión y progresión de fase.' },
     ],
     siguiente: null,
@@ -1927,7 +1954,6 @@ function renderFaseDisplay(faseId) {
         '<div class="fd-hero-info">' +
           '<p class="eyebrow">Fase en esta intervención</p>' +
           '<h2 class="fd-hero-fase" id="h-fase-actual">' + esc(fase ? fase.label : '—') + '</h2>' +
-          (guia ? '<p class="fd-hero-perdida">' + ic('chart', 'ic-sm') + esc(fraseNormal(guia.perdida)) + '</p>' : '') +
         '</div>' +
       '</div>' +
       (guia ? '<p class="fd-hero-estado">' + esc(guia.estado.split('.')[0]) + '.</p>' : '') +
@@ -2084,6 +2110,7 @@ function recopilarDatos() {
   // Matriz de decisión y checklist pre-despido de esta intervención
   d.decisionMatrix = copiaMatriz(matrizState);
   d.decisionResult = resultadoMatriz(d.decisionMatrix);
+  if (d.decisionResult && d.decisionResult.cls === 'mr-despedir' && requisitosSalida(d).length) d.decisionResult.sinBaseSalida = true;
   d.checklistDespido = leerChecklist();
   return d;
 }
@@ -2126,7 +2153,7 @@ function cargarDatos(data) {
 // ── AUTOSAVE (sesión) ──
 function autoguardar() {
   marcarCambiosPendientes();
-  try { sessionStorage.setItem('wesser_borrador', JSON.stringify(recopilarDatos())); } catch(e){}
+  try { sessionStorage.setItem('wesser_borrador', JSON.stringify(recopilarDatos())); sessionStorage.setItem('wesser_borrador_id', AppState.lastLoadedId || ''); } catch(e){}
   // Solo actualizar statusText si no hay mensaje de guardado reciente
   if (!_hasUnsavedChanges || document.getElementById('statusText')?.classList.contains('saved')) {
     const now = new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
@@ -2141,6 +2168,8 @@ function autoguardar() {
   try{if(faseSelected){renderFaseDisplay(faseSelected);renderSenales(faseSelected);}}catch(e){}
   try{renderSemaforo();}catch(e){}
   try{actualizarDiasFase();}catch(e){}
+  try{calcMatriz();}catch(e){}
+  try{actualizarModoSesion();}catch(e){}
 }
 
 // ── FICHAS (localStorage) ──
@@ -2158,46 +2187,92 @@ function salvarFichas(fichas) {
 }
 function invalidarCache() { _fichasCache = null; }
 
+// La sesión del formulario es una sesión guardada (se está editando) o una sesión nueva
+function sesionEditada() { return AppState.lastLoadedId ? cargarFichas().find(f => f._id === AppState.lastLoadedId) || null : null; }
+function etiquetaGuardar() { return sesionEditada() ? 'Actualizar esta sesión' : 'Guardar sesión nueva'; }
+function actualizarModoSesion() {
+  const ed = sesionEditada();
+  if (!ed && AppState.lastLoadedId) AppState.lastLoadedId = null;   // la sesión ya no existe (eliminada o reemplazada al importar)
+  const nombre = (document.getElementById('d_captador')?.value || '').trim();
+  const tit = document.getElementById('sesionCtxTitulo'), desc = document.getElementById('sesionCtxDesc'), icon = document.getElementById('sesionCtxIcon');
+  if (tit && desc && icon) {
+    if (ed) {
+      tit.textContent = 'Editando una sesión guardada';
+      desc.textContent = 'Sesión del ' + formatFecha(aISO(getFechaIntervencion(ed))) + ' de ' + (ed.captador || 'sin nombre') +
+        '. «Actualizar» guarda los cambios en esta misma sesión. Para registrar otra intervención, usa «Nueva sesión».';
+      icon.setAttribute('data-tone', 'blue'); icon.innerHTML = ic('pencil');
+    } else {
+      tit.textContent = 'Sesión nueva';
+      desc.textContent = nombre ? 'Sesión nueva de ' + nombre + '. Al guardarla se añadirá a su historial.'
+                                : 'Escribe el nombre del captador/a o carga una sesión desde Equipo › Historial.';
+      icon.setAttribute('data-tone', 'brand'); icon.innerHTML = ic('plus');
+    }
+  }
+  const btnN = document.getElementById('btnNuevaSesion');
+  if (btnN) btnN.disabled = !nombre;
+  const lb = document.getElementById('btnGuardarLb');
+  if (lb) lb.textContent = ed ? 'Actualizar' : 'Guardar';
+  const btn = document.getElementById('btnGuardar');
+  if (btn) btn.setAttribute('aria-label', etiquetaGuardar() + (_hasUnsavedChanges ? ' (hay cambios sin guardar)' : ''));
+}
+
+// Guardar: actualiza la sesión que se está editando o añade una sesión nueva; nunca duplica sin avisar
 function guardarFicha() {
   const data=recopilarDatos();
   data.captador = (data.captador||'').trim().slice(0,100);
   if(!data.captador) {
     goTab(0);
-    toast('Falta el nombre del captador/a. Escríbelo para poder guardar la ficha.', {ms:4500});
+    toast('Falta el nombre del captador/a. Escríbelo para poder guardar la sesión.', {ms:4500});
     setTimeout(() => document.getElementById('d_captador')?.focus(), 60);
     return;
   }
   data.nip = (data.nip||'').trim().slice(0,30);
   const fichas=cargarFichas();
-  data._id=Date.now().toString();
-  data._savedAt=new Date().toISOString();
-  invalidarCache();
-  fichas.push(data);
+  const idx = AppState.lastLoadedId ? fichas.findIndex(f => f._id === AppState.lastLoadedId) : -1;
+  let msg;
+  if (idx >= 0) {
+    const orig = fichas[idx];
+    data._id = orig._id;
+    data._savedAt = orig._savedAt;   // alta de la sesión; la edición queda aparte
+    data._editedAt = new Date().toISOString();
+    invalidarCache();
+    fichas[idx] = data;
+    msg = `Sesión de "${data.captador}" actualizada`;
+  } else {
+    const mismoDia = fichas.some(f => (f.captador||'').trim() === data.captador && f.fecha && f.fecha === data.fecha);
+    if (mismoDia && !confirm(`Ya hay una sesión de "${data.captador}" con fecha ${formatFecha(data.fecha)}. ¿Guardar otra sesión ese mismo día?\n\nSi querías corregir esa sesión, cárgala desde Equipo › Historial y pulsa «Actualizar».`)) return;
+    data._id=Date.now().toString();
+    data._savedAt=new Date().toISOString();
+    invalidarCache();
+    fichas.push(data);
+    msg = `Sesión nueva de "${data.captador}" guardada`;
+  }
   salvarFichas(fichas);
   AppState.lastLoadedId = data._id;
   actualizarContador();
-  marcarGuardado(`Ficha de "${data.captador}" guardada`);
+  marcarGuardado(msg);
+  actualizarModoSesion();
   renderDiagnostico();
   try{ renderHistorialTab(); }catch(e){} populateEvoSelect(); renderDashboard();
   try{ actualizarDots(); }catch(e){}
 }
 
 function eliminarFicha(id) {
-  if(!confirm('¿Eliminar esta ficha? Podrás deshacerlo durante unos segundos.')) return;
+  if(!confirm('¿Eliminar esta sesión? Podrás deshacerlo durante unos segundos.')) return;
   const fichaBackup = cargarFichas().find(f => f._id === id);
   if(!fichaBackup) return;
   invalidarCache();
   salvarFichas(cargarFichas().filter(f => f._id !== id));
   actualizarContador(); try{renderHistorialTab();}catch(e){}
-  populateEvoSelect(); renderDashboard();
-  mostrarUndoToast('Ficha eliminada', () => {
+  populateEvoSelect(); renderDashboard(); actualizarModoSesion();
+  mostrarUndoToast('Sesión eliminada', () => {
     invalidarCache();
     const fichasActuales = cargarFichas();
     fichasActuales.push(fichaBackup);
     invalidarCache();
     salvarFichas(fichasActuales);
     actualizarContador(); try{renderHistorialTab();}catch(e){}
-    populateEvoSelect(); renderDashboard();
+    populateEvoSelect(); renderDashboard(); actualizarModoSesion();
   });
 }
 
@@ -2207,38 +2282,77 @@ function cargarFichaEnFormulario(id) {
   AppState.lastLoadedId = id;
   AppState.faseCongelada = true;   // consultar no modifica: se respeta la fase guardada
   cargarDatos(ficha);
+  actualizarModoSesion();
   goTab(0);
+  const txt = `Sesión del ${formatFecha(aISO(getFechaIntervencion(ficha) || new Date()))} de "${ficha.captador}" cargada`;
   const st = document.getElementById('statusText');
-  if (st) { st.textContent = `Ficha de "${ficha.captador}" cargada`; st.classList.add('saved'); setTimeout(()=>st.classList.remove('saved'),3000); }
-  toast(`Ficha de "${ficha.captador}" cargada`);
+  if (st) { st.textContent = txt; st.classList.add('saved'); setTimeout(()=>st.classList.remove('saved'),3000); }
+  toast(txt);
   contarCampos();
 }
 
-function nuevaFicha() {
-  if(!confirm('¿Limpiar el formulario para empezar una ficha nueva?')) return;
+// Deja el formulario vacío (sesión nueva sin captador)
+function limpiarFormulario() {
   AppState.lastLoadedId = null;
   AppState.faseCongelada = false;
+  AppState.notasAnteriores = {};
   _hasUnsavedChanges = false;
-  try{sessionStorage.removeItem('wesser_borrador');}catch(e){}
+  try{ sessionStorage.removeItem('wesser_borrador'); sessionStorage.removeItem('wesser_borrador_id'); }catch(e){}
   document.querySelectorAll('main input[type=text],main input[type=date],main textarea').forEach(el=>el.value='');
+  const est = document.getElementById('d_estado'); if (est) est.value = '';
   Object.keys(scores).forEach(k=>{scores[k]=0;renderStars(k);});
+  try{ updateGroupAvg('t'); updateGroupAvg('h'); }catch(e){}
   faseSelected=null;
   FASES.forEach(f=>{ const r=document.getElementById('radio_'+f.id); if(r)r.checked=false; });
-  AppState.notasAnteriores = {};
   try{ renderRegistroAnterior(); }catch(e){}
-  document.getElementById('d_fecha').value=new Date().toISOString().split('T')[0];
+  document.getElementById('d_fecha').value = aISO(new Date());
   document.getElementById('unsavedDot')?.classList.remove('visible');
-  const st=document.getElementById('statusText');
-  if(st){ st.textContent='Formulario listo para una ficha nueva'; st.classList.remove('unsaved'); }
-  try{ actualizarDiasFase(); }catch(e){}
-  try{ renderFaseDisplay(null); }catch(e){}
-  try{ refrescarListas(); }catch(e){}
-  _senalesFase = null; const _sc=document.getElementById('senalesCard'); if(_sc) _sc.style.display='none';
+  _senalesFase = null; senalesActivas.clear();
+  const _sc=document.getElementById('senalesCard'); if(_sc) _sc.style.display='none';
   try{ restaurarDecision({}); }catch(e){}
-  contarCampos(); goTab(0);
-  toast('Formulario listo para una ficha nueva');
+}
+function trasLimpiar(msg) {
+  try{ actualizarDiasFase(); }catch(e){}   // con fecha de comienzo, la fase se calcula para hoy
+  try{ renderFaseDisplay(faseSelected); renderGuiaFase(faseSelected); }catch(e){}
+  try{ refrescarListas(); }catch(e){}
+  try{ renderDiagnostico(); renderLMI(); renderRiesgoCard(); renderSemaforo(); }catch(e){}
+  const st=document.getElementById('statusText');
+  if(st){ st.textContent=msg; st.classList.remove('unsaved'); }
+  actualizarModoSesion(); contarCampos(); actualizarDots(); goTab(0);
+  toast(msg);
 }
 
+function nuevaFicha() {
+  if(!confirm('¿Limpiar el formulario para empezar con un captador/a nuevo?')) return;
+  limpiarFormulario();
+  trasLimpiar('Formulario listo para un captador/a nuevo');
+}
+
+// Nueva sesión de la misma persona: conserva sus datos y deja en blanco evaluación, registro y decisión
+const CAMPOS_IDENTIDAD = ['captador','nip','responsable','provincia','fechainicio','estado'];
+function nuevaSesion(sinConfirmar) {
+  const nombre = (document.getElementById('d_captador')?.value || '').trim();
+  if (!nombre) {
+    goTab(0);
+    toast('Escribe el nombre del captador/a o carga una sesión desde Equipo › Historial.', {ms:4500});
+    setTimeout(() => document.getElementById('d_captador')?.focus(), 60);
+    return;
+  }
+  if (!sinConfirmar && _hasUnsavedChanges && !confirm('Hay cambios sin guardar en esta sesión. ¿Empezar una sesión nueva igualmente? Esos cambios se perderán.')) return;
+  const ident = {};
+  CAMPOS_IDENTIDAD.forEach(k => ident[k] = document.getElementById('d_'+k)?.value || '');
+  limpiarFormulario();
+  CAMPOS_IDENTIDAD.forEach(k => { const el = document.getElementById('d_'+k); if (el) el.value = ident[k]; });
+  trasLimpiar(`Sesión nueva de "${nombre}": evaluación, registro y decisión en blanco`);
+}
+// Desde el historial: sesión nueva con los datos de la última sesión de esa persona
+function nuevaSesionDe(id) {
+  if (_hasUnsavedChanges && !confirm('Hay cambios sin guardar en el formulario. ¿Empezar una sesión nueva igualmente? Esos cambios se perderán.')) return;
+  const f = cargarFichas().find(x => x._id === id);
+  if (!f) return;
+  CAMPOS_IDENTIDAD.forEach(k => { const el = document.getElementById('d_'+k); if (el) el.value = f[k] || ''; });
+  nuevaSesion(true);
+}
 function actualizarContador() { document.getElementById('fichaCount').textContent=cargarFichas().length; }
 
 function contarCampos() {
@@ -2480,7 +2594,8 @@ function generarPDF(){
 
   const tAvgCur = parseFloat(avgScores(d,'t',TECNICA_VARS.length)||0);
   const hAvgCur = parseFloat(avgScores(d,'h',HABITOS_VARS.length)||0);
-  const riesgo  = histSessions.length ? calcRiesgo(histSessions, d.estado||'') : null;
+  const hsPdf   = d.captador ? sesionesHastaActual(d.captador.trim(), d, true) : null;
+  const riesgo  = hsPdf && hsPdf.sessions.length ? calcRiesgo(hsPdf.sessions, d.estado||'', { historica: hsPdf.historica }) : null;
   const diasProc= d.fechainicio ? Math.max(1,Math.floor((Date.now()-new Date(d.fechainicio))/86400000)) : null;
   const faseObj = FASES.find(x=>x.id===d.faseSelected);
 
@@ -2572,7 +2687,10 @@ function generarPDF(){
   y+=30;
 
   // Riesgo banner
-  if(riesgo){ chk(12);
+  if(riesgo && riesgo.nivel==='baja'){ chk(12);
+    doc.setFontSize(7.5);doc.setFont('helvetica','bold');doc.setTextColor(...GRIS);
+    doc.text('MARCADO DE BAJA \u2014 \u00cdNDICE DE ATENCI\u00d3N NO CALCULADO',M+5,y+6); y+=12; }
+  else if(riesgo){ chk(12);
     const nR=RIESGO_NIVELES[riesgo.nivel];
     const rC=riesgo.nivel==='bajo'?VERDE:riesgo.nivel==='moderado'?[180,120,0]:riesgo.nivel==='alto'?NARANJA:ROJO;
     doc.setFillColor(...rC.map(x=>Math.min(255,x+180))); doc.rect(M-2,y,cw+4,9,'F');
@@ -2716,7 +2834,7 @@ function renderDashboard(){
   if(ds)ds.innerHTML=`
     <div class="dash-stat"><div class="dash-stat-val">${total}</div><div class="dash-stat-label">Captadores</div></div>
     <div class="dash-stat" data-tone="ok"><div class="dash-stat-val">${pe.progreso}</div><div class="dash-stat-label"><i class="dot"></i>En progreso</div></div>
-    <div class="dash-stat" data-tone="warn"><div class="dash-stat-val">${pe.estancado+pe.riesgo}</div><div class="dash-stat-label"><i class="dot"></i>Atención</div></div>
+    <div class="dash-stat" data-tone="warn"><div class="dash-stat-val">${pe.estancado+pe.riesgo}</div><div class="dash-stat-label"><i class="dot"></i>Estancado o en riesgo</div></div>
     <div class="dash-stat" data-tone="neutral"><div class="dash-stat-val">${pe.baja}</div><div class="dash-stat-label"><i class="dot"></i>Baja</div></div>`;
   let rows=Object.entries(map).filter(([n,{latest}])=>{
     const mq=!q||n.toLowerCase().includes(q)||(latest.provincia||'').toLowerCase().includes(q);
@@ -2786,10 +2904,13 @@ function diagnosticar(data, sesionesAnteriores) {
 }
 
 function diagnosticarReglas(data, sesionesAnteriores) {
-  // Días desde última sesión (para urgencia de contacto)
+  // Días entre la intervención anterior y esta (la que se diagnostica), no hasta hoy:
+  // mientras se registra una sesión, esa sesión ya es el contacto.
   // Las sesiones anteriores se ordenan por fecha de intervención (no por fecha de guardado)
   sesionesAnteriores = sesionesAnteriores && sesionesAnteriores.length ? ordenarSesiones(sesionesAnteriores) : null;
-  const diasSinInterv = sesionesAnteriores ? diasDesdeUltimaIntervencion(sesionesAnteriores) : null;
+  const fechaPrevia = sesionesAnteriores ? getFechaIntervencion(sesionesAnteriores[sesionesAnteriores.length - 1]) : null;
+  const fechaEsta = getFechaIntervencion(data) || new Date();
+  const diasSinInterv = fechaPrevia ? Math.max(0, numeroDia(fechaEsta) - numeroDia(fechaPrevia)) : null;
   // Validación de entrada
   if (!data || typeof data !== 'object') return null;
 
@@ -2811,14 +2932,13 @@ function diagnosticarReglas(data, sesionesAnteriores) {
   const creencias = [1,2,3,4,5].map(i=>data['c'+i]||'').filter(Boolean);
   const nCreencias = creencias.length;
 
-  // Tendencia respecto a sesión anterior
-  let tendencia = null, mediaAnterior = null, sesionPrevia = null;
+  // Tendencia respecto a la sesión anterior: compararEvolucion (la misma que usan el índice, el semáforo y las
+  // prioridades) — media de las diferencias en las variables evaluadas en ambas; sin 3 comparables no hay tendencia
+  let tendencia = null, comparables = 0, sesionPrevia = null;
   if (sesionesAnteriores && sesionesAnteriores.length >= 1) {
     const prev = sesionesAnteriores[sesionesAnteriores.length-1];
-    // Solo se comparan los grupos que la sesión anterior tiene evaluados (un grupo vacío no cuenta como 0)
-    const medias = [avgScores(prev,'t',TECNICA_VARS.length), avgScores(prev,'h',HABITOS_VARS.length)]
-      .filter(v => v !== null).map(parseFloat);
-    if (medias.length) { mediaAnterior = medias.reduce((a,b)=>a+b,0) / medias.length; tendencia = globalAvg - mediaAnterior; sesionPrevia = prev; }
+    const evo = compararEvolucion(prev, data);
+    if (evo) { tendencia = evo.delta; comparables = evo.comparables; sesionPrevia = prev; }
   }
 
   // Sin datos
@@ -2854,8 +2974,8 @@ function diagnosticarReglas(data, sesionesAnteriores) {
   }).filter(Boolean) : [];
   const cambiosTxt = signo => cambios.filter(c => signo < 0 ? c.d < 0 : c.d > 0).sort((x, y) => signo < 0 ? x.d - y.d : y.d - x.d)
     .slice(0, 3).map(c => ALL_VARS_LABELS[c.k] + ' ' + c.a + '→' + c.b);
-  const comparacion = () => sesionPrevia ? 'Media ' + fmt(globalAvg) + '/5 frente a ' + fmt(mediaAnterior) + '/5 en la sesión del ' +
-    formatFecha(aISO(getFechaIntervencion(sesionPrevia))) + ' (' + (tendencia >= 0 ? '+' : '−') + fmt(Math.abs(tendencia)) + ')' : null;
+  const comparacion = () => sesionPrevia ? (tendencia >= 0 ? '+' : '−') + fmt(Math.abs(tendencia)) + ' de media en las ' + comparables +
+    ' variables evaluadas en esta sesión y en la del ' + formatFecha(aISO(getFechaIntervencion(sesionPrevia))) : null;
   const res = o => ({
     regla: o.regla, tipo: o.tipo, nivelEvidencia: o.nivel,
     evidencia: (o.evidencia || []).filter(Boolean),
@@ -2881,14 +3001,13 @@ function diagnosticarReglas(data, sesionesAnteriores) {
       revision: 'En la próxima sesión, volver a puntuar Parada y Speech' + (inicio.length ? ' y compararlos con hoy (' + inicio.join(' · ') + ').' : '.') });
   }
 
-  // R1b: Contacto urgente — sin intervención >14 días en fase crítica
+  // R1b: Seguimiento discontinuo — más de 14 días entre la intervención anterior y esta, en fase crítica
   if (diasSinInterv !== null && diasSinInterv > 14 && hayFase && faseNum >= 3 && faseNum <= 5) {
-    return res({ regla:'R1b', tipo:'Contacto urgente', nivel:'alto', icono:'📞', color:'red',
-      evidencia: [diasSinInterv + ' días desde la última intervención registrada', 'Fase: ' + nombreFase],
-      lectura: 'Hace ' + diasSinInterv + ' días que no hay una intervención registrada, en una fase en la que el seguimiento cercano es especialmente importante. Los datos no indican qué ha pasado en ese tiempo.',
-      tituloAccion: 'Intervención', colorAccion: 'red',
-      accion: 'Contactar con el captador esta semana, antes de planificar otra intervención, y preguntarle cómo le está yendo.',
-      revision: 'Registrar el contacto como intervención y comprobar que el siguiente seguimiento no supera los 14 días.' });
+    return res({ regla:'R1b', tipo:'Seguimiento discontinuo', nivel:'alto', icono:'📞', color:'orange',
+      evidencia: [diasSinInterv + ' días entre la intervención anterior y esta', 'Fase: ' + nombreFase],
+      lectura: 'Esta intervención llega ' + diasSinInterv + ' días después de la anterior registrada, en una fase en la que el seguimiento cercano es especialmente importante. Los datos no indican qué ha pasado en ese tiempo.',
+      accion: 'Aprovechar esta sesión para preguntar al captador cómo le ha ido en estos días y fijar la próxima intervención en menos de 14 días.',
+      revision: 'Comprobar que la siguiente intervención se registra antes de 14 días.' });
   }
 
   // R2: Disposición al feedback baja
@@ -3075,12 +3194,6 @@ function renderDiagnostico() {
   const evidencia = (diag.evidencia || []).length
     ? '<ul class="diag-evid">' + diag.evidencia.map(e => '<li class="pill">' + esc(e) + '</li>').join('') + '</ul>'
     : texto('No hay datos que mostrar.');
-  const palancaHtml = diag.palanca && !diag.datosInsuficientes ? `
-    <div class="diag-palanca">
-      <span class="eyebrow">Variable prioritaria por puntuación</span>
-      <span class="diag-palanca-val">${esc(diag.palanca.label)}</span>
-      <span class="score-pill ${pillClass(diag.palanca.val.toString())}">${diag.palanca.val} de 5</span>
-    </div>` : '';
   const avisoFase = diag.faseDesconocida
     ? '<div class="notice" data-tone="warn">' + ic('calendar') + '<div><strong>Sin fase.</strong> Esta lectura no tiene en cuenta en qué fase está el captador; puede cambiar al poner la fecha de comienzo.</div></div>' : '';
   const faltaFase = diag.sinFase || diag.faseDesconocida;
@@ -3088,9 +3201,7 @@ function renderDiagnostico() {
     '<div><span class="score-pill ' + nv.cls + '">' + nv.txt + '</span></div>' +
     bloque('chart', 'slate', 'Evidencia', evidencia) +
     bloque(iconoDeEmoji(diag.diagnostico.icon, 'search'), toneDe(diag.diagnostico.color), esc(diag.diagnostico.titulo), texto(diag.diagnostico.texto)) +
-    bloque('target', toneDe(diag.recomendacion.color), esc(diag.recomendacion.titulo), texto(diag.recomendacion.texto)) +
-    (diag.revision ? bloque('check-circle', 'ok', 'Revisión', texto(diag.revision.texto)) : '') +
-    palancaHtml +
+    // La intervención y la revisión de esta lectura se muestran en «Qué haría ahora»: un solo lugar para el qué hacer
     (faltaFase ? '<button type="button" class="btn btn-secondary" onclick="irAFechaInicio()">' + ic('calendar') + 'Poner la fecha de comienzo</button>' : '');
 }
 
@@ -3745,7 +3856,7 @@ const BIBLIOTECA = [
   {
     cat:'rechazo', catLabel:'Miedo al rechazo', color:'#c62828',
     creencia: 'Si me dicen que no, es porque he hecho algo mal.',
-    intervencion: `Confundir causa y efecto es el error más frecuente. El rechazo depende en un 70% de factores externos al captador: el momento del día, el estado emocional de la persona, si lleva prisa, si ya donó esa semana. Trabajar con el captador el análisis real de qué está dentro y qué está fuera de su control. Solo se puede mejorar lo que está dentro.`
+    intervencion: `Confundir causa y efecto es el error más frecuente. El rechazo depende en gran parte de factores externos al captador: el momento del día, el estado emocional de la persona, si lleva prisa, si ya donó esa semana. Trabajar con el captador el análisis real de qué está dentro y qué está fuera de su control. Solo se puede mejorar lo que está dentro.`
   },
 
   // ── AUTOESTIMA ──
@@ -3870,7 +3981,7 @@ const BIBLIOTECA = [
   {
     cat: 'rerp', catLabel: 'Creencias RE/RP', color: '#37474f',
     creencia: 'La rotacion alta es normal, no se puede hacer mucho.',
-    intervencion: 'La rotacion no es inevitable, es gestionable. El 41% de la perdida ocurre en los primeros 5 dias — exactamente cuando el acompanamiento del RE/RP es mas determinante. La variable que mas correlaciona con la permanencia es la calidad del acompanamiento en la primera semana, no el perfil del captador.'
+    intervencion: 'La rotación no es inevitable: se puede gestionar. Los primeros días son el momento en que el acompañamiento del RE/RP tiene más peso, por eso conviene cuidar especialmente su calidad durante la primera semana, más que fijarse en el perfil del captador.'
   },
   {
     cat: 'rerp', catLabel: 'Creencias RE/RP', color: '#37474f',
@@ -4474,7 +4585,7 @@ function importarJSON(input) {
         added++;
       });
       salvarFichas(existentes);
-      actualizarContador();
+      actualizarContador(); actualizarModoSesion();
       try{ renderHistorialTab(); }catch(e){} populateEvoSelect(); renderDashboard();
       resultEl.className = 'json-import-result ok';
       resultEl.textContent = added + ' fichas importadas' + (skipped ? ', ' + skipped + ' omitidas (ya existían)' : '') + '.';
@@ -4516,6 +4627,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // ══════════════════════════════════════════
 
 const RIESGO_NIVELES = {
+  baja:     { label:'Baja · sin índice',    cls:'rb-nd',       fill:'',               color:'#646C69', max:null },
   bajo:     { label:'Atención baja',        cls:'rb-bajo',     fill:'rfill-bajo',     color:'#2a7d4f', max:25 },
   moderado: { label:'Atención moderada',    cls:'rb-moderado', fill:'rfill-moderado', color:'#856404', max:50 },
   alto:     { label:'Atención alta',        cls:'rb-alto',     fill:'rfill-alto',     color:'#e65100', max:75 },
@@ -4572,7 +4684,7 @@ const fmt1 = n => n.toFixed(1).replace('.', ',');
    por media alta (una media alta ya aporta 0 en rendimiento; restar además ocultaba señales temporales o
    concretas) y los puntos por estado manual (es una decisión del responsable, no una evidencia automática:
    se devuelve aparte como contexto). */
-function calcRiesgo(sessions, estado) {
+function calcRiesgo(sessions, estado, opts) {
   if (!sessions || sessions.length === 0) return null;
   const sorted = ordenarSesiones(sessions);
   const last = sorted[sorted.length - 1];
@@ -4581,14 +4693,16 @@ function calcRiesgo(sessions, estado) {
   const faseNum = numeroFase(last.faseSelected);
   const faseDisponible = !isNaN(faseNum);
   const faseLabel = faseDisponible ? FASES[faseNum - 1].label : null;
-  const diasSin = diasDesdeUltimaIntervencion(sorted);   // null si no hay fecha: no se penaliza
+  // null si no hay fecha (no se penaliza) o si se consulta una sesión que no es la última (los días hasta hoy no la describen)
+  const diasSin = opts && opts.historica ? null : diasDesdeUltimaIntervencion(sorted);
   const base = {
     cobertura: coberturaDe(last), suficienciaDatos: suficienciaDe(m), diasSin, faseDisponible,
     estadoManual: ESTADOS[estado] ? { id: estado, label: ESTADOS[estado].label } : null
   };
+  // Baja: la persona ya no está en el proceso; no hay índice ni alerta activa
   if (estado === 'baja') {
-    return Object.assign(base, { score: 100, nivel: 'critico', delta: null, soloEstado: true,
-      factores: [{ id:'estado_baja', dim:'manual', puntos:0, icono:'user', label:'Marcado de baja por el responsable: el índice no se calcula con las señales' }] });
+    return Object.assign(base, { score: null, nivel: 'baja', delta: null, soloEstado: true,
+      factores: [{ id:'estado_baja', dim:'manual', puntos:0, icono:'user', label:'Marcado de baja por el responsable: no se calcula el índice de atención' }] });
   }
 
   const factores = [];
@@ -4596,22 +4710,24 @@ function calcRiesgo(sessions, estado) {
   const v = k => scoreDe(last, k);
   const bajoV = (k, max) => { const x = v(k); return x !== null && x <= max; };
   const nivelOk = m.n >= 4;   // mínimo de variables para valorar medias
+  // Día 1–12: las puntuaciones describen un punto de partida (como dice la lectura R1); no se valoran medias ni nivel de fase
+  const inicial = faseDisponible && faseNum <= 2;
 
   // Seguimiento temporal (criterio interno de 7 y 14 días; más peso en F1–F3)
   if (diasSin !== null && diasSin > 14) add('dias_sin_intervencion', 'temporal', faseNum <= 3 ? 25 : 15, 'Sin intervención registrada hace ' + diasSin + ' días (criterio interno: más de 14)', 'calendar');
   else if (diasSin !== null && diasSin > 7) add('dias_sin_intervencion', 'temporal', faseNum <= 3 ? 12 : 8, diasSin + ' días desde la última intervención (criterio interno: más de 7)', 'calendar');
 
   // Rendimiento: nivel general y por grupo (solo grupos evaluados)
-  if (nivelOk && m.global !== null) {
+  if (!inicial && nivelOk && m.global !== null) {
     if (m.global < 2)        add('media_global', 'rendimiento', 30, 'Media ' + fmt1(m.global) + '/5, muy baja', 'trend-down');
     else if (m.global < 2.5) add('media_global', 'rendimiento', 20, 'Media ' + fmt1(m.global) + '/5, baja', 'trend-down');
     else if (m.global < 3)   add('media_global', 'rendimiento', 10, 'Media ' + fmt1(m.global) + '/5, por debajo de 3', 'chart');
   }
-  if (m.t !== null && m.nT >= 2) {
+  if (!inicial && m.t !== null && m.nT >= 2) {
     if (m.t < 2)        add('media_tecnica', 'rendimiento', 18, 'Técnica ' + fmt1(m.t) + '/5, muy baja (' + m.nT + ' de ' + TECNICA_VARS.length + ' evaluadas)', 'bolt');
     else if (m.t < 2.5) add('media_tecnica', 'rendimiento', 8, 'Técnica ' + fmt1(m.t) + '/5, baja (' + m.nT + ' de ' + TECNICA_VARS.length + ' evaluadas)', 'bolt');
   }
-  if (m.h !== null && m.nH >= 3) {
+  if (!inicial && m.h !== null && m.nH >= 3) {
     if (m.h < 2)        add('media_habitos', 'rendimiento', 12, 'Hábitos ' + fmt1(m.h) + '/5, muy bajos (' + m.nH + ' de ' + HABITOS_VARS.length + ' evaluados)', 'dumbbell');
     else if (m.h < 2.5) add('media_habitos', 'rendimiento', 6, 'Hábitos ' + fmt1(m.h) + '/5, bajos (' + m.nH + ' de ' + HABITOS_VARS.length + ' evaluados)', 'dumbbell');
   }
@@ -4622,17 +4738,17 @@ function calcRiesgo(sessions, estado) {
   if (delta !== null && delta < -1)        add('caida', 'evolucion', 20, 'Caída de ' + fmt1(-delta) + ' puntos respecto a la sesión anterior (' + evo.comparables + ' variables comparables)', 'trend-down');
   else if (delta !== null && delta < -0.5) add('caida', 'evolucion', 10, 'Bajada de ' + fmt1(-delta) + ' puntos respecto a la sesión anterior (' + evo.comparables + ' variables comparables)', 'trend-down');
 
-  // Contexto de fase: nivel de referencia interno por fase (solo con fase válida). Se unifican los
-  // antiguos factores de «expectativa de fase» y «fase crítica» (medían lo mismo) y cuenta el mayor.
-  if (faseDisponible && nivelOk && m.global !== null) {
+  // Contexto de fase: nivel de referencia interno por fase (solo con fase válida y a partir del Día 13).
+  // Sale de la misma media que el rendimiento: se agrega en esa dimensión y cuenta solo la señal mayor.
+  if (faseDisponible && !inicial && nivelOk && m.global !== null) {
     const g = m.global, cands = [];
     if (faseNum >= 5) { if (g < 3.5) cands.push([15, 3.5]); else if (g < 4) cands.push([8, 4]); }
     else if (faseNum >= 3) { if (g < 3) cands.push([15, 3]); else if (g < 3.5) cands.push([8, 3.5]); }
-    const critica = { 1:[20, 3], 2:[12, 2.8], 3:[20, 3.5], 4:[15, 3], 5:[10, 3.5] }[faseNum];
+    const critica = { 3:[20, 3.5], 4:[15, 3], 5:[10, 3.5] }[faseNum];
     if (critica && g < critica[1]) cands.push(critica);
     if (cands.length) {
       const best = cands.reduce((a, b) => b[0] > a[0] ? b : a);
-      add('media_para_fase', 'fase', best[0], 'Media ' + fmt1(g) + '/5, por debajo del nivel de referencia interno para ' + faseLabel + ' (' + fmt1(best[1]) + ')', 'compass');
+      add('media_para_fase', 'rendimiento', best[0], 'Media ' + fmt1(g) + '/5, por debajo del nivel de referencia interno para ' + faseLabel + ' (' + fmt1(best[1]) + ')', 'compass');
     }
   }
 
@@ -4656,16 +4772,13 @@ function calcRiesgo(sessions, estado) {
   if (bajoV('h_1', 2))  add('autonomia', 'proceso', 8, 'Rendimiento sin RE/RP ' + v('h_1') + '/5', 'link');
   if (bajoV('h_10', 2)) add('estabilidad', 'proceso', 8, 'Estabilidad semanal ' + v('h_10') + '/5', 'trend-down');
 
-  // Creencias registradas
-  const nCreencias = [1,2,3,4,5].map(i => last['c' + i] || '').filter(Boolean).length;
-  if (nCreencias >= 3) add('creencias', 'creencias', 8, nCreencias + ' creencias registradas', 'bulb');
+  // Las creencias registradas no suman: documentarlas no debe subir el índice (pesan en la lectura junto con la negatividad)
 
   // Agregación
   const maxDim = d => factores.filter(f => f.dim === d).reduce((a, f) => Math.max(a, f.puntos), 0);
-  const temporal = maxDim('temporal'), rendimiento = maxDim('rendimiento'), fase = maxDim('fase'),
-        evolucion = maxDim('evolucion'), creencias = maxDim('creencias');
-  const proceso = Math.min(factores.filter(f => f.dim === 'proceso').reduce((a, f) => a + f.puntos, 0), rendimiento > 0 ? 15 : 25);
-  let senales = rendimiento + fase + evolucion + proceso + creencias;
+  const temporal = maxDim('temporal'), rendimiento = maxDim('rendimiento'), evolucion = maxDim('evolucion');
+  const proceso = Math.min(factores.filter(f => f.dim === 'proceso').reduce((a, f) => a + f.puntos, 0), (rendimiento > 0 || inicial) ? 15 : 25);
+  let senales = rendimiento + evolucion + proceso;
 
   // Mejora sostenida: al menos dos comparaciones fiables seguidas, todas al alza.
   // Descuenta hasta 15 puntos de las señales de rendimiento y proceso; nunca de la señal temporal.
@@ -4680,17 +4793,19 @@ function calcRiesgo(sessions, estado) {
 
   // Datos que faltan: se informan sin sumar puntos
   if (!faseDisponible) add('fase_no_disponible', 'dato', 0, 'Fase no disponible: no se aplican criterios de fase', 'calendar');
+  if (inicial) add('fase_inicial', 'dato', 0, faseLabel + ': las puntuaciones son un punto de partida; no se valoran las medias', 'calendar');
   if (!nivelOk) add('pocos_datos', 'dato', 0, 'Solo ' + m.n + (m.n === 1 ? ' variable evaluada' : ' variables evaluadas') + ': no se valoran las medias', 'info');
   if (prev && !evo) add('sin_comparacion', 'dato', 0, 'Sin variables suficientes para comparar con la sesión anterior', 'info');
 
   const score = Math.min(100, Math.max(0, Math.round(temporal + senales)));
   factores.sort((a, b) => b.puntos - a.puntos);
   return Object.assign(base, { score, nivel: nivelRiesgo(score), factores, delta,
-    dimensiones: { temporal, rendimiento, fase, evolucion, proceso, creencias, descuento } });
+    dimensiones: { temporal, rendimiento, evolucion, proceso, descuento } });
 }
 
 function riesgoHtml(riesgo, mini) {
   if (!riesgo) return '<span class="riesgo-badge rb-nd">Sin datos</span>';
+  if (riesgo.nivel === 'baja') return '<span class="riesgo-badge rb-nd">Sin índice</span>';
   const n = RIESGO_NIVELES[riesgo.nivel];
   const icono = riesgo.nivel === 'bajo' ? 'check-circle' : riesgo.nivel === 'critico' ? 'alert' : 'warn';
   if (mini) {
@@ -4713,10 +4828,10 @@ function renderRiesgoCard() {
   const currentData = recopilarDatos();
   const tCur = TECNICA_VARS.reduce((s,_,i) => s + (parseFloat(currentData['t_'+i])||0), 0);
   const hCur = HABITOS_VARS.reduce((s,_,i) => s + (parseFloat(currentData['h_'+i])||0), 0);
-  const sessions = sesionesConActual(nombre, currentData, (tCur + hCur) > 0);
+  const { sessions, historica } = sesionesHastaActual(nombre, currentData, (tCur + hCur) > 0);
   if (!sessions.length) { card.classList.remove('visible'); return; }
 
-  const r = calcRiesgo(sessions, estado);
+  const r = calcRiesgo(sessions, estado, { historica });
   if (!r) { card.classList.remove('visible'); return; }
   card.classList.add('visible');
   card.setAttribute('data-tone', RIESGO_TONO[r.nivel] || 'slate');
@@ -4727,10 +4842,12 @@ function renderRiesgoCard() {
   const descEl = document.getElementById('riesgoDesc');
   const barFill = document.getElementById('riesgoBarFill');
   const factoresEl = document.getElementById('riesgoFactores');
-  if (scoreEl) scoreEl.textContent = r.score;
+  if (scoreEl) scoreEl.textContent = r.score === null ? '—' : r.score;
   if (nivelEl) nivelEl.textContent = n.label;
-  if (descEl) descEl.textContent = 'Índice interno de 0 a 100 según las señales registradas; no es una probabilidad de baja. ' +
-    'Datos: ' + r.cobertura.evaluadas + ' de ' + r.cobertura.total + ' variables · ' + sessions.length + ' sesión' + (sessions.length>1?'es':'') +
+  if (descEl) descEl.textContent = (r.nivel === 'baja' ? 'La persona está marcada de baja: no se calcula el índice. ' :
+    'Índice interno de 0 a 100 según las señales registradas; no es una probabilidad de baja. ') +
+    'Datos: ' + r.cobertura.evaluadas + ' de ' + r.cobertura.total + ' variables · ' + sessions.length + (sessions.length === 1 ? ' sesión' : ' sesiones') +
+    (historica ? ' · consulta de una sesión anterior' : '') +
     (r.diasSin !== null && r.diasSin !== undefined ? ' · última intervención hace ' + r.diasSin + (r.diasSin === 1 ? ' día' : ' días') : '');
   const manualEl = document.getElementById('riesgoManual');
   if (manualEl) {
@@ -4738,7 +4855,7 @@ function renderRiesgoCard() {
     manualEl.textContent = em && !r.soloEstado ? 'Estado marcado por el responsable: «' + em.label + '». Se muestra como contexto; no suma al índice.' : '';
     manualEl.hidden = !manualEl.textContent;
   }
-  if (barFill) { barFill.className = 'riesgo-card-bar-fill ' + n.fill; barFill.style.width = r.score + '%'; }
+  if (barFill) { barFill.className = 'riesgo-card-bar-fill ' + n.fill; barFill.style.width = (r.score || 0) + '%'; }
   if (factoresEl) {
     factoresEl.innerHTML = r.factores.length
       ? r.factores.map(f => `<li class="riesgo-factor${f.puntos === 0 ? ' meta' : ''}">${ic(f.icono || 'dot')}<span>${esc(f.label)}</span></li>`).join('')
@@ -4783,8 +4900,7 @@ function renderAlertas(map) {
 const GUIA_FASES = {
   f1: {
     label: 'Día 1–5',
-    perdida: '41% de pérdida en esta fase',
-    estado: '"Estoy perdidísimo." Miedo a fallar. No pregunta por vergüenza. Imita sin entender. Sensación de "igual no encajo".',
+    estado: 'Es frecuente sentirse perdido y con miedo a fallar. Puede no preguntar por vergüenza, imitar sin entender del todo y pensar «igual no encajo».',
     garantizar: [
       'Contacto diario breve (5–7 min)',
       'Una micro victoria emocional por turno',
@@ -4807,8 +4923,7 @@ const GUIA_FASES = {
   },
   f2: {
     label: 'Día 6–12',
-    perdida: '12% de pérdida en esta fase',
-    estado: 'Primera mini-crisis. Empieza a compararse con veteranos. Duda de si podrá mejorar. Piensa en si le echarán. Cree que no progresa.',
+    estado: 'Puede aparecer una primera crisis. Es habitual compararse con veteranos, dudar de si podrá mejorar, preguntarse si le echarán o creer que no progresa.',
     garantizar: [
       'Mantener contacto diario orientado al proceso',
       'Acompañamiento 2–3 turnos/semana según necesidad',
@@ -4831,8 +4946,7 @@ const GUIA_FASES = {
   },
   f3: {
     label: 'Día 13–25',
-    perdida: '13% de pérdida — PUNTO REAL DE FUGA',
-    estado: 'Crisis real. Interpreta errores como incapacidad. Presión por "empezar a funcionar ya". Cree que no progresa. La persona se pregunta si seguirá o no. Indicador clave: sonríe menos en calle.',
+    estado: 'Tramo delicado. Puede interpretar los errores como incapacidad, sentir presión por «empezar a funcionar ya» y preguntarse si seguirá. Una señal a observar: sonríe menos en calle.',
     garantizar: [
       'Acompañamiento mínimo 2 turnos/semana (obligatorio)',
       'Observación real en terreno, no solo charla',
@@ -4848,21 +4962,20 @@ const GUIA_FASES = {
       'Dejar de acompañar porque "ya debería saber"',
       'Interpretar la crisis como incapacidad permanente',
     ],
-    senales: ['"La gente hoy está rara." "Hoy no es mi día." "Nunca voy a ser como los veteranos."', 'Sonríe menos en calle (señal crítica)', 'Riesgo alto de fuga en silencio'],
+    senales: ['Atribuye los resultados a factores externos («la gente hoy está rara», «hoy no es mi día»)', 'Sonríe menos en calle que en días anteriores', 'Habla menos con el equipo y no plantea dudas'],
     intervencion: 'No decir "has fallado". Decir "estás en fase de ajuste". Preguntar: "¿Con quién te comparas?" para trabajar la diferencia nivel vs senior.',
     despido: 'Solo si hay patrón claro: no mejora nada + no aplica correcciones + actitud pasiva/negativa. Y solo después de haber acompañado.',
   },
   f4: {
     label: 'Día 26–45',
-    perdida: '11% de pérdida — FASE MÁS DIFÍCIL',
-    estado: 'Falsa seguridad + desgaste. Repite errores automáticamente. Bajón emocional sin decirlo. "¿Valdrá la pena seguir?" Si la supera, se estabiliza.',
+    estado: 'Pueden coincidir falsa seguridad y desgaste. Es posible que repita errores, que tenga un bajón que no comenta y que se pregunte si vale la pena seguir.',
     garantizar: [
       'Revisión semanal estructurada (obligatoria)',
       'Correcciones técnicas finas, no generalidades',
       'Exigencia progresiva y real',
       'Apoyo emocional activo — conversaciones de fondo',
       'Acompañamiento mínimo 1 turno/semana',
-      'Intervenir en ≤48h si hay señales de fuga',
+      'Intervenir en ≤48h si aparecen señales de alarma',
     ],
     errores: [
       'Relajarse: "ya irá solo"',
@@ -4871,14 +4984,13 @@ const GUIA_FASES = {
       'No tener conversaciones profundas sobre su situación',
       'Hablar solo del número semanal',
     ],
-    senales: ['Stancamiento invisible', 'Fuga emocional: sigue pero deja de crecer', 'Frustración: "ya debería saber"'],
-    intervencion: 'Foco en: Proceso · Volumen · Evolución real · Gestión emocional · Actitud. Si tras acompañamiento + revisión + objetivos + feedback sigue igual → NO es recuperable.',
-    despido: 'Si tras acompañamiento, revisión semanal, objetivos progresivos y feedback claro la persona sigue igual: despedir aquí es profesional y necesario.',
+    senales: ['Sus puntuaciones no cambian en varias sesiones', 'Se le ve desanimado y no lo comenta con el equipo', 'Expresa frustración («ya debería saber hacer esto»)'],
+    intervencion: 'Foco en: Proceso · Volumen · Evolución real · Gestión emocional · Actitud. Si tras acompañamiento, revisión, objetivos y feedback no hay cambios, valorar los siguientes pasos con el RP/RE.',
+    despido: 'Solo si, tras acompañamiento, revisión semanal, objetivos progresivos y feedback claro, no hay cambios; y después de revisar el checklist con el RP/RE.',
   },
   f5: {
     label: 'Día 46–90',
-    perdida: '9% de pérdida — CONSOLIDACIÓN O DESCONEXIÓN SILENCIOSA',
-    estado: 'Mezcla de desgaste y orgullo. Duda final: "¿Me veo aquí a largo plazo?" Busca autonomía pero teme fallar. Quien supera esta fase se queda a largo plazo.',
+    estado: 'Mezcla de desgaste y orgullo. Pueden surgir dudas de largo plazo («¿me veo aquí?») y ganas de autonomía junto al miedo a fallar.',
     garantizar: [
       'Entrenamiento técnico avanzado (CM, ritmo, campañas)',
       'Reducir supervisión progresivamente — dar autonomía real',
@@ -4893,15 +5005,14 @@ const GUIA_FASES = {
       'No hablar de futuro — sin visión vuelve la duda',
       'Tratarlo aún como nuevo: excesiva supervisión frena la autonomía',
     ],
-    senales: ['Cansancio acumulado', 'Comparación dañina con otros', 'Decisión de salida ya tomada en silencio'],
+    senales: ['Cansancio visible en campo', 'Se compara con otros en negativo', 'Dice que duda de su futuro aquí'],
     indicadores: ['Puntualidad estable', 'Energía constante', 'Ritmo sostenido', 'Autocontrol emocional', 'Capacidad de autoevaluación'],
-    intervencion: 'Conversación de futuro obligatoria. Quien ve camino, se queda. Quien no ve camino, ya se ha ido aunque siga apareciendo.',
+    intervencion: 'Conversación de futuro: qué camino ve aquí y qué necesitaría para recorrerlo.',
     despido: 'Solo si: no hay autonomía + no hay ritmo + no hay profesionalización + se han hecho todas las intervenciones de la Fase 2.',
   },
   f6: {
     label: '+ de 90 días',
-    perdida: '14% de pérdida — IDENTIDAD PROFESIONAL',
-    estado: 'El captador ya es parte del equipo o está desconectado sin decirlo. La identidad profesional está consolidada o no.',
+    estado: 'La persona ya conoce bien el trabajo. Conviene comprobar si se siente parte del equipo y si ve recorrido profesional, porque la desconexión no siempre se verbaliza.',
     garantizar: [
       'Conversación de desarrollo profesional: posibles campañas, rol de mentor',
       'Retos de nivel avanzado: técnica de CM, zonas premium, campañas especiales',
@@ -4913,7 +5024,7 @@ const GUIA_FASES = {
       'No invertir tiempo en quien ya funciona bien',
       'Seguir hablando solo de número semanal',
     ],
-    senales: ['Desmotivación silenciosa', 'Piloto automático sin crecimiento', 'No ve posibilidades de desarrollo'],
+    senales: ['Menos energía o iniciativa en campo que antes', 'Sus puntuaciones no cambian en varias sesiones', 'Dice que no ve posibilidades de desarrollo'],
     intervencion: 'No queremos captadores que aguanten. Queremos profesionales que construyan su carrera aquí.',
   },
 };
@@ -4930,7 +5041,7 @@ function renderGuiaFase(faseId) {
     '<div class="fold">' +
       '<button type="button" class="fold-btn" onclick="toggleGuiaFase(this)" aria-expanded="false" aria-controls="guiaFasePanel">' +
         '<span class="tile tile-sm" data-tone="' + (FASE_TONO[faseId] || 'slate') + '">' + ic('book') + '</span>' +
-        '<span class="fold-title">Guía de intervención<span class="fold-sub">' + esc(guia.label) + ' · ' + esc(fraseNormal(guia.perdida)) + '</span></span>' +
+        '<span class="fold-title">Guía de intervención<span class="fold-sub">' + esc(guia.label) + '</span></span>' +
         '<span class="fold-chev">' + ic('chev') + '</span>' +
       '</button>' +
       '<div class="fold-panel fase-guia" id="guiaFasePanel"><div class="fold-inner"><div class="fold-body">' +
@@ -4938,10 +5049,10 @@ function renderGuiaFase(faseId) {
         '<div style="margin-top:20px">' +
         seccion('check-circle', 'ok', 'Qué debe garantizar el RE/RP', lista(guia.garantizar)) +
         seccion('x-circle', 'bad', 'Errores críticos a evitar', lista(guia.errores)) +
-        seccion('flag', 'bad', 'Señales de fuga a detectar', lista(guia.senales)) +
+        seccion('flag', 'bad', 'Señales a observar', lista(guia.senales)) +
         seccion('msg', 'blue', 'Cómo intervenir', '<p>' + esc(guia.intervencion) + '</p>') +
         (guia.indicadores ? seccion('trend', 'ok', 'Indicadores de consolidación', lista(guia.indicadores)) : '') +
-        (guia.despido ? seccion('warn', 'bad', 'Cuándo considerar el despido', '<p>' + esc(guia.despido) + '</p>') : '') +
+        (guia.despido ? seccion('warn', 'bad', 'Cuándo valorar una salida', '<p>' + esc(guia.despido) + '</p>') : '') +
         '</div>' +
       '</div></div></div>' +
     '</div>';
@@ -4951,87 +5062,55 @@ function renderGuiaFase(faseId) {
 const matrizState = { esfuerzo: null, aprendizaje: null, proceso: null, resultado: null };
 
 const MATRIZ_REGLAS = [
-  // ── LAS 16 COMBINACIONES ──
-
-  // E✓ A✓ P✓ R✓ — El perfecto
+  // ── LAS 16 COMBINACIONES (E·A·P·R) ── recomendaciones de proceso; las causas se plantean como hipótesis
   { cond: (s) => s.esfuerzo && s.aprendizaje && s.proceso && s.resultado,
-    cls:'mr-retener', decision:'🏆 PERFIL SÓLIDO — POTENCIAR',
-    desc:'Los 4 criterios en positivo. Este captador está consolidado y en la dirección correcta. Plantear el siguiente nivel: campañas, zonas premium, rol de mentor. El riesgo ahora es la complacencia.' },
-
-  // E✓ A✓ P✓ R✗ — Lento pero válido
+    cls:'mr-retener', decision:'🏆 Potenciar',
+    desc:'Los 4 criterios en positivo. Buen momento para plantear el siguiente nivel (campañas, nuevas zonas o rol de mentor) y acordar cómo mantener lo que funciona.' },
   { cond: (s) => s.esfuerzo && s.aprendizaje && s.proceso && !s.resultado,
-    cls:'mr-retener', decision:'✅ SE RETIENE — perfil lento pero válido',
-    desc:'Esfuerzo, aprendizaje y proceso presentes. El resultado aún no aparece pero todo lo demás indica que llegará. No es momento de despedir. Revisar si el bloqueo está en el cierre específicamente.' },
-
-  // E✓ A✓ P✗ R✓ — Talento sin estructura
+    cls:'mr-retener', decision:'✅ Mantener el acompañamiento — el resultado aún no aparece',
+    desc:'Hay esfuerzo, aprendizaje y proceso; el resultado todavía no. No hay base para valorar una salida. Observar el cierre en campo para comprobar si el bloqueo está ahí.' },
   { cond: (s) => s.esfuerzo && s.aprendizaje && !s.proceso && s.resultado,
-    cls:'mr-entrenar', decision:'📐 ESTRUCTURAR — talento sin proceso',
-    desc:'Esfuerzo, aprendizaje y resultados, pero sin seguir el proceso establecido. Funciona a su manera, lo que es frágil a largo plazo. Trabajar la adherencia al proceso sin romper lo que ya funciona.' },
-
-  // E✓ A✓ P✗ R✗ — Potencial sin ejecutar
+    cls:'mr-entrenar', decision:'📐 Estructurar el proceso',
+    desc:'Hay esfuerzo, aprendizaje y resultados, pero no sigue el proceso establecido. Trabajar la adherencia al proceso sin romper lo que ya funciona.' },
   { cond: (s) => s.esfuerzo && s.aprendizaje && !s.proceso && !s.resultado,
-    cls:'mr-entrenar', decision:'📚 SE ENTRENA EN PROCESO',
-    desc:'Hay esfuerzo y aprende, pero no sigue el proceso y sin resultado. Perfil recuperable con trabajo técnico. Foco en estructura de jornada: parada → speech → rebatida → cierre. Acompañamiento directo esta semana.' },
-
-  // E✓ A✗ P✓ R✓ — Eficiente pero en piloto automático
+    cls:'mr-entrenar', decision:'📚 Entrenar el proceso',
+    desc:'Hay esfuerzo y aprendizaje, pero sin proceso ni resultado. Trabajo técnico con acompañamiento directo esta semana: parada → speech → rebatida → cierre.' },
   { cond: (s) => s.esfuerzo && !s.aprendizaje && s.proceso && s.resultado,
-    cls:'mr-retener', decision:'🔄 CONSOLIDAR — riesgo de estancamiento',
-    desc:'Se esfuerza, sigue el proceso y cierra, pero no mejora. Funciona en piloto automático. Sin aprendizaje no crecerá. Introducir nuevos retos técnicos para evitar el techo de rendimiento.' },
-
-  // E✓ A✗ P✓ R✗ — Esfuerzo sin mejora visible
+    cls:'mr-retener', decision:'🔄 Consolidar y proponer retos',
+    desc:'Se esfuerza, sigue el proceso y cierra, pero no se observa aprendizaje nuevo. Proponer retos técnicos concretos y comprobar si los incorpora.' },
   { cond: (s) => s.esfuerzo && !s.aprendizaje && s.proceso && !s.resultado,
-    cls:'mr-intervenir', decision:'⚠️ SE INTERVIENE — bloqueo técnico',
-    desc:'Se esfuerza y sigue el proceso pero no aprende ni cierra. El bloqueo es técnico específico. Revisión profunda: dónde exactamente se pierde el socio. Acompañamiento con observación directa del cierre.' },
-
-  // E✓ A✗ P✗ R✓ — Resultado sin estructura
+    cls:'mr-intervenir', decision:'⚠️ Intervenir — revisar la técnica',
+    desc:'Se esfuerza y sigue el proceso, pero no se observan mejoras ni resultado. Hipótesis a comprobar: un bloqueo técnico concreto. Observar el cierre en campo y localizar dónde se pierde la conversación.' },
   { cond: (s) => s.esfuerzo && !s.aprendizaje && !s.proceso && s.resultado,
-    cls:'mr-investigar', decision:'🔍 INVESTIGAR — resultado sin proceso',
-    desc:'Esfuerzo y resultado, pero sin aprendizaje ni proceso definido. ¿Cómo está cerrando? Entender el método real antes de corregir. Puede tener un estilo propio válido o puede estar en una racha. Observar dos sesiones.' },
-
-  // E✓ A✗ P✗ R✗ — Solo voluntad
+    cls:'mr-investigar', decision:'🔍 Observar el método de trabajo',
+    desc:'Hay esfuerzo y resultado, pero sin aprendizaje observable ni proceso definido. Observar dos sesiones para entender cómo trabaja antes de corregir.' },
   { cond: (s) => s.esfuerzo && !s.aprendizaje && !s.proceso && !s.resultado,
-    cls:'mr-intervenir', decision:'⚠️ SE INTERVIENE — voluntad sin técnica',
-    desc:'Hay esfuerzo pero nada más. Quiere pero no sabe. Acompañamiento técnico intensivo esta semana. Empezar desde el principio: parada y speech antes de tocar nada más. No despedir sin haber intervenido.' },
-
-  // E✗ A✓ P✓ R✓ — Eficiente sin volumen
+    cls:'mr-intervenir', decision:'⚠️ Intervenir — acompañamiento técnico',
+    desc:'Hay esfuerzo, pero sin aprendizaje observable, proceso ni resultado. Acompañamiento técnico esta semana, empezando por parada y speech. No valorar una salida sin haber intervenido.' },
   { cond: (s) => !s.esfuerzo && s.aprendizaje && s.proceso && s.resultado,
-    cls:'mr-hablar', decision:'💬 OPTIMIZAR VOLUMEN — falta intención de esfuerzo',
-    desc:'Aprende, sigue el proceso y cierra, pero sin esfuerzo real en el volumen. Muy eficiente pero insuficiente. Conversación sobre ritmo y autonomía. Quizás el captador ya sabe hacerlo pero no se presiona a sí mismo.' },
-
-  // E✗ A✓ P✓ R✗ — Sabe pero no convierte
+    cls:'mr-hablar', decision:'💬 Hablar del volumen',
+    desc:'Aprende, sigue el proceso y cierra, pero el esfuerzo en volumen es bajo. Conversación sobre ritmo y objetivos de volumen, preguntando qué lo dificulta.' },
   { cond: (s) => !s.esfuerzo && s.aprendizaje && s.proceso && !s.resultado,
-    cls:'mr-hablar', decision:'💬 SE HABLA — falta intención de cierre',
-    desc:'Aprende y sigue el proceso pero sin esfuerzo ni resultado. Puede ser un problema motivacional o que se bloquee específicamente en el momento del cierre. Conversación directa sobre qué le frena en ese momento.' },
-
-  // E✗ A✓ P✗ R✓ — Perfil atípico
+    cls:'mr-hablar', decision:'💬 Hablar de qué frena el cierre',
+    desc:'Aprende y sigue el proceso, sin esfuerzo ni resultado observables. Preguntar qué le frena en el momento del cierre; puede ser técnico o de motivación.' },
   { cond: (s) => !s.esfuerzo && s.aprendizaje && !s.proceso && s.resultado,
-    cls:'mr-investigar', decision:'🔍 PERFIL ATÍPICO — investigar método',
-    desc:'Aprende y cierra pero sin esfuerzo ni proceso reconocible. Resultado sin estructura visible. Observar en campo para entender qué está haciendo realmente. No corregir sin entender primero.' },
-
-  // E✗ A✓ P✗ R✗ — Comprende pero no actúa
+    cls:'mr-investigar', decision:'🔍 Observar el método de trabajo',
+    desc:'Aprende y cierra, pero sin esfuerzo ni proceso reconocibles. Observar en campo qué hace antes de corregir nada.' },
   { cond: (s) => !s.esfuerzo && s.aprendizaje && !s.proceso && !s.resultado,
-    cls:'mr-hablar', decision:'💬 SE HABLA — evaluar compromiso real',
-    desc:'Entiende y aprende en las sesiones de feedback, pero no lo aplica en campo ni en el proceso. Hay un gap entre lo que dice que hará y lo que hace. Conversación directa sobre compromiso y expectativas.' },
-
-  // E✗ A✗ P✓ R✓ — Resultado sin sustancia
+    cls:'mr-hablar', decision:'💬 Hablar de compromiso y expectativas',
+    desc:'Aprende en las sesiones de feedback, pero no se observa en campo ni en el proceso. Conversación sobre lo acordado, lo que ocurre en la práctica y las expectativas de ambas partes.' },
   { cond: (s) => !s.esfuerzo && !s.aprendizaje && s.proceso && s.resultado,
-    cls:'mr-investigar', decision:'🔍 PERFIL INESTABLE — investigar motivación',
-    desc:'Cierra socios y sigue el proceso, pero sin esfuerzo ni aprendizaje. Puede funcionar por racha o por inercia. No sostenible a largo plazo. Investigar motivación real antes de tomar ninguna decisión.' },
-
-  // E✗ A✗ P✓ R✗ — Forma sin fondo
+    cls:'mr-investigar', decision:'🔍 Hablar de motivación',
+    desc:'Cierra y sigue el proceso, pero sin esfuerzo ni aprendizaje observables. Preguntar por su motivación antes de tomar ninguna decisión.' },
   { cond: (s) => !s.esfuerzo && !s.aprendizaje && s.proceso && !s.resultado,
-    cls:'mr-hablar', decision:'💬 SE HABLA — actitud y compromiso',
-    desc:'Sigue los pasos del proceso pero sin esfuerzo, aprendizaje ni resultado. Cumple las formas pero sin intención real. Conversación sobre si esta persona quiere estar aquí. La respuesta a esa pregunta define el siguiente paso.' },
-
-  // E✗ A✗ P✗ R✓ — Resultado casual
+    cls:'mr-hablar', decision:'💬 Hablar de actitud y compromiso',
+    desc:'Sigue los pasos del proceso, sin esfuerzo, aprendizaje ni resultado observables. Conversación abierta sobre cómo se ve en el puesto y qué necesita; su respuesta orienta el siguiente paso.' },
   { cond: (s) => !s.esfuerzo && !s.aprendizaje && !s.proceso && s.resultado,
-    cls:'mr-investigar', decision:'🔍 RESULTADO CASUAL — no sostenible',
-    desc:'Cierra algo pero sin esfuerzo, aprendizaje ni proceso. Puede ser suerte, un día bueno o una situación excepcional. Sin base no se puede sostener. Observar durante la próxima semana antes de extraer conclusiones.' },
-
-  // E✗ A✗ P✗ R✗ — Sin ningún criterio
+    cls:'mr-investigar', decision:'🔍 Observar antes de concluir',
+    desc:'Hay resultado sin esfuerzo, aprendizaje ni proceso observables; puede ser puntual. Observar durante la próxima semana antes de extraer conclusiones.' },
   { cond: (s) => !s.esfuerzo && !s.aprendizaje && !s.proceso && !s.resultado,
-    cls:'mr-despedir', decision:'🔴 SE DESPIDE',
-    desc:'Ningún criterio en positivo. Sin esfuerzo, sin aprendizaje, sin proceso y sin resultado. Antes de ejecutar: usa el checklist pre-despido para confirmar que se ha hecho todo el acompañamiento necesario.' },
+    cls:'mr-despedir', decision:'🔴 Valorar una salida — revisar antes el checklist',
+    desc:'Ningún criterio en positivo. Antes de cualquier decisión, revisar con el checklist que se ha hecho todo el acompañamiento necesario y contrastarlo con el RP/RE. La decisión es del responsable, no de la herramienta.' },
 ];
 
 function setMatriz(criterio, valor) {
@@ -5067,6 +5146,20 @@ function resultadoMatriz(m) {
   const regla = MATRIZ_REGLAS.find(r => r.cond(m));
   if (!regla) return null;
   return { regla: 'E' + +m.esfuerzo + 'A' + +m.aprendizaje + 'P' + +m.proceso + 'R' + +m.resultado, cls: regla.cls };
+}
+// «Valorar una salida» (ningún criterio en positivo) solo se recomienda con base suficiente.
+// Devuelve lo que falta; vacío si se cumplen los requisitos.
+function requisitosSalida(d) {
+  const faseNum = numeroFase(d.faseSelected);
+  const m = mediasSesion(d);
+  const nombre = (d.captador || '').trim();
+  const nSes = nombre ? sesionesHastaActual(nombre, d, true).sessions.length : 1;
+  const faltan = [];
+  if (isNaN(faseNum)) faltan.push('la fase (pon la fecha de comienzo)');
+  else if (faseNum <= 2) faltan.push('estar a partir del Día 13 (en ' + FASES[faseNum - 1].label + ' las puntuaciones son un punto de partida)');
+  if (nSes < 2) faltan.push('al menos dos intervenciones registradas, para valorar un patrón y no un solo día');
+  if (suficienciaDe(m) !== 'alta') faltan.push('evidencia suficiente en esta sesión: al menos 8 variables evaluadas, de técnica y de hábitos (ahora ' + m.n + ')');
+  return faltan;
 }
 function casillasChecklist() { return [...document.querySelectorAll('#checklistSection .checklist-item input[type=checkbox]')]; }
 function leerChecklist() { return casillasChecklist().map(cb => cb.checked); }
@@ -5104,6 +5197,10 @@ function calcMatriz() {
   }
   var regla = MATRIZ_REGLAS.find(function(r){ return r.cond(s); });
   if (!regla) regla = { cls:'', decision:'Sin regla', desc:'' };
+  // Sin fase, sin patrón o sin evidencia suficiente no se recomienda valorar una salida (y no se abre el checklist)
+  var faltan = regla.cls === 'mr-despedir' ? requisitosSalida(recopilarDatos()) : [];
+  if (faltan.length) regla = { cls:'mr-intervenir', decision:'Sin base para valorar una salida',
+    desc:'Los 4 criterios están en «No», pero falta: ' + faltan.join('; ') + '. Priorizar el acompañamiento y volver a revisar los criterios más adelante.' };
   var colorMap = {
     'mr-retener':'mz-r-verde', 'mr-reforzar':'mz-r-naranja',
     'mr-despedir':'mz-r-rojo', 'mr-observar':'mz-r-azul',
@@ -5138,7 +5235,7 @@ function actualizarChecklist() {
   if (!result) return;
   if (checked === 0) { result.className = 'checklist-result notice'; result.innerHTML = ''; return; }
   let tone, icono, texto;
-  if (checked === total) { tone='ok'; icono='check-circle'; texto='<strong>Todos los puntos completados.</strong> Has hecho tu parte. La decisión está fundamentada.'; }
+  if (checked === total) { tone='ok'; icono='check-circle'; texto='<strong>Todos los puntos revisados.</strong> Se han revisado los criterios previos; la decisión sigue siendo del responsable, contrastada con el RP/RE.'; }
   else if (checked >= 7) { tone='warn'; icono='warn'; texto=`<strong>Faltan ${total-checked} punto${total-checked>1?'s':''}.</strong> Valora si es posible completarlos antes de ejecutar la decisión.`; }
   else if (checked >= 4) { tone='warn'; icono='warn'; texto=`<strong>Has completado ${checked} de ${total} puntos.</strong> Sigue revisando antes de decidir.`; }
   else { tone='bad'; icono='alert'; texto=`<strong>Solo ${checked} de ${total} puntos completados.</strong> Hay trabajo de acompañamiento que hacer antes de ejecutar esta decisión.`; }
@@ -5153,82 +5250,83 @@ function actualizarChecklist() {
 // ══════════════════════════════════════════
 
 const SENALES_POR_FASE = {
+  // Solo conductas observables o frases que la persona dice: nada de estados internos ni predicciones
   f1: {
     label: 'Día 1–5',
     senales: [
       'Baja la mirada y se pasa de largo sin intentar parar',
       'Se queda rígido y repite siempre exactamente lo mismo',
-      'Menos de 1 parada cada 5 minutos (volumen bajísimo)',
-      'No pregunta nada aunque se le vea perdido',
+      'Menos de 1 parada cada 5 minutos',
+      'No hace preguntas aunque no sepa cómo seguir',
       'Habla demasiado rápido sin dejar pensar al interlocutor',
-      'Se bloquea tras un "no" y quiere parar el turno',
+      'Se bloquea tras un «no» o pide parar el turno',
       'Evita el contacto visual con la gente en la calle',
-      'Imita sin entender lo que hace',
+      'Repite frases del speech sin adaptarlas a la respuesta',
     ]
   },
   f2: {
     label: 'Día 6–12',
     senales: [
-      'Se queda mirando el móvil entre paradas',
-      'Responde en monosílabos, evita contacto visual con el equipo',
-      'Evita paradas activamente sin justificación',
-      '"Creo que no voy a durar" — verbaliza dudas de permanencia',
-      'Primer bajón emocional visible sin decirlo',
-      'Empieza a compararse constantemente con veteranos',
-      'Cree que progresa poco o nada (no registra sus avances)',
-      'Piensa en si le van a echar',
+      'Mira el móvil entre paradas',
+      'Responde con monosílabos y evita el contacto visual con el equipo',
+      'Deja pasar personas sin intentar parar',
+      'Dice que duda de seguir («creo que no voy a durar»)',
+      'Se le ve con menos energía o iniciativa que días atrás',
+      'Se compara en voz alta con veteranos',
+      'Dice que no avanza aunque haya avances concretos',
+      'Pregunta si le van a echar o si lo está haciendo «suficientemente bien»',
     ]
   },
   f3: {
     label: 'Día 13–25',
     senales: [
-      'Sonríe menos en calle (señal crítica de fuga)',
-      '"La gente hoy está rara" — externaliza los resultados',
-      '"Hoy no es mi día" — patrón repetitivo de excusas',
-      '"Nunca voy a ser como los veteranos"',
-      '"No sé qué decir cuando me dicen que no"',
-      'Tensión visible — está pendiente de si rinde "ya"',
-      'Interpreta cada error como incapacidad permanente',
-      'Riesgo de fuga en silencio sin decir nada',
+      'Sonríe menos en calle que en días anteriores',
+      'Atribuye los resultados a factores externos («la gente hoy está rara»)',
+      'Repite «hoy no es mi día» en varios turnos',
+      'Dice cosas como «nunca voy a ser como los veteranos»',
+      'Dice que no sabe qué decir cuando le dicen que no',
+      'Tensión visible; pregunta a menudo por sus resultados',
+      'Ante un error dice cosas como «no valgo para esto»',
+      'Habla menos con el equipo y no plantea dudas',
     ]
   },
   f4: {
     label: 'Día 26–45',
     senales: [
-      'Repite los mismos errores automáticamente sin corregir',
-      'Bajón emocional sin verbalizarlo al equipo',
-      '"¿Valdrá la pena seguir?" — duda de futuro',
-      'Tira por inercia sin intención real de mejorar',
-      'Frustración: "ya debería saber hacer esto"',
-      'Falsa seguridad — cree que ya lo hace bien pero no mejora',
-      'Estancamiento invisible (sigue pero deja de crecer)',
-      'Actitud pasiva ante el feedback',
+      'Repite errores que ya se corrigieron juntos',
+      'Se le ve desanimado y no lo comenta con el equipo',
+      'Dice que duda de si vale la pena seguir',
+      'No propone ni pide nada para mejorar',
+      'Expresa frustración («ya debería saber hacer esto»)',
+      'Dice que ya lo hace bien, pero sus puntuaciones no cambian',
+      'Sus puntuaciones no cambian en varias sesiones',
+      'Recibe el feedback sin preguntar ni aplicarlo después',
     ]
   },
   f5: {
     label: 'Día 46–90',
     senales: [
-      'Cansancio acumulado visible en campo',
-      'Comparación dañina con otros sin buscar aprender de ellos',
-      'Duda final: "¿Me veo aquí a largo plazo?"',
-      'Desconexión silenciosa — aparece pero no está',
-      'Busca autonomía pero el rendimiento cae cuando no hay RE',
-      'No ve posibilidades de desarrollo o crecimiento',
-      'Piloto automático sin intención de mejorar',
-      'Decisión de salida ya tomada internamente',
+      'Cansancio visible en campo',
+      'Se compara con otros en negativo, sin preguntarles cómo lo hacen',
+      'Dice que duda de su futuro aquí («¿me veo aquí a largo plazo?»)',
+      'Participa menos en conversaciones y dinámicas del equipo',
+      'Su rendimiento baja cuando trabaja sin RE/RP',
+      'Dice que no ve posibilidades de desarrollo',
+      'Hace la jornada sin proponer ni pedir mejoras',
+      'Habla de planes o trabajos fuera de aquí',
     ]
   },
   f6: {
     label: '+ de 90 días',
     senales: [
-      'Desmotivación silenciosa sin decirlo',
-      'Piloto automático — va pero no crece',
-      'No ve posibilidades de desarrollo profesional',
-      'Complacencia — se conforma con su nivel actual',
-      'Resistencia a nuevos retos o técnicas avanzadas',
-      'Desvinculación emocional del equipo',
+      'Menos energía o iniciativa en campo que antes',
+      'Sus puntuaciones no cambian en varias sesiones',
+      'Dice que no ve posibilidades de desarrollo profesional',
+      'No se marca objetivos nuevos cuando se le propone',
+      'Rechaza probar técnicas o retos nuevos',
+      'Se relaciona poco con el equipo',
       'No participa en dinámicas de grupo',
-      'Busca excusas para no hacer campañas o turnos extra',
+      'Llega tarde o se va antes con más frecuencia que antes',
     ]
   },
 };
@@ -5350,13 +5448,8 @@ function renderSemaforo() {
 
   const dSem = recopilarDatos();
   const hayEval = Object.keys(ALL_VARS_LABELS).some(k => hasScore(dSem, k));
-  let sessions = sesionesConActual(nombre, dSem, hayEval);
-  // Consulta de una ficha del historial: solo las sesiones hasta esa intervención, sin contar días hasta hoy
-  const historica = !!AppState.faseCongelada;
-  if (historica && hayEval) {
-    const i = sessions.findIndex(s => s._id === '_current');
-    if (i >= 0) sessions = sessions.slice(0, i + 1);
-  }
+  // Consulta de una sesión que no es la última: solo las sesiones hasta esa intervención, sin contar días hasta hoy
+  const { sessions, historica } = sesionesHastaActual(nombre, dSem, hayEval);
   const ev = evaluarSemaforo(sessions, faseId, estado, { historica });
   if (!ev) { card.classList.remove('visible'); return; }
 
@@ -5475,8 +5568,9 @@ function calcLMI() {
   const d = recopilarDatos();
   const nombre = (d.captador||'').trim();
   const hayEval = Object.keys(ALL_VARS_LABELS).some(k => hasScore(d, k));
-  const histSessions = nombre ? sesionesConActual(nombre, d, hayEval) : (hayEval ? [sesionDelFormulario(d)] : []);
-  const riesgo = histSessions.length ? calcRiesgo(histSessions, d.estado||'') : null;
+  const hs = nombre ? sesionesHastaActual(nombre, d, hayEval) : { sessions: hayEval ? [sesionDelFormulario(d)] : [], historica: false };
+  const histSessions = hs.sessions;
+  const riesgo = histSessions.length ? calcRiesgo(histSessions, d.estado||'', { historica: hs.historica }) : null;
   const faseNum = numeroFase(d.faseSelected);
   const hayFase = !isNaN(faseNum);
   const fase = FASES.find(f=>f.id===d.faseSelected);
@@ -5491,7 +5585,7 @@ function calcLMI() {
   const minimo = (k, min) => { const v = s(k); return v !== null && v >= min; };
   const nCreencias = [1,2,3,4,5].map(i=>d['c'+i]||'').filter(Boolean).length;
   const intervActual = registroDe(d).length > 0;   // registro de la sesión (o notas del formato anterior)
-  const diasSin = histSessions.length ? diasDesdeUltimaIntervencion(histSessions) : null;
+  const diasSin = histSessions.length && !hs.historica ? diasDesdeUltimaIntervencion(histSessions) : null;
   const evo = histSessions.length >= 2 ? compararEvolucion(histSessions[histSessions.length-2], histSessions[histSessions.length-1]) : null;
 
   const cand = [];
@@ -5651,10 +5745,35 @@ function calcLMI() {
   return out;
 }
 
+// Grupo de cada lectura del diagnóstico, para no repetir en las prioridades lo que ya propone la lectura
+const GRUPO_REGLA = { R1:'fase', R1b:'seguimiento', R2:'feedback', R3:'creencias', R4:'habitos', R5:'tecnica', R6:'cierre',
+  R7:'speech', R8:'autonomia', R9:'estabilidad', R10:'evolucion', R11:'rendimiento', R12:'potenciar', R13:'evolucion' };
+// «Qué haría ahora»: primero la intervención que propone la lectura (con qué revisar después) y, a continuación,
+// las prioridades de otros ámbitos. Una por grupo, por urgencia, máximo 3.
+function prioridadesSesion() {
+  const items = calcLMI();
+  const d = recopilarDatos();
+  const nombre = (d.captador || '').trim();
+  const diag = diagnosticar(d, nombre ? sesionesAnterioresA(nombre, d) : null);
+  if (!diag) return items;
+  const grupo = diag.regla === 'R0' ? (diag.sinFase ? 'fase' : 'datos')
+    : diag.regla === 'R14' ? (diag.palanca ? (GRUPO_VARIABLE[diag.palanca.k] || diag.palanca.k) : 'lectura')
+    : (GRUPO_REGLA[diag.regla] || diag.regla);
+  const mismo = items.find(x => x.grupo === grupo);
+  const porColor = { red:'alta', orange:'media', blue:'normal', green:'normal' };
+  const lectura = { id:'lectura', grupo, urgencia: mismo ? mismo.urgencia : (porColor[diag.recomendacion.color] || 'normal'),
+    icono: diag.diagnostico.icon, titulo: diag.tipo, desc: diag.recomendacion.texto, revision: diag.revision && diag.revision.texto };
+  const peso = { alta:3, media:2, normal:1 };
+  return [lectura].concat(items.filter(x => x.grupo !== grupo))
+    .map((x, i) => Object.assign({ _i: i }, x))
+    .sort((a, b) => (peso[b.urgencia] || 0) - (peso[a.urgencia] || 0) || a._i - b._i)
+    .slice(0, 3);
+}
+
 function renderLMI() {
   const card = document.getElementById('lmiCard');
   if (!card) return;
-  const items = calcLMI();
+  const items = prioridadesSesion();
   const pw = document.getElementById('lmiPreviewWrap');
   const pc = document.getElementById('lmiPreviewCard');
   if (!items.length) {
@@ -5675,6 +5794,7 @@ function renderLMI() {
           '<span class="eyebrow" style="flex:1">Prioridad 1</span>' + urgencia(p1.urgencia) + '</div>' +
         '<h3 class="lmi-titulo">' + esc(p1.titulo) + '</h3>' +
         '<p class="lmi-desc">' + esc(p1.desc) + '</p>' +
+        (p1.revision ? '<p class="lmi-revision">' + ic('check-circle', 'ic-sm') + '<span><strong>Revisar la próxima vez:</strong> ' + esc(p1.revision) + '</span></p>' : '') +
       '</div>' +
       (resto.length ? '<ol class="lmi-rest" start="2">' + resto.map((item, i) =>
         '<li class="lmi-item">' +
@@ -5682,6 +5802,7 @@ function renderLMI() {
           '<div class="lmi-content">' +
             '<h3 class="lmi-titulo">' + esc(item.titulo) + '</h3>' +
             '<p class="lmi-desc">' + esc(item.desc) + '</p>' +
+            (item.revision ? '<p class="lmi-revision">' + ic('check-circle', 'ic-sm') + '<span><strong>Revisar la próxima vez:</strong> ' + esc(item.revision) + '</span></p>' : '') +
             '<div style="margin-top:8px">' + urgencia(item.urgencia) + '</div>' +
           '</div>' +
         '</li>').join('') + '</ol>' : '') +
@@ -5768,12 +5889,15 @@ function renderHistorialTab() {
       <button type="button" class="hist-captador-header" onclick="toggleHist2('${uid}')" aria-expanded="false" aria-controls="${uid}">
         <span class="tile tile-sm" data-tone="slate">${ic('user')}</span>
         <span class="hist-captador-name">${esc(nombre)}${sub ? `<span class="dash-sub">${esc(sub)}</span>` : ''}</span>
-        <span class="hist-captador-count">${sessions.length} sesión${sessions.length>1?'es':''}</span>
+        <span class="hist-captador-count">${sessions.length} ${sessions.length === 1 ? 'sesión' : 'sesiones'}</span>
         <span class="hist-captador-arrow" id="arr2_${uid}">${ic('chev')}</span>
       </button>
       <div class="hist-sessions" id="${uid}">
         <div class="hist-timeline">${entries}</div>
-        ${sessions.length>0?`<button type="button" class="btn btn-quiet btn-sm" style="margin-top:8px" onclick="verEvolucion(this.dataset.nombre)" data-nombre="${esc(nombre)}">${ic('trend')}Ver evolución</button>`:''}
+        <div class="hist-entry-actions">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="nuevaSesionDe('${ultima._id}')">${ic('plus')}Nueva sesión</button>
+          <button type="button" class="btn btn-quiet btn-sm" onclick="verEvolucion(this.dataset.nombre)" data-nombre="${esc(nombre)}">${ic('trend')}Ver evolución</button>
+        </div>
       </div>
     </div>`;
   }).join('') + '</div>';
@@ -5799,18 +5923,18 @@ function marcarCambiosPendientes() {
   const st  = document.getElementById('statusText');
   const btn = document.getElementById('btnGuardar');
   if (dot) dot.classList.add('visible');
-  if (btn) btn.setAttribute('aria-label', 'Guardar ficha (hay cambios sin guardar)');
+  if (btn) btn.setAttribute('aria-label', etiquetaGuardar() + ' (hay cambios sin guardar)');
   if (st)  st.classList.add('unsaved');
 }
 
 function marcarGuardado(msg) {
   _hasUnsavedChanges = false;
-  try { sessionStorage.removeItem('wesser_borrador'); } catch(e) {}
+  try { sessionStorage.removeItem('wesser_borrador'); sessionStorage.removeItem('wesser_borrador_id'); } catch(e) {}
   const dot = document.getElementById('unsavedDot');
   const st  = document.getElementById('statusText');
   const btn = document.getElementById('btnGuardar');
   if (dot) dot.classList.remove('visible');
-  if (btn) btn.setAttribute('aria-label', 'Guardar ficha');
+  if (btn) btn.setAttribute('aria-label', etiquetaGuardar());
   if (st)  { st.classList.remove('unsaved'); st.classList.add('saved'); }
   if (msg && st) st.textContent = msg;
   if (msg) toast(msg);
@@ -5881,13 +6005,17 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 ¿Restaurar el borrador?`
         );
-        if (restaurar) cargarDatos(b);
-        else sessionStorage.removeItem('wesser_borrador');
+        if (restaurar) {
+          const bid = sessionStorage.getItem('wesser_borrador_id');
+          if (bid && cargarFichas().some(f => f._id === bid)) { AppState.lastLoadedId = bid; AppState.faseCongelada = true; }
+          cargarDatos(b);
+        }
+        else { sessionStorage.removeItem('wesser_borrador'); sessionStorage.removeItem('wesser_borrador_id'); }
       }
     }
   } catch(e) { sessionStorage.removeItem('wesser_borrador'); }
-  if(!document.getElementById('d_fecha').value) document.getElementById('d_fecha').value=new Date().toISOString().split('T')[0];
-  contarCampos(); actualizarDots();
+  if(!document.getElementById('d_fecha').value) document.getElementById('d_fecha').value=aISO(new Date());
+  contarCampos(); actualizarDots(); actualizarModoSesion();
   aplicarTema();
   try { window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (!temaGuardado()) aplicarTema(); }); } catch(e) {}
   refrescarListas();
@@ -6046,40 +6174,26 @@ function sugerirMatriz(force) {
   const d = recopilarDatos();
   const banner = document.getElementById('matrizSugerenciaBanner');
 
-  const tVals = TECNICA_VARS.map(function(_,i){ return parseFloat(d['t_'+i])||0; }).filter(function(v){ return v>0; });
-  const hVals = HABITOS_VARS.map(function(_,i){ return parseFloat(d['h_'+i])||0; }).filter(function(v){ return v>0; });
-
-  if (!tVals.length && !hVals.length) {
-    if (banner) {
-      avisoMatriz(banner, 'warn', 'warn', '<strong>Sin datos de evaluación.</strong> Puntúa las variables en Evaluación primero.');
-    }
+  const hayEval = Object.keys(ALL_VARS_LABELS).some(function(k){ return hasScore(d, k); });
+  if (!hayEval) {
+    if (banner) avisoMatriz(banner, 'warn', 'warn', '<strong>Sin datos de evaluación.</strong> Puntúa las variables en Evaluación primero.');
     return;
   }
 
-  const tAvg = tVals.reduce(function(a,b){return a+b;}) / tVals.length;
-  const hAvg = hVals.reduce(function(a,b){return a+b;}) / hVals.length;
-
-  // Esfuerzo → Puntualidad + Jornada + Praxis
-  var efRaw = [d['h_0'],d['h_9'],d['h_8']].map(function(v){return parseFloat(v)||0;}).filter(function(v){return v>0;});
-  var efAvg = efRaw.length ? efRaw.reduce(function(a,b){return a+b;})/efRaw.length : hAvg;
-
-  // Aprendizaje → Feedback + Criterios
-  var apRaw = [d['h_6'],d['h_4']].map(function(v){return parseFloat(v)||0;}).filter(function(v){return v>0;});
-  var apAvg = apRaw.length ? apRaw.reduce(function(a,b){return a+b;})/apRaw.length : hAvg;
-
-  // Proceso → Técnica media
-  var prAvg = tAvg;
-
-  // Resultado → Cierre + Estabilidad
-  var resRaw = [d['t_3'],d['h_10']].map(function(v){return parseFloat(v)||0;}).filter(function(v){return v>0;});
-  var resAvg = resRaw.length ? resRaw.reduce(function(a,b){return a+b;})/resRaw.length : 0;
-
-  var suggest = {
-    esfuerzo:    efAvg  >= 2.5 ? true  : efAvg  > 0 ? false : null,
-    aprendizaje: apAvg  >= 2.5 ? true  : apAvg  > 0 ? false : null,
-    proceso:     prAvg  >= 2.5 ? true  : prAvg  > 0 ? false : null,
-    resultado:   resAvg >= 2.5 ? true  : resAvg > 0 ? false : null,
+  // Cada criterio se propone solo con sus propias variables y con al menos dos evaluadas; si no, queda sin proponer
+  var FUENTES = {
+    esfuerzo:    ['h_0','h_9','h_8'],
+    aprendizaje: ['h_6','h_4'],
+    proceso:     ['t_0','t_1','t_2','t_3'],
+    resultado:   ['t_3','h_10'],
   };
+  var labels = { esfuerzo:'Esfuerzo', aprendizaje:'Aprendizaje', proceso:'Proceso', resultado:'Resultado' };
+  var suggest = {}, faltan = [];
+  Object.keys(FUENTES).forEach(function(k) {
+    var v = FUENTES[k].map(function(x){ return scoreDe(d, x); }).filter(function(x){ return x !== null; });
+    if (v.length >= 2) suggest[k] = v.reduce(function(a,b){ return a+b; }, 0) / v.length >= 2.5;
+    else { suggest[k] = null; faltan.push(labels[k] + ' (' + FUENTES[k].map(function(x){ return ALL_VARS_LABELS[x]; }).join(', ') + ')'); }
+  });
 
   var changed = 0;
   Object.keys(suggest).forEach(function(k) {
@@ -6091,18 +6205,14 @@ function sugerirMatriz(force) {
   });
 
   if (banner) {
+    var faltanTxt = faltan.length ? ' <strong>Sin datos suficientes</strong> (hacen falta al menos dos variables evaluadas) para: ' + esc(faltan.join(' · ')) + '.' : '';
     if (changed > 0) {
-      var labels = {
-        esfuerzo:'Esfuerzo', aprendizaje:'Aprendizaje', proceso:'Proceso', resultado:'Resultado'
-      };
       var parts = Object.keys(suggest)
         .filter(function(k){ return suggest[k]!==null; })
         .map(function(k){ return labels[k]+': '+(suggest[k]?'sí':'no'); });
-      avisoMatriz(banner, 'blue', 'bolt', '<strong>Sugerido desde la evaluación.</strong> ' + parts.join(' · ') + '. Revísalo y cambia lo que no encaje.');
+      avisoMatriz(banner, 'blue', 'bolt', '<strong>Sugerido desde la evaluación.</strong> ' + parts.join(' · ') + '. Revísalo y cambia lo que no encaje.' + faltanTxt);
     } else {
-      avisoMatriz(banner, 'neutral', 'info', 'Los 4 criterios ya están marcados. Pulsa «Sugerir desde la evaluación» para recalcularlos.');
-      // En el segundo clic, forzar
-      banner.onclick = function(){ sugerirMatriz(true); banner.onclick=null; };
+      avisoMatriz(banner, 'warn', 'warn', '<strong>No se ha propuesto ningún criterio.</strong>' + faltanTxt);
     }
   }
 }
