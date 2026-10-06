@@ -1633,12 +1633,31 @@ const AVISOS_ALMACEN = {
   lectura: 'No se pueden leer los datos guardados en este navegador. Mientras no se resuelva, no se podrá guardar ni eliminar nada.',
   escritura: 'No se ha podido guardar: el almacenamiento del navegador no está disponible o está lleno. Los cambios siguen en pantalla, pero NO se han guardado.',
   eliminacion: 'No se ha podido eliminar: el almacenamiento del navegador no está disponible. No se ha borrado nada.',
-  importacion: 'No se ha podido importar: el almacenamiento del navegador no está disponible o está lleno. Tus fichas no se han modificado.'
+  importacion: 'No se ha podido importar: el almacenamiento del navegador no está disponible o está lleno. Tus fichas no se han modificado.',
+  danadoFichas: 'Las sesiones guardadas en este navegador están dañadas y no se pueden leer. Para no perderlas, no se guardará, eliminará ni importará nada; se ha conservado una copia de lo guardado.',
+  danadoPlantillas: 'Tus plantillas guardadas en este navegador están dañadas y no se pueden leer. Para no perderlas, no se guardará ni eliminará ninguna; se ha conservado una copia de lo guardado.'
 };
 let _lecturaAvisada = false;   // el aviso de lectura se da una vez, no en cada repintado
-function avisoAlmacen(tipo) {
+const _danadoAvisado = new Set();   // al leer para mostrar, el aviso de datos dañados también se da una sola vez
+function avisoAlmacen(tipo, alLeer) {
   if (tipo === 'lectura') { if (_lecturaAvisada) return; _lecturaAvisada = true; }
-  toast(AVISOS_ALMACEN[tipo], {ms:7000});
+  if (alLeer && (tipo === 'danadoFichas' || tipo === 'danadoPlantillas')) { if (_danadoAvisado.has(tipo)) return; _danadoAvisado.add(tipo); }
+  toast(AVISOS_ALMACEN[tipo], {ms:9000});
+}
+// Lee una lista guardada. Si el almacenamiento no está disponible, lanza (como getItem). Si lo guardado no es una
+// lista válida, también lanza (err.danado): un contenido dañado nunca se toma por «lista vacía», porque el siguiente
+// guardado lo sobrescribiría. Antes se conserva el texto original en <clave>_danado (solo la primera copia).
+function leerListaGuardada(clave) {
+  const txt = localStorage.getItem(clave);
+  if (txt === null) return [];
+  let a;
+  try { a = JSON.parse(txt); } catch(e) { a = undefined; }
+  if (Array.isArray(a)) return a;
+  if (a === null) return [];
+  try { if (localStorage.getItem(clave + '_danado') === null) localStorage.setItem(clave + '_danado', txt); } catch(e) {}
+  const err = new Error('Datos guardados dañados: ' + clave);
+  err.danado = true;
+  throw err;
 }
 
 // ── Pantallas secundarias: pantalla completa, foco atrapado, Escape y vuelta al botón que las abrió ──
@@ -1876,13 +1895,11 @@ function asegurarIds(lista, prefijo) {
 // Defensa en el punto de uso: nunca se escribe en un atributo un id que no sea seguro
 function idAttr(id) { return idSeguro(id) ? id : ''; }
 
-// estricto: si el almacenamiento no se puede leer devuelve null (para no guardar encima una lista vacía)
+// estricto: si el almacenamiento no se puede leer o está dañado devuelve null (para no guardar encima una lista vacía)
 function cargarPlantillasPropias(estricto) {
-  let txt, items;
-  try { txt = localStorage.getItem(LS_PLANTILLAS_PROPIAS); }
-  catch(e) { avisoAlmacen('lectura'); return estricto ? null : []; }
-  try { items = JSON.parse(txt) || []; } catch(e) { return []; }
-  if (!Array.isArray(items)) return [];
+  let items;
+  try { items = leerListaGuardada(LS_PLANTILLAS_PROPIAS); }
+  catch(e) { avisoAlmacen(e.danado ? 'danadoPlantillas' : 'lectura', !estricto); return estricto ? null : []; }
   if (asegurarIds(items, 'propia_')) { try { localStorage.setItem(LS_PLANTILLAS_PROPIAS, JSON.stringify(items)); } catch(e) {} }
   return items;
 }
@@ -2281,13 +2298,11 @@ function autoguardar() {
 // guarda después con cambios, queda la de la otra.
 let _fichasCache = null;
 let _fichasBase = null;   // id → JSON de la ficha tal como la conoce esta pestaña
-// Si el almacenamiento no se puede leer, lanza: una lectura fallida nunca se toma por «no hay fichas»
+// Si el almacenamiento no se puede leer o está dañado, lanza: una lectura fallida nunca se toma por «no hay fichas»
 function leerFichasGuardadas() {
-  const txt = localStorage.getItem(LS_KEY);
-  let a;
-  try { a = JSON.parse(txt) || []; } catch(e) { a = []; }
-  return Array.isArray(a) ? a : [];
+  return leerListaGuardada(LS_KEY);
 }
+function avisoTipo(e, tipo) { return e && e.danado ? 'danadoFichas' : tipo; }
 function instantaneaFichas(lista) {
   const m = new Map();
   lista.forEach(f => { if (f && f._id) m.set(f._id, JSON.stringify(f)); });
@@ -2297,7 +2312,7 @@ function cargarFichas() {
   if (_fichasCache !== null) return _fichasCache;
   // Sin poder leer no se guarda nada en caché: se muestra vacío, se avisa y se vuelve a intentar en la siguiente lectura
   try { _fichasCache = leerFichasGuardadas(); _lecturaAvisada = false; }
-  catch(e) { avisoAlmacen('lectura'); return []; }
+  catch(e) { avisoAlmacen(avisoTipo(e, 'lectura'), true); return []; }
   // Fichas guardadas antes de validar los identificadores: los no válidos se sustituyen y se guardan
   if (asegurarIds(_fichasCache)) { try { localStorage.setItem(LS_KEY, JSON.stringify(_fichasCache)); } catch(e) {} }
   _fichasBase = instantaneaFichas(_fichasCache);
@@ -2307,7 +2322,7 @@ function cargarFichas() {
 // se descarta para que lo que se muestre vuelva a ser lo guardado (la base de la fusión no se toca)
 function salvarFichas(fichas, tipo) {
   try { return salvarFichasFusion(fichas); }
-  catch(e) { _fichasCache = null; avisoAlmacen(tipo || 'escritura'); return false; }
+  catch(e) { _fichasCache = null; avisoAlmacen(avisoTipo(e, tipo || 'escritura')); return false; }
 }
 function salvarFichasFusion(fichas) {
   const actual = leerFichasGuardadas();
@@ -2332,7 +2347,7 @@ function salvarFichasFusion(fichas) {
 // Antes se comprueba que lo guardado se puede leer: sin eso no se habría pedido confirmación sobre las fichas actuales
 function reemplazarFichas(fichas) {
   try { leerFichasGuardadas(); localStorage.setItem(LS_KEY, JSON.stringify(fichas)); }
-  catch(e) { _fichasCache = null; avisoAlmacen('importacion'); return false; }
+  catch(e) { _fichasCache = null; avisoAlmacen(avisoTipo(e, 'importacion')); return false; }
   _fichasCache = fichas;
   _fichasBase = instantaneaFichas(fichas);
   return true;
@@ -6623,7 +6638,7 @@ function guardarNuevaPlantilla() {
     return;
   }
   var propias = cargarPlantillasPropias(true);
-  var fallo = 'No se ha podido guardar la plantilla: el almacenamiento del navegador no está disponible o está lleno. El texto sigue aquí.';
+  var fallo = 'No se ha podido guardar la plantilla: el almacenamiento del navegador no está disponible, está lleno o sus datos están dañados. El texto sigue aquí.';
   if (!propias) {
     if (err) err.textContent = fallo;
     return;
