@@ -1351,7 +1351,7 @@ input[type=date]{scroll-margin-top:96px;}
       </button>
       <input type="file" id="jsonFileInput" accept=".json" hidden onchange="importarJSON(this)">
       <label class="json-merge-opt"><input type="checkbox" id="jsonMerge" checked>Combinar con las fichas que ya tienes (sin duplicar)</label>
-      <div class="json-import-result" id="jsonImportResult" role="status"></div>
+      <div class="json-import-result" id="jsonImportResult"></div>
     </div>
   </div></div>
 </div>
@@ -1390,7 +1390,7 @@ input[type=date]{scroll-margin-top:96px;}
 </div>
 
 <!-- Aviso breve -->
-<div class="toast" id="toast" role="status" aria-live="polite"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-check-circle"/></svg><span id="toastMsg"></span></div>
+<div class="toast" id="toast"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-check-circle"/></svg><span id="toastMsg"></span></div>
 
 <script>
 // ══════════════════════════════════════════
@@ -1596,8 +1596,21 @@ function vacio(icono, titulo, texto, extra) {
 
 // ── Aviso breve (toast) ──
 let _toastTimer = null;
+// ── Anuncios para lectores de pantalla (región #srStatus) ──
+// Varios anuncios seguidos (p. ej. cambio de sección + «sesión cargada») se agrupan: solo se lee el último.
+// Se vacía antes de escribir para que un mismo texto repetido vuelva a anunciarse.
+let _anuncioTimer = null;
+function anunciar(msg) {
+  const el = document.getElementById('srStatus');
+  if (!el || !msg) return;
+  clearTimeout(_anuncioTimer);
+  el.textContent = '';
+  _anuncioTimer = setTimeout(() => { el.textContent = msg; }, 120);
+}
+
 function toast(msg, opts) {
   opts = opts || {};
+  anunciar(msg);
   const t = document.getElementById('toast'), m = document.getElementById('toastMsg');
   if (!t || !m) return;
   m.textContent = msg;
@@ -1613,6 +1626,20 @@ function toast(msg, opts) {
   _toastTimer = setTimeout(ocultarToast, opts.ms || 3000);
 }
 function ocultarToast() { document.getElementById('toast')?.classList.remove('show'); }
+
+// ── Fallos del almacenamiento del navegador (localStorage) ──
+// Si leer, guardar o eliminar falla, no se confirma nada: se avisa y lo guardado queda como estaba.
+const AVISOS_ALMACEN = {
+  lectura: 'No se pueden leer los datos guardados en este navegador. Mientras no se resuelva, no se podrá guardar ni eliminar nada.',
+  escritura: 'No se ha podido guardar: el almacenamiento del navegador no está disponible o está lleno. Los cambios siguen en pantalla, pero NO se han guardado.',
+  eliminacion: 'No se ha podido eliminar: el almacenamiento del navegador no está disponible. No se ha borrado nada.',
+  importacion: 'No se ha podido importar: el almacenamiento del navegador no está disponible o está lleno. Tus fichas no se han modificado.'
+};
+let _lecturaAvisada = false;   // el aviso de lectura se da una vez, no en cada repintado
+function avisoAlmacen(tipo) {
+  if (tipo === 'lectura') { if (_lecturaAvisada) return; _lecturaAvisada = true; }
+  toast(AVISOS_ALMACEN[tipo], {ms:7000});
+}
 
 // ── Pantallas secundarias: pantalla completa, foco atrapado, Escape y vuelta al botón que las abrió ──
 const _pantallas = [];
@@ -1849,16 +1876,20 @@ function asegurarIds(lista, prefijo) {
 // Defensa en el punto de uso: nunca se escribe en un atributo un id que no sea seguro
 function idAttr(id) { return idSeguro(id) ? id : ''; }
 
-function cargarPlantillasPropias() {
-  let items;
-  try { items = JSON.parse(localStorage.getItem(LS_PLANTILLAS_PROPIAS)) || []; }
-  catch(e) { return []; }
+// estricto: si el almacenamiento no se puede leer devuelve null (para no guardar encima una lista vacía)
+function cargarPlantillasPropias(estricto) {
+  let txt, items;
+  try { txt = localStorage.getItem(LS_PLANTILLAS_PROPIAS); }
+  catch(e) { avisoAlmacen('lectura'); return estricto ? null : []; }
+  try { items = JSON.parse(txt) || []; } catch(e) { return []; }
   if (!Array.isArray(items)) return [];
-  if (asegurarIds(items, 'propia_')) { try { salvarPlantillasPropias(items); } catch(e) {} }
+  if (asegurarIds(items, 'propia_')) { try { localStorage.setItem(LS_PLANTILLAS_PROPIAS, JSON.stringify(items)); } catch(e) {} }
   return items;
 }
-function salvarPlantillasPropias(items) {
-  localStorage.setItem(LS_PLANTILLAS_PROPIAS, JSON.stringify(items));
+// Devuelve true solo si ha quedado guardado; si no, avisa
+function salvarPlantillasPropias(items, tipo) {
+  try { localStorage.setItem(LS_PLANTILLAS_PROPIAS, JSON.stringify(items)); return true; }
+  catch(e) { avisoAlmacen(tipo || 'escritura'); return false; }
 }
 function getNuevaPlantillaId() {
   return nuevoId('propia_');
@@ -2092,6 +2123,7 @@ function renderRegistroAnterior() {
 // ── TABS ──
 let currentTab=0;
 function goTab(i) {
+  const cambia = i !== currentTab;
   try {
     for(let t=0;t<5;t++) {
       const card=document.getElementById('tab'+t);
@@ -2114,6 +2146,7 @@ function goTab(i) {
   if(i===3){ try{ renderDiagnostico(); }catch(e){} }
   if(i===2){ try{ renderFaseDisplay(faseSelected); }catch(e){} }
   AppState.currentTab = i;
+  if (cambia) { const lb = document.querySelector('#maintab' + i + ' .lb-long')?.textContent; if (lb) anunciar('Sección ' + lb); }
   try { window.scrollTo({top:0,behavior:'instant'}); } catch(e){ window.scrollTo(0,0); }
 }
 
@@ -2248,9 +2281,11 @@ function autoguardar() {
 // guarda después con cambios, queda la de la otra.
 let _fichasCache = null;
 let _fichasBase = null;   // id → JSON de la ficha tal como la conoce esta pestaña
+// Si el almacenamiento no se puede leer, lanza: una lectura fallida nunca se toma por «no hay fichas»
 function leerFichasGuardadas() {
+  const txt = localStorage.getItem(LS_KEY);
   let a;
-  try { a = JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch(e) { a = []; }
+  try { a = JSON.parse(txt) || []; } catch(e) { a = []; }
   return Array.isArray(a) ? a : [];
 }
 function instantaneaFichas(lista) {
@@ -2260,13 +2295,21 @@ function instantaneaFichas(lista) {
 }
 function cargarFichas() {
   if (_fichasCache !== null) return _fichasCache;
-  _fichasCache = leerFichasGuardadas();
+  // Sin poder leer no se guarda nada en caché: se muestra vacío, se avisa y se vuelve a intentar en la siguiente lectura
+  try { _fichasCache = leerFichasGuardadas(); _lecturaAvisada = false; }
+  catch(e) { avisoAlmacen('lectura'); return []; }
   // Fichas guardadas antes de validar los identificadores: los no válidos se sustituyen y se guardan
   if (asegurarIds(_fichasCache)) { try { localStorage.setItem(LS_KEY, JSON.stringify(_fichasCache)); } catch(e) {} }
   _fichasBase = instantaneaFichas(_fichasCache);
   return _fichasCache;
 }
-function salvarFichas(fichas) {
+// Devuelve true solo si ha quedado guardado. Si leer o escribir falla, no se escribe nada, se avisa y la caché
+// se descarta para que lo que se muestre vuelva a ser lo guardado (la base de la fusión no se toca)
+function salvarFichas(fichas, tipo) {
+  try { return salvarFichasFusion(fichas); }
+  catch(e) { _fichasCache = null; avisoAlmacen(tipo || 'escritura'); return false; }
+}
+function salvarFichasFusion(fichas) {
   const actual = leerFichasGuardadas();
   const base = _fichasBase || instantaneaFichas(actual);   // sin base conocida no se deduce ningún borrado
   const local = new Map();
@@ -2283,12 +2326,16 @@ function salvarFichas(fichas) {
   localStorage.setItem(LS_KEY, JSON.stringify(resultado));
   _fichasCache = resultado;
   _fichasBase = instantaneaFichas(resultado);
+  return true;
 }
 // Importar sin combinar: sustituye deliberadamente todo el conjunto de fichas
+// Antes se comprueba que lo guardado se puede leer: sin eso no se habría pedido confirmación sobre las fichas actuales
 function reemplazarFichas(fichas) {
-  localStorage.setItem(LS_KEY, JSON.stringify(fichas));
+  try { leerFichasGuardadas(); localStorage.setItem(LS_KEY, JSON.stringify(fichas)); }
+  catch(e) { _fichasCache = null; avisoAlmacen('importacion'); return false; }
   _fichasCache = fichas;
   _fichasBase = instantaneaFichas(fichas);
+  return true;
 }
 function invalidarCache() { _fichasCache = null; }
 
@@ -2369,7 +2416,7 @@ function guardarFicha() {
     fichas.push(data);
     msg = `Sesión nueva de "${data.captador}" guardada`;
   }
-  salvarFichas(fichas);
+  if (!salvarFichas(fichas)) return;   // sin guardar: no se confirma nada y el formulario conserva lo escrito
   AppState.lastLoadedId = data._id;
   actualizarContador();
   marcarGuardado(msg);
@@ -2383,9 +2430,12 @@ function eliminarFicha(id) {
   if(!confirm('¿Eliminar esta sesión? Podrás deshacerlo durante unos segundos.')) return;
   invalidarCache();   // se busca en lo guardado ahora (puede venir de otra pestaña), no en una caché antigua
   const fichaBackup = cargarFichas().find(f => f._id === id);
-  if(!fichaBackup) return;
+  if(!fichaBackup) { if (_fichasCache === null) avisoAlmacen('eliminacion'); return; }
   invalidarCache();
-  salvarFichas(cargarFichas().filter(f => f._id !== id));
+  if (!salvarFichas(cargarFichas().filter(f => f._id !== id), 'eliminacion')) {
+    actualizarContador(); try{renderHistorialTab();}catch(e){}
+    return;
+  }
   actualizarContador(); try{renderHistorialTab();}catch(e){}
   populateEvoSelect(); renderDashboard(); actualizarModoSesion();
   mostrarUndoToast('Sesión eliminada', () => {
@@ -2393,7 +2443,7 @@ function eliminarFicha(id) {
     const fichasActuales = cargarFichas();
     fichasActuales.push(fichaBackup);
     invalidarCache();
-    salvarFichas(fichasActuales);
+    if (!salvarFichas(fichasActuales)) return;
     actualizarContador(); try{renderHistorialTab();}catch(e){}
     populateEvoSelect(); renderDashboard(); actualizarModoSesion();
   });
@@ -2744,7 +2794,8 @@ function generarPDF(){
   const ROJO=[204,46,52], AZUL=[41,44,47], VERDE=[42,125,79], NARANJA=[230,81,0];
   const GRIS=[90,90,90], CLARO=[237,234,228], NEG=[26,26,26], MID=[90,90,90];
 
-  function chk(n){ if(y+n>278){ doc.addPage(); y=20; hdr(); } }
+  // En cada página nueva se empieza bajo la cabecera (como en la primera): con y=20 el texto quedaba dentro de la banda
+  function chk(n){ if(y+n>278){ doc.addPage(); y=30; hdr(); } }
 
   function hdr(){
     doc.setFillColor(...AZUL); doc.rect(0,0,W,22,'F');
@@ -2896,6 +2947,28 @@ function generarPDF(){
     if(diasProc){doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(...GRIS);doc.text('D\u00eda '+diasProc,M+46,y+2);}
     y+=13;
     y+=2; }
+
+  // Decisión de salida: la recomendación, los 4 criterios y el checklist registrados en ESTA sesión
+  const dec = decisionParaPDF(d);
+  sec('5. DECISI\u00d3N DE SALIDA',AZUL);
+  chk(14); doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(...GRIS);
+  doc.text('RECOMENDACI\u00d3N REGISTRADA:',M,y); y+=5;
+  doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(...NEG);
+  const decLns=doc.splitTextToSize(dec.resultado,cw-4); chk(decLns.length*5+2); doc.text(decLns,M,y); y+=decLns.length*5+1;
+  if(dec.desc){ doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(...NEG);
+    const dl=doc.splitTextToSize(dec.desc,cw-4); chk(dl.length*4.8+2); doc.text(dl,M,y); y+=dl.length*4.8+1; }
+  y+=4; chk(12);
+  dec.criterios.forEach((c,i)=>fld(c.label,c.estado,M+i*(cw/4),cw/4)); y+=12;
+  chk(10); doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(...GRIS);
+  doc.text('CHECKLIST ANTES DE VALORAR UNA SALIDA'+(dec.checklist?' \u2014 '+dec.checklist.hechos+' DE '+dec.checklist.total+' PUNTOS REVISADOS':''),M,y); y+=5;
+  if(!dec.checklist){ doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(...NEG);
+    const nl=doc.splitTextToSize(dec.checklistNota,cw-4); chk(nl.length*4.8+2); doc.text(nl,M,y); y+=nl.length*4.8+1; }
+  else dec.checklist.items.forEach(it=>{
+    doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(...NEG);
+    const il=doc.splitTextToSize(it.texto,cw-24); chk(il.length*4.6+2); doc.text(il,M,y);
+    doc.setFont('helvetica','bold');doc.setTextColor(...(it.hecho?VERDE:GRIS)); doc.text(it.hecho?'S\u00ed':'No',W-M,y,{align:'right'});
+    y+=il.length*4.6+1.5; });
+  y+=4;
 
   // Registro de la sesión (y notas guardadas con el formato anterior, si las hay)
   const registro=registroDe(d);
@@ -3357,13 +3430,13 @@ const PLANTILLAS = [
   { cat:'cr_autoestima', color:'#7b2d8b', label:'Creencias',
     texto:'Una racha mala no define tu nivel. Define cómo respondes a ella.' },
   { cat:'cr_rechazo', color:'#7b2d8b', label:'Creencias · Rechazo',
-    texto:'El rechazo tiene fecha de caducidad: dura lo que tú dejes que dure. Un ritual de reset entre paradas — tres pasos, una respiración — puede reducirlo de 20 minutos a 20 segundos.' },
+    texto:'El rechazo tiene fecha de caducidad: dura lo que tú dejes que dure. Un ritual de reset entre paradas — tres pasos, una respiración — puede acortarlo mucho.' },
   { cat:'cr_rechazo', color:'#7b2d8b', label:'Creencias · Arranque',
-    texto:'El arranque difícil no es una señal de mal día: es fisiología. El cerebro necesita los primeros intentos para calentarse. Primera parada en los primeros 5 minutos, sin negociar.' },
+    texto:'Que cueste arrancar no es señal de un mal día: es habitual necesitar unos primeros intentos para entrar en ritmo. Primera parada en los primeros 5 minutos, sin negociar.' },
   { cat:'cr_autoestima', color:'#7b2d8b', label:'Creencias · Comparación',
     texto:'Estás viendo el resultado de meses de trabajo ajeno, no su punto de partida. La comparación justa es con vosotros mismos hace 15 días.' },
   { cat:'cr_rechazo', color:'#7b2d8b', label:'Creencias · Vergüenza',
-    texto:'La vergüenza en calle desaparece exactamente igual que el miedo a hablar en público: con exposición repetida. No se puede pensar sin hacerlo.' },
+    texto:'La vergüenza en calle suele reducirse como el miedo a hablar en público: con exposición repetida. No se puede pensar sin hacerlo.' },
   { cat:'cr_entorno', color:'#7b2d8b', label:'Creencias · Energía equipo',
     texto:'La energía del equipo no tiene que ser la tuya. Un protocolo personal previo al turno — objetivo del día, primera parada en X minutos — funciona independientemente del entorno.' },
   { cat:'cr_proceso', color:'#7b2d8b', label:'Creencias · Perfil donante',
@@ -3373,23 +3446,23 @@ const PLANTILLAS = [
   { cat:'cr_proceso', color:'#7b2d8b', label:'Creencias · Bloqueo datos',
     texto:'"No tengo ese dato exacto pero lo que sí puedo decirte es..." es siempre más creíble que una respuesta inventada. Preparar 3 datos verificados y dominarlos completamente.' },
   { cat:'cr_autoestima', color:'#7b2d8b', label:'Creencias · Introversión',
-    texto:'Los captadores más consistentes a largo plazo no son los más extrovertidos: son los más constantes. La escucha activa y la autenticidad generan más confianza que la energía superficial.' },
+    texto:'No hace falta ser la persona más extrovertida del equipo: la constancia se entrena y sostiene el trabajo a largo plazo. La escucha activa y la autenticidad generan más confianza que la energía superficial.' },
   { cat:'cr_causa', color:'#7b2d8b', label:'Creencias · Causa',
     texto:'Si no puedes explicar la misión en 20 segundos con tus propias palabras, sin términos del material oficial, es señal de que hay trabajo pendiente de interiorización, no de memoria.' },
   { cat:'cr_autoestima', color:'#7b2d8b', label:'Creencias · Feedback',
     texto:'El acompañamiento no es una evaluación. En la evaluación te juzgan. En el aprendizaje te ayudan. ¿Qué necesitas de mí cuando estoy contigo? — esa pregunta lo cambia todo.' },
   { cat:'cr_rechazo', color:'#7b2d8b', label:'Creencias · Auriculares',
-    texto:'Los auriculares son preferencia, no prohibición. Un porcentaje significativo de personas con auriculares para si la energía del captador es la correcta. Llevar el cuenta propia para comprobarlo.' },
+    texto:'Los auriculares son preferencia, no prohibición. Hay personas con auriculares que sí paran. Llevar el cuenta propia para comprobarlo.' },
   { cat:'cr_proceso', color:'#7b2d8b', label:'Creencias · Turistas',
     texto:'Los no captables tienen valor de entrenamiento real. Practicar parada, speech y rebatida con alguien que no puede comprometerse es trabajo técnico que no debe desperdiciarse.' },
   { cat:'cr_resultados', color:'#1a237e', label:'Creencias · Cuota',
-    texto:'La cuota media es el reflejo de tu convicción, no de la capacidad del donante. Propón la cuota en la que crees, no la que crees que aceptarán. El donante llega a donde el captador le lleva con confianza.' },
+    texto:'No rebajes la cuota por adelantado suponiendo lo que la otra persona puede pagar. Presenta las opciones con seguridad y claridad, y deja que cada persona elija la que le encaje: la decisión es suya.' },
   { cat:'cr_resultados', color:'#1a237e', label:'Creencias · Cuota',
-    texto:'Proponer primero una cuota más alta y bajar si es necesario siempre da mejor resultado que proponer bajo y no poder subir. El primer número ancla la conversación.' },
+    texto:'Presenta las opciones de cuota de forma clara, explicando qué permite cada una, y deja que la persona elija la que considere adecuada. El primer importe no debe usarse como presión.' },
   { cat:'cr_resultados', color:'#bf360c', label:'Creencias · Zona',
-    texto:'La zona quemada casi siempre es una zona con una sola estrategia agotada. Cambia el horario, el punto o el speech antes de cambiar de zona. ¿Qué harías diferente si supieras que el problema no es la zona?' },
+    texto:'Muchas veces, lo que parece una zona quemada es una estrategia agotada. Cambia el horario, el punto o el speech antes de cambiar de zona. ¿Qué harías diferente si supieras que el problema no es la zona?' },
   { cat:'cr_resultados', color:'#004d40', label:'Creencias · Calidad',
-    texto:'La conversación que no cierra hoy tiene valor si fue de calidad. Construye marca, predice retención futura y diferencia a la organización. El impacto no siempre es medible en el mismo turno.' },
+    texto:'La conversación que no cierra hoy tiene valor si fue de calidad. Construye confianza en la organización y puede pesar en decisiones futuras. El impacto no siempre es medible en el mismo turno.' },
   { cat:'cr_causa', color:'#4a148c', label:'Creencias · Reprogramación',
     texto:'Reprogramar una creencia limitante tiene 4 pasos: 1) Hacerla visible. 2) Cambiar el foco de fuera a dentro. 3) Convertirla en acción concreta. 4) Crear una frase entrenable. "Ser más positivo" no es una acción. Mejorar la parada sí lo es.' },
   { cat:'cr_rerp', color:'#e65100', label:'Creencias · Responsable',
@@ -3407,9 +3480,9 @@ const PLANTILLAS = [
   { cat:'t_speech', color:'#1976d2', label:'Speech',
     texto:'Los primeros 8 segundos son decisivos. Nombre de la organización + impacto concreto y directo.' },
   { cat:'t_speech', color:'#1976d2', label:'Speech',
-    texto:'Personalizar el speech según el perfil visual de la persona aumenta la tasa de escucha activa.' },
+    texto:'Adaptar el speech a cómo responde cada persona (su ritmo, su interés, sus preguntas) ayuda a mantener la conversación.' },
   { cat:'t_speech', color:'#1976d2', label:'Speech',
-    texto:'Evitar palabras que activan el rechazo automático: "donación", "dinero", "firma". Usarlas al final, no al inicio.' },
+    texto:'Empezar por el impacto del proyecto antes que por el dinero. Cuando llegue la propuesta, explicar con claridad que es una donación periódica: nunca ocultarlo.' },
   { cat:'t_speech', color:'#1976d2', label:'Speech',
     texto:'Un caso concreto y real vale más que cualquier estadística. El storytelling abre más que los datos.' },
   { cat:'t_speech', color:'#1976d2', label:'Speech',
@@ -3427,7 +3500,7 @@ const PLANTILLAS = [
   { cat:'t_cierre', color:'#2196f3', label:'Cierre',
     texto:'El cierre no se pide, se facilita. Formulario preparado antes de llegar a ese momento.' },
   { cat:'t_cierre', color:'#2196f3', label:'Cierre',
-    texto:'Después de la última rebatida, silencio. El primero que habla cede. Dejar que la persona decida.' },
+    texto:'Después de la última rebatida, dar espacio. Dejar que la persona piense y decida sin llenar el silencio con más argumentos.' },
   { cat:'t_cierre', color:'#2196f3', label:'Cierre',
     texto:'Dar opciones concretas reduce la parálisis de decisión: "¿Prefieres 5€ o 10€ al mes?" en lugar de "¿Cuánto puedes?".' },
   { cat:'t_cierre', color:'#2196f3', label:'Cierre',
@@ -3441,7 +3514,7 @@ const PLANTILLAS = [
   { cat:'t_parada', color:'#1565c0', label:'Parada · Zonas de flujo',
     texto:'Trabajar en puntos de flujo natural (entradas de metro, cruces de peatones, salidas de supermercados) multiplica el volumen sin multiplicar el esfuerzo. La zona no es fija — se adapta al horario y al día.' },
   { cat:'t_parada', color:'#1565c0', label:'Parada · Primeras palabras',
-    texto:'Las primeras 3 palabras determinan si la persona para o sigue. Evitar "perdónate" y fórmulas gastadas. Opciones que funcionan: "¿Sabes que...", "Un momento, que...", "[causa] está haciendo algo importante en...".' },
+    texto:'Las primeras palabras influyen mucho en que la persona pare o siga. Evitar "perdónate" y fórmulas gastadas. Opciones que funcionan: "¿Sabes que...", "Un momento, que...", "[causa] está haciendo algo importante en...".' },
   { cat:'t_parada', color:'#1565c0', label:'Parada · Grupos',
     texto:'En grupos de dos o más, dirigirse siempre a la persona más receptiva visualmente. El resto del grupo sigue si la primera persona para. Intentar captar a un grupo entero desde el principio es el error más frecuente.' },
   { cat:'t_parada', color:'#1565c0', label:'Parada · Gestión del no',
@@ -3451,43 +3524,43 @@ const PLANTILLAS = [
   { cat:'t_speech', color:'#1976d2', label:'Speech · Gancho de apertura',
     texto:'El gancho debe responder la pregunta no dicha: "¿Por qué debería escucharte?". Un dato sorprendente o una pregunta retórica. Nunca empezar con el nombre de la organización — eso es el final del gancho, no el principio.' },
   { cat:'t_speech', color:'#1976d2', label:'Speech · Storytelling',
-    texto:'Un caso concreto de una persona real tiene 4 veces más impacto que una estadística. "Gracias a captadores como tú, María pudo..." activa la empatía. "Ayudamos a millones" no activa nada. Lo específico conecta.' },
+    texto:'Un caso concreto de una persona real suele conectar más que una estadística. "Gracias a captadores como tú, María pudo..." activa la empatía. "Ayudamos a millones" no activa nada. Lo específico conecta.' },
   { cat:'t_speech', color:'#1976d2', label:'Speech · Palabras que cierran',
-    texto:'Palabras que cierran la escucha: "donación", "firma", "dinero", "ONG". Palabras que abren: "proyecto", "impacto", "cambio", "personas reales". El vocabulario no es cosmético — es la diferencia entre que escuchen o no.' },
+    texto:'Abrir con palabras como «proyecto», «impacto» o «personas reales» suele invitar más a escuchar que empezar por «donación» o «firma». Eso no significa esconderlo: cuando llegue la propuesta, se dice con claridad que es una donación.' },
   { cat:'t_speech', color:'#1976d2', label:'Speech · Pregunta de enganche',
-    texto:'Una pregunta abierta en los primeros 20 segundos convierte el monólogo en conversación. La persona que responde, aunque sea internamente, ya está comprometida. Ejemplo: "¿Sabes cuántas personas...?"' },
+    texto:'Una pregunta abierta en los primeros 20 segundos convierte el monólogo en conversación. Ejemplo: "¿Sabes cuántas personas...?"' },
   { cat:'t_speech', color:'#1976d2', label:'Speech · Pausa activa',
     texto:'Después del impacto concreto, pausa de 2-3 segundos antes de la propuesta. La pausa da tiempo a procesar emocionalmente. Un captador que habla sin parar no da espacio para que el interlocutor se implique.' },
   { cat:'t_speech', color:'#1976d2', label:'Speech · Propuesta específica',
-    texto:'La propuesta debe ser específica en cantidad y en impacto: "Con 8 euros al mes, que son menos de 30 céntimos al día, garantizas que un niño tenga acceso a educación durante un año." Nunca: "cualquier cantidad ayuda".' },
+    texto:'La propuesta debe ser específica en cantidad y en impacto: "Con 8 euros al mes, que son menos de 30 céntimos al día, [impacto real y verificable que financia esa cuota en la organización]." Nunca: "cualquier cantidad ayuda".' },
   { cat:'t_speech', color:'#1976d2', label:'Speech · Adaptación por perfil',
-    texto:'Perfil joven: impacto inmediato, lenguaje directo. Perfil adulto: contexto y fiabilidad. Perfil senior: valores de comunidad y legado. El mismo speech para todos es el speech que no funciona con nadie.' },
+    texto:'Adapta el tono y el ejemplo a cómo responde cada persona: hay quien prefiere algo directo, quien necesita más contexto y quien conecta con valores de comunidad. Fíjate en la persona, no en su edad.' },
   { cat:'t_rebatidas', color:'#1e88e5', label:'Rebatidas · Estructura VAP',
     texto:'Validar + Ampliar + Proponer. Validar: reconocer la objeción sin ceder. Ampliar: añadir perspectiva nueva. Proponer: siguiente paso concreto. Sin los tres pasos, la rebatida es defensa, no conversación.' },
   { cat:'t_rebatidas', color:'#1e88e5', label:'Rebatidas · No tengo tiempo',
-    texto:'"No tengo tiempo" es casi siempre una barrera automática. Respuesta: "Solo 30 segundos, te cuento una cosa y decides." Si para esos 30 segundos, el tiempo ya no es el problema. Si no para, era un no educado.' },
+    texto:'«No tengo tiempo» puede ser una forma rápida de decir que ahora no. Puedes ofrecer una vez: «Solo 30 segundos, te cuento una cosa y decides». Si vuelve a decir que no, respeta su respuesta y despídete con amabilidad.' },
   { cat:'t_rebatidas', color:'#1e88e5', label:'Rebatidas · Crisis económica',
     texto:'"Estoy pasando un mal momento": validar y proponer mínimo. "Entiendo, por eso la cantidad mínima es X al mes. Si en algún momento necesitas pausarla, puedes hacerlo con una llamada." Empatía y propuesta mínima juntas.' },
   { cat:'t_rebatidas', color:'#1e88e5', label:'Rebatidas · Ya dono',
-    texto:'"Ya dono": "Qué bien, significa que ya tomaste la decisión más difícil. Lo que te propongo es complementario: [diferenciador concreto]. Muchas personas que ya donan a una causa suman una segunda cuando ven el impacto directo."' },
+    texto:'"Ya dono": "Qué bien, significa que ya tomaste la decisión más difícil. Lo que te propongo es complementario: [diferenciador concreto]. Algunas personas que ya donan deciden apoyar una segunda causa cuando ven su impacto; si no es el caso, se respeta."' },
   { cat:'t_rebatidas', color:'#1e88e5', label:'Rebatidas · No me fío',
     texto:'"No me fío de las ONGs": no es una objeción a esta organización — es una creencia sobre el sector. Respuesta: "Es normal, hay mucha información contradictoria. De esta organización específicamente: [certificación + porcentaje + ejemplo concreto]."' },
   { cat:'t_rebatidas', color:'#1e88e5', label:'Rebatidas · Necesito pensarlo',
-    texto:'"Necesito pensarlo": preguntar qué información concreta le falta para decidir ahora. Si puede especificarla, darséla. Si no puede, la decisión ya está tomada. Esa distinción define el siguiente paso.' },
+    texto:'"Necesito pensarlo": preguntar si hay alguna información que le ayudaría a decidir. Si la hay, dársela con claridad. Si prefiere pensarlo con calma, respetarlo y dejarle la información para que pueda decidir después.' },
   { cat:'t_rebatidas', color:'#1e88e5', label:'Rebatidas · Ya me han parado',
     texto:'"Ya me han parado antes": reconocer y compensar con brevedad extrema. "Lo sé y lo entiendo. Por eso voy a ser muy directo: [impacto en 15 segundos + propuesta mínima]." Reconocer la saturación es la primera rebatida.' },
   { cat:'t_rebatidas', color:'#1e88e5', label:'Rebatidas · Tono',
     texto:'El tono al rebatir es más importante que las palabras. Una rebatida defensiva cierra la conversación aunque el argumento sea perfecto. El tono debe ser el de alguien que entiende la objeción y tiene una perspectiva que vale la pena escuchar.' },
-  { cat:'t_cierre', color:'#2196f3', label:'Cierre · Señales de compra',
-    texto:'Señales de que la persona está lista: preguntas de detalle ("¿cómo funciona el pago?", "¿puedo cancelarlo?"), silencio después de la última objeción, contacto visual sostenido. Estas señales son el momento de cerrar — esperar más es el error.' },
+  { cat:'t_cierre', color:'#2196f3', label:'Cierre · Preguntas de detalle',
+    texto:'Cuando la persona hace preguntas de detalle («¿cómo funciona el pago?», «¿puedo cancelarlo?»), respóndelas con claridad y pregúntale si quiere colaborar. Son preguntas a responder, no una prueba de que ya ha decidido.' },
   { cat:'t_cierre', color:'#2196f3', label:'Cierre · Pregunta de cierre',
-    texto:'La pregunta más efectiva da por hecha la decisión: "¿Con qué tarjeta lo hacemos?" / "¿Prefieres que empiece el día 1 o el 15?" Estas preguntas mueven de la deliberación a la acción. Las preguntas abiertas mantienen la indecisión.' },
+    texto:'Pregunta de forma clara y directa si quiere colaborar: «¿Te gustaría hacerte socio/a?». Si dice que sí, se concretan los detalles (cuota, fecha de cobro). No dar la decisión por hecha antes de que la persona la tome.' },
   { cat:'t_cierre', color:'#2196f3', label:'Cierre · El silencio',
-    texto:'Después de la pregunta de cierre, silencio absoluto. El primero que habla cede. No añadir más argumentos ni llenar el silencio. El silencio da tiempo a procesar y decidir. Interrumpirlo es sabotear el propio cierre.' },
+    texto:'Después de la pregunta de cierre, dar espacio para pensar. No añadir más argumentos ni llenar el silencio: el silencio da tiempo a procesar y decidir. Si la persona dice que no, se acepta.' },
   { cat:'t_cierre', color:'#2196f3', label:'Cierre · Opciones concretas',
     texto:'Dar dos opciones específicas reduce la parálisis: "¿Prefieres 5 o 10 euros al mes?" vs "¿Cuánto quieres donar?" La primera encuadra la decisión en un rango manejable. La segunda la deja abierta y genera más dudas.' },
   { cat:'t_cierre', color:'#2196f3', label:'Cierre · Casi sí',
-    texto:'La persona que dice "casi sí" tiene una objeción no expresada. Pregunta directa: "¿Qué es lo que te frena para hacerlo hoy?" La respuesta es la última rebatida. Sin esa pregunta, el casi sí se convierte en no diferido.' },
+    texto:'Si la persona duda, puedes preguntarle con respeto si hay algo que le gustaría aclarar. Si lo hay, respóndelo como una rebatida más. Si prefiere no decidir hoy, se acepta sin insistir.' },
   { cat:'t_cierre', color:'#2196f3', label:'Cierre · Recapitulación',
     texto:'Si la persona duda antes del cierre, recapitular los puntos que más le han impactado usando sus propias palabras. No repetir el speech — solo las razones que ella misma ha expresado. Sus palabras generan más confianza que las nuestras.' },
   { cat:'t_volumen', color:'#42a5f5', label:'Volumen · El indicador honesto',
@@ -3495,7 +3568,7 @@ const PLANTILLAS = [
   { cat:'t_volumen', color:'#42a5f5', label:'Volumen · Objetivo de paradas',
     texto:'Fijar un objetivo de paradas por turno (no de socios) cambia la mentalidad. "Hoy hago 30 intentos" es controlable. "Hoy consigo 3 socios" no lo es. El resultado es consecuencia del proceso. Quien controla el proceso controla el resultado a largo plazo.' },
   { cat:'t_volumen', color:'#42a5f5', label:'Volumen · Primera parada',
-    texto:'La primera parada en los primeros 5 minutos del turno, sin negociar. Una vez el cuerpo está en modo captación, el ritmo se mantiene. El arranque difícil es fisiológico — la solución es protocolo, no motivación.' },
+    texto:'La primera parada en los primeros 5 minutos del turno, sin negociar. Una vez el cuerpo está en modo captación, el ritmo se mantiene. Que cueste arrancar es habitual: la solución es un protocolo, no la motivación.' },
   { cat:'t_volumen', color:'#42a5f5', label:'Volumen · Gestión de la energía',
     texto:'La energía en el turno es gestionable: hidratación, postura, movimiento entre paradas. Un captador que espera parado tiene menos energía que uno que se mueve activamente hacia las personas.' },
   { cat:'t_volumen', color:'#42a5f5', label:'Volumen · Registro propio',
@@ -3503,11 +3576,11 @@ const PLANTILLAS = [
   { cat:'t_adaptacion', color:'#64b5f6', label:'Adaptación · Lectura rápida',
     texto:'En los 3 segundos antes de la parada: edad aproximada, ritmo de paso, lenguaje corporal (abierto/cerrado), si va acompañado. Esa lectura define el tono de apertura. No es estereotipar — es adaptar el primer impacto a lo que la persona proyecta.' },
   { cat:'t_adaptacion', color:'#64b5f6', label:'Adaptación · Perfil joven',
-    texto:'18-30 años: lenguaje directo, impacto inmediato y concreto, referencias cotidianas. "Con menos de lo que gastas en Spotify al mes..." Evitar el lenguaje institucional. Conectar con su contexto específico.' },
+    texto:'Orientación, no regla: con personas jóvenes puede funcionar un lenguaje directo, un impacto inmediato y concreto y referencias cotidianas. Compruébalo con cada persona. "Con menos de lo que gastas en Spotify al mes..." Evitar el lenguaje institucional. Conectar con su contexto específico.' },
   { cat:'t_adaptacion', color:'#64b5f6', label:'Adaptación · Perfil adulto',
-    texto:'30-55 años: contexto completo, fiabilidad y transparencia, impacto sostenido. Este perfil quiere entender antes de comprometerse. Dar espacio para preguntas es más efectivo que acelerar hacia el cierre.' },
+    texto:'Orientación, no regla: hay personas que necesitan contexto completo, fiabilidad y transparencia antes de comprometerse, sea cual sea su edad. Dar espacio para preguntas es más efectivo que acelerar hacia el cierre.' },
   { cat:'t_adaptacion', color:'#64b5f6', label:'Adaptación · Perfil senior',
-    texto:'+55 años: valores de comunidad, responsabilidad intergeneracional, legado. Tono más pausado, articulación clara, más espacio entre frases. Responde especialmente bien a la autenticidad y al respeto explícito de su tiempo.' },
+    texto:'Orientación, no regla: con algunas personas mayores conectan los valores de comunidad y de legado. Tono más pausado, articulación clara, más espacio entre frases. La autenticidad y el respeto explícito por su tiempo ayudan con cualquier persona.' },
   { cat:'t_adaptacion', color:'#64b5f6', label:'Adaptación · Personas con prisa',
     texto:'Versión exprés: 3 frases. "Soy de [organización]. Hacemos [impacto en 10 palabras]. ¿Puedes destinar [X] al mes?" Si hay apertura, ampliar. Una versión de 30 segundos bien ejecutada cierra más que una de 3 minutos forzada.' },
   { cat:'t_adaptacion', color:'#64b5f6', label:'Adaptación · Escépticos',
@@ -3531,7 +3604,7 @@ const PLANTILLAS = [
   { cat:'h_estabilidad', color:'#2e7d32', label:'Hábitos',
     texto:'Identificar qué diferencia las semanas buenas de las malas y replicar las condiciones de las buenas.' },
   { cat:'h_puntualidad', color:'#2e7d32', label:'Puntualidad · Cultura',
-    texto:'La puntualidad no es un favor que se hace al equipo — es el primer indicador visible del nivel de compromiso de una persona. Llegar tarde de forma sistemática es una comunicación implícita de que lo demás tiene más prioridad que el equipo.' },
+    texto:'La puntualidad no es un favor que se hace al equipo — afecta a todo el equipo. Si los retrasos se repiten, conviene hablarlo para entender la causa, sin dar por hecho que hay falta de compromiso.' },
   { cat:'h_puntualidad', color:'#2e7d32', label:'Puntualidad · Intervención',
     texto:'Ante un patrón de impuntualidad: conversación directa, sin acusaciones. "¿Qué necesitarías cambiar para llegar a tiempo de forma consistente?" La pregunta transfiere la responsabilidad de la solución a la persona y revela si el problema es logístico o actitudinal.' },
   { cat:'h_puntualidad', color:'#2e7d32', label:'Puntualidad · Protocolo',
@@ -3539,23 +3612,23 @@ const PLANTILLAS = [
   { cat:'h_puntualidad', color:'#2e7d32', label:'Puntualidad · Impacto',
     texto:'Un captador que llega tarde pierde los primeros 15-20 minutos de calentamiento del equipo. En un turno de 4 horas, eso es el 8% del tiempo productivo. Hacer visible ese impacto sin dramatizarlo ayuda a que la persona entienda las consecuencias reales.' },
   { cat:'h_autonomia', color:'#388e3c', label:'Autonomía · El objetivo',
-    texto:'El objetivo del acompañamiento no es que el captador funcione bien cuando el RE está presente — es que funcione bien cuando no está. Un captador que solo rinde con supervisión no ha interiorizado el proceso, lo está ejecutando por presión externa.' },
+    texto:'El objetivo del acompañamiento no es que el captador funcione bien cuando el RE está presente — es que funcione bien cuando no está. Si un captador solo rinde con supervisión, todavía no ha interiorizado el proceso.' },
   { cat:'h_autonomia', color:'#388e3c', label:'Autonomía · Construirla',
     texto:'La autonomía se construye reduciendo el acompañamiento de forma planificada: primero acompañamiento total, luego parcial, luego seguimiento por check-in. Cada fase debe ir acompañada de un reto autónomo específico para que la persona practique la autogestión.' },
   { cat:'h_autonomia', color:'#388e3c', label:'Autonomía · Retos',
     texto:'Asignar un reto autónomo concreto por sesión: "Esta semana, sin que yo esté, haz X paradas por turno y regisístralo." El seguimiento posterior del reto enseña más sobre la autonomía real del captador que cualquier observación directa.' },
   { cat:'h_autonomia', color:'#388e3c', label:'Autonomía · Dependencia',
-    texto:'Si el captador solo rinde bien cuando el RE está presente, la intervención es sobre la fuente de motivación: ¿es miedo al juicio o falta de autoconfianza? La solución no es más presencia del RE — es ayudar a la persona a construir su propio estándar interno.' },
+    texto:'Si el captador solo rinde bien cuando el RE está presente, conviene explorar con la persona qué cambia cuando trabaja sola, sin dar por hecha la causa. La solución no es más presencia del RE — es ayudar a la persona a construir su propio estándar interno.' },
   { cat:'h_conflictos', color:'#43a047', label:'Conflictos · Detención temprana',
-    texto:'Los conflictos en el equipo se resuelven mejor en los primeros 24 horas. Dejarlos pasar genera distancia emocional que después es mucho más difícil de revertir. La cultura de abordar las tensiones pronto es más importante que ninguna técnica de resolución.' },
+    texto:'Los conflictos en el equipo se resuelven mejor cuanto antes. Dejarlos pasar genera distancia emocional que después es mucho más difícil de revertir. La cultura de abordar las tensiones pronto es más importante que ninguna técnica de resolución.' },
   { cat:'h_conflictos', color:'#43a047', label:'Conflictos · Conversación',
     texto:'Estructura para abordar un conflicto: (1) Describir el comportamiento observable sin juicio. (2) Explicar el impacto concreto en el equipo. (3) Preguntar qué necesita la persona. (4) Acordar qué cambia. Sin los cuatro pasos, la conversación es una queja, no una resolución.' },
   { cat:'h_conflictos', color:'#43a047', label:'Conflictos · Captador problemático',
     texto:'Un captador que genera conflictos recurrentes en el equipo tiene un coste que va más allá de sus propios resultados: baja la energía colectiva, distrae al RE/RP y contamina la cultura. Evaluar ese coste total antes de decidir cuánto tiempo más se invierte en la intervención.' },
   { cat:'h_conflictos', color:'#43a047', label:'Conflictos · Origen',
-    texto:'La mayoría de conflictos en equipos de captación tienen una de tres causas: (1) competencia por zonas o recursos, (2) diferencias de energía o actitud, (3) feedback no gestionado. Identificar el origen antes de intervenir define qué tipo de conversación hay que tener.' },
+    texto:'Tres orígenes frecuentes de conflicto en equipos de captación: (1) competencia por zonas o recursos, (2) diferencias de energía o actitud, (3) feedback no gestionado. Identificar el origen antes de intervenir define qué tipo de conversación hay que tener.' },
   { cat:'h_negatividad', color:'#4caf50', label:'Negatividad · Contagio',
-    texto:'La negatividad en campo es el mayor saboteador invisible del rendimiento. Un captador que verbaliza pensamientos negativos entre paradas no solo afecta su propio estado — afecta el de todo el equipo cercano. Abordar el patrón, no el incidente aislado.' },
+    texto:'La negatividad en campo puede afectar mucho al rendimiento. Un captador que verbaliza pensamientos negativos entre paradas no solo afecta su propio estado — afecta el de todo el equipo cercano. Abordar el patrón, no el incidente aislado.' },
   { cat:'h_negatividad', color:'#4caf50', label:'Negatividad · Origen',
     texto:'Antes de intervenir sobre la negatividad, identificar el origen: ¿es una creencia aprendida sobre el trabajo, una situación personal externa, o una reacción a una experiencia reciente? La intervención correcta varía completamente según la fuente.' },
   { cat:'h_negatividad', color:'#4caf50', label:'Negatividad · Protocolo de reset',
@@ -3575,19 +3648,19 @@ const PLANTILLAS = [
   { cat:'h_equipo', color:'#81c784', label:'Pro equipo · El captador que resta',
     texto:'Un captador que resta al equipo (queja, comparación negativa, pasividad en dinámicas) tiene un coste que va más allá de sus resultados individuales. Abordar el patrón con datos concretos de impacto, no con valoraciones de actitud.' },
   { cat:'h_equipo', color:'#81c784', label:'Pro equipo · Intervención',
-    texto:'"¿Cómo puedes contribuir tú hoy a que el equipo tenga mejor día?" — esta pregunta antes del turno activa la mentalidad pro equipo. Las personas que se hacen esa pregunta regularmente se comportan diferente en campo, aunque sus resultados individuales sean los mismos.' },
+    texto:'"¿Cómo puedes contribuir tú hoy a que el equipo tenga mejor día?" — esta pregunta antes del turno activa la mentalidad pro equipo. Hacérsela con regularidad ayuda a mirar más allá del resultado propio.' },
   { cat:'h_equipo', color:'#81c784', label:'Pro equipo · Reconocimiento',
     texto:'Reconocer públicamente las contribuciones al equipo (no solo los resultados individuales) refuerza la cultura de colaboración. Un captador que ve que su actitud pro equipo es valorada tiende a mantenerla y ampliarla.' },
   { cat:'h_feedback', color:'#388e3c', label:'Feedback · Disposición',
-    texto:'La disposición para recibir feedback es el hábito más importante de todos: sin ella, ninguna otra intervención técnica funciona. Un captador que escucha el feedback pero no lo aplica tiene un problema de ego o de confianza — no de capacidad.' },
+    texto:'La disposición para recibir feedback es un hábito clave: sin ella, el resto de intervenciones técnicas pierde mucho efecto. Si un captador escucha el feedback pero no lo aplica, conviene preguntarle qué le cuesta, sin suponer la causa.' },
   { cat:'h_feedback', color:'#388e3c', label:'Feedback · Cómo darlo',
     texto:'Feedback efectivo: específico (comportamiento concreto, no valoración general), temporal (justo después de la observación), equilibrado (lo que funciona + lo que mejorar), accionable (cómo hacerlo diferente). Sin estas cuatro características, el feedback es opinión, no herramienta.' },
   { cat:'h_feedback', color:'#388e3c', label:'Feedback · Resistencia',
-    texto:'Ante resistencia al feedback: no forzar, explorar. "¿Qué parte de lo que te he dicho no te parece justa?" La pregunta abre el diálogo sin ceder en el contenido. La resistencia casi siempre esconde una experiencia previa de feedback mal dado o una creencia sobre la crítica.' },
+    texto:'Ante resistencia al feedback: no forzar, explorar. "¿Qué parte de lo que te he dicho no te parece justa?" La pregunta abre el diálogo sin ceder en el contenido. Detrás de la resistencia puede haber experiencias previas con feedback mal dado: mejor preguntarlo que suponerlo.' },
   { cat:'h_feedback', color:'#388e3c', label:'Feedback · Cultura',
     texto:'El equipo en el que el feedback fluye naturalmente en todas las direcciones (RE a captador, captador a RE, entre compañeros) es el equipo que más rápido mejora. Esa cultura se construye desde el RE/RP modelando la recepción de feedback antes de exigirla.' },
   { cat:'h_aspecto', color:'#2e7d32', label:'Aspecto · Impacto',
-    texto:'El aspecto personal en captación es una variable técnica, no una cuestión estética. Comunica antes de abrir la boca: credibilidad, energía, compromiso. Un aspecto descuidado activa el rechazo automático antes de que el speech haya empezado.' },
+    texto:'El aspecto personal en captación es una variable técnica, no una cuestión estética. Comunica antes de abrir la boca: credibilidad, energía, compromiso. Un aspecto descuidado puede restar credibilidad antes de que el speech empiece.' },
   { cat:'h_aspecto', color:'#2e7d32', label:'Aspecto · Conversación',
     texto:'La conversación sobre el aspecto personal debe ser directa, privada y sin juicios sobre la persona. "Lo que observo es... El impacto que tiene es... Lo que te pido es..." Nunca en grupo, nunca como comentario de pasada. La dignidad de la persona es no negociable.' },
   { cat:'h_aspecto', color:'#2e7d32', label:'Aspecto · Estándar',
@@ -3603,7 +3676,7 @@ const PLANTILLAS = [
   { cat:'h_jornada', color:'#33691e', label:'Jornada · Preparación previa',
     texto:'Los primeros 10 minutos antes del turno determinan la calidad de las 4 horas siguientes. Objetivo del día, primera parada en 5 minutos, energización rápida. El captador que sale al campo sin ese protocolo empieza ya en desventaja.' },
   { cat:'h_jornada', color:'#33691e', label:'Jornada · Gestión de pausas',
-    texto:'Las pausas deben ser reales (completa desconexción, hidratación, cambio de postura) y programadas (no cuando la energía cae, sino antes de que caiga). Un captador que gestiona bien sus pausas mantiene más energía al final del turno que al principio.' },
+    texto:'Las pausas deben ser reales (completa desconexción, hidratación, cambio de postura) y programadas (no cuando la energía cae, sino antes de que caiga). Un captador que gestiona bien sus pausas llega con más energía al final del turno.' },
   { cat:'h_jornada', color:'#33691e', label:'Jornada · Zonas y horarios',
     texto:'Optimizar la jornada implica adaptar la zona al horario: flujo peatonal máximo según día y hora, rotación de zonas para evitar saturación, adaptación del speech al perfil de cada zona. La jornada mejor aprovechada no es la más larga — es la más consciente.' },
   { cat:'h_jornada', color:'#33691e', label:'Jornada · Cierre',
@@ -3615,7 +3688,7 @@ const PLANTILLAS = [
   { cat:'h_estabilidad', color:'#558b2f', label:'Estabilidad · Patrón vs día',
     texto:'Evaluar siempre por patrón, no por día. Un día malo dentro de una semana estable es ruido. Un patrón de irregularidad semana tras semana es una señal. La diferencia entre los dos define si la intervención debe ser de apoyo puntual o de trabajo profundo en el proceso.' },
   { cat:'h_estabilidad', color:'#558b2f', label:'Estabilidad · Alta varianza',
-    texto:'Un captador con alta varianza (muy buenos y muy malos días alternados) suele tener un problema de regulación emocional, no de técnica. El trabajo no es técnico — es construir un hábito de desvinculación entre el estado emocional y la ejecución del proceso.' },
+    texto:'Un captador con alta varianza (muy buenos y muy malos días alternados) necesita revisar qué cambia entre unos días y otros: horario, zona, rutina de inicio o cómo vive los rechazos. A menudo ayuda construir una rutina estable que no dependa de cómo empieza el día.' },
   { cat:'ac_f1', color:'#e65100', label:'Acomp. · Día 1–5',
     texto:'Todo el foco en que el captador salga cómodo al campo. Los resultados son completamente secundarios en esta fase.' },
   { cat:'ac_f2', color:'#e65100', label:'Acomp. · Día 6–12',
@@ -3627,7 +3700,7 @@ const PLANTILLAS = [
   { cat:'ac_f5', color:'#e65100', label:'Acomp. · Día 46–90',
     texto:'Conversación sobre motivación y objetivos personales. El proceso técnico ya está consolidado o no se consolidará solo.' },
   { cat:'ac_f6', color:'#e65100', label:'Acomp. · +90 días',
-    texto:'Si hay problemas a esta altura, el problema ya no es técnico. Es de motivación, contexto personal o encaje en el rol.' },
+    texto:'Si hay problemas a esta altura, conviene explorar, además de la técnica, la motivación, el contexto personal y el encaje en el rol.' },
   { cat:'ac_general', color:'#e65100', label:'Acomp. · General',
     texto:'Lo más importante en la próxima sesión: una sola cosa. El foco múltiple genera parálisis.' },
   { cat:'ac_general', color:'#e65100', label:'Acomp. · General',
@@ -3637,7 +3710,7 @@ const PLANTILLAS = [
   { cat:'ac_f1', color:'#1d3557', label:'Día 1–5 · Micro victoria',
     texto:'Hoy hiciste X bien. Eso es exactamente lo que necesitamos en este momento. Para mañana: solo céntrate en hacer la parada sin pensar en el resto.' },
   { cat:'ac_f1', color:'#1d3557', label:'Día 1–5 · Normalizar',
-    texto:'Lo que sientes ahora es completamente normal en el día 3. El 100% de los captadores que llevan un año aquí pasaron por exactamente esto. No tienes que sentirte seguro, tienes que seguir intentándolo.' },
+    texto:'Lo que sientes ahora es completamente normal en el día 3. Muchos compañeros que hoy llevan tiempo aquí pasaron por algo parecido al empezar. No tienes que sentirte seguro, tienes que seguir intentándolo.' },
   { cat:'ac_f1', color:'#1d3557', label:'Día 1–5 · Próxima acción',
     texto:'Mañana sal al campo con un solo objetivo: hacer 10 paradas. No importa lo que pase después. Solo 10 paradas. ¿Puedes comprometerte a eso?' },
   { cat:'ac_f2', color:'#1565c0', label:'Día 6–12 · Primera crisis',
@@ -3647,7 +3720,7 @@ const PLANTILLAS = [
   { cat:'ac_f2', color:'#1565c0', label:'Día 6–12 · Micro reto',
     texto:'Esta semana el reto es: hacer la primera parada en los primeros 5 minutos de cada turno, sin excepción. Es un hábito de arranque. ¿Lo hacemos?' },
   { cat:'ac_f3', color:'#6a1b9a', label:'Día 13–25 · Fase de ajuste',
-    texto:'No has fallado. Estás en fase de ajuste. Esto es exactamente lo que pasa entre el día 13 y el 25: el proceso empieza a exigirte más de lo que esperabas. No es señal de que no puedas, es señal de que estás creciendo.' },
+    texto:'No has fallado. Estás en fase de ajuste. Es frecuente que entre el día 13 y el 25 el proceso empiece a exigirte más de lo que esperabas. No es señal de que no puedas, es señal de que estás creciendo.' },
   { cat:'ac_f3', color:'#6a1b9a', label:'Día 13–25 · Comparación',
     texto:'¿Con quién te estás comparando? Los veteranos llevan meses o años haciendo esto. Tú llevas 3 semanas. La comparación correcta es: ¿eres mejor que hace 10 días? Esa es la única que importa.' },
   { cat:'ac_f3', color:'#6a1b9a', label:'Día 13–25 · Señal de fuga',
@@ -3675,7 +3748,7 @@ const PLANTILLAS = [
   { cat:'cr_entorno', color:'#2e7d32', label:'Entorno · Equipo negativo',
     texto:'La energía del equipo antes del turno tiene impacto real. Define tu objetivo del día antes de interactuar con el grupo. Con ese marco, los comentarios negativos tienen menos poder sobre tu estado.' },
   { cat:'cr_entorno', color:'#2e7d32', label:'Entorno · Zona difícil',
-    texto:'Una zona difícil es un contexto, no un destino. Antes de concluir que no funciona: ¿cuántas paradas reales por hora? ¿en qué horario? ¿adaptaste el speech al perfil? La mayoría de las zonas malas son zonas sin adaptación.' },
+    texto:'Una zona difícil es un contexto, no un destino. Antes de concluir que no funciona: ¿cuántas paradas reales por hora? ¿en qué horario? ¿adaptaste el speech al perfil? Muchas veces lo que cambia el resultado es adaptar la estrategia a esa zona.' },
   { cat:'cr_rerp', color:'#37474f', label:'RE/RP · Motivación externa',
     texto:'Un equipo que solo funciona con el RE presente no ha interiorizado el proceso. La motivación sostenida es producto del entorno, el reconocimiento y la percepción de progreso. Crear esas condiciones es parte central del rol.' },
   { cat:'cr_rerp', color:'#37474f', label:'RE/RP · Una sola vez no basta',
@@ -3683,17 +3756,17 @@ const PLANTILLAS = [
   { cat:'cr_rerp', color:'#37474f', label:'RE/RP · El objetivo real',
     texto:'El objetivo del acompañamiento no es el resultado de ese turno. Es generar las condiciones para que el captador funcione bien cuando no estás. Acompañar para ver resultados inmediatos confunde el indicador con el objetivo.' },
   { cat:'cr_rerp', color:'#37474f', label:'RE/RP · Perfil prematuro',
-    texto:'Dos semanas es demasiado corto para evaluar el perfil. La curva de aprendizaje tiene una fase negativa entre el día 13 y el 25. Sin 4-6 semanas de acompañamiento de calidad, no hay información suficiente para una decisión.' },
+    texto:'Dos semanas es demasiado corto para evaluar el perfil. Es frecuente un bache de rendimiento entre el día 13 y el 25. Sin 4-6 semanas de acompañamiento de calidad, no hay información suficiente para una decisión.' },
   { cat:'cr_rerp', color:'#37474f', label:'RE/RP · Variable clave',
-    texto:'El mercado explica la variación entre períodos. No explica la diferencia entre equipos con condiciones similares. La variable con mayor poder predictivo a 3 meses es la calidad del acompañamiento en los primeros 45 días.' },
+    texto:'El contexto explica parte de la variación entre períodos, pero no toda la diferencia entre equipos con condiciones parecidas. La calidad del acompañamiento en los primeros 45 días es una de las variables en las que más puede influir el RE/RP.' },
   { cat:'cr_proceso', color:'#1565c0', label:'Proceso · Perfil y adaptación',
-    texto:'No hay perfiles imposibles, hay perfiles sin adaptación. El captador que ajusta el speech al perfil visual antes de abrir la boca tiene una tasa de parada mayor que el que usa el mismo discurso para todos.' },
+    texto:'Antes de descartar a nadie, prueba a adaptar el speech a cómo responde cada persona. Usar el mismo discurso para todo el mundo suele funcionar peor que ajustarlo.' },
   { cat:'cr_proceso', color:'#1565c0', label:'Proceso · Diagnóstico correcto',
     texto:'Muchas paradas y pocos socios: problema técnico. Pocos intentos y pocos socios: problema de volumen. Distinguir entre los dos define la intervención correcta. Sin datos de paradas, el diagnóstico es siempre una suposición.' },
   { cat:'cr_proceso', color:'#1565c0', label:'Proceso · Preparar el cierre',
-    texto:'El cierre no se improvisa: se prepara desde la primera frase. El captador que lleva el formulario listo antes del sí tiene más cierres. Cada segundo entre el sí y el formulario es una oportunidad para el arrepentimiento.' },
+    texto:'El cierre no se improvisa: se prepara desde la primera frase. El captador que lleva el formulario listo antes del sí tiene más cierres. Tenerlo preparado evita esperas; si la persona quiere revisar algo antes de firmar, se le da tiempo.' },
   { cat:'cr_causa', color:'#e65100', label:'Causa · Ejemplo concreto',
-    texto:'Si no puedes dar un ejemplo concreto de a quién ha ayudado la organización, tu discurso es abstracto. Los ejemplos concretos generan cuatro veces más compromiso que las estadísticas. Dominar uno o dos casos reales.' },
+    texto:'Si no puedes dar un ejemplo concreto de a quién ha ayudado la organización, tu discurso es abstracto. Los ejemplos concretos suelen conectar más que las estadísticas. Dominar uno o dos casos reales.' },
   { cat:'cr_causa', color:'#e65100', label:'Causa · Saturación del sector',
     texto:'La saturación del sector es real. La respuesta es diferenciarse. La diferenciación viene de cómo arrancas la conversación: concreto, específico, humano. Un arranque diferenciado rompe la barrera que uno genérico no puede romper.' },
   { cat:'cr_causa', color:'#e65100', label:'Causa · Autenticidad',
@@ -3967,7 +4040,7 @@ const BIBLIOTECA = [
   {
     cat:'rechazo', catLabel:'Miedo al rechazo', color:'#c62828',
     creencia: 'Me siento mal cuando alguien me dice que no.',
-    intervencion: `El "no" es parte estructural del trabajo, no una excepción. En esta profesión los rechazos superan siempre a los síes — quien entiende eso antes avanza más rápido. La intervención clave: disociar el resultado del valor personal. El "no" es sobre la causa, el momento o el estado de esa persona. No es sobre ti. Ejercicio: llevar un registro de "noes necesarios" diarios como indicador positivo de actividad.`
+    intervencion: `El "no" es parte estructural del trabajo, no una excepción. En esta profesión los rechazos son mucho más frecuentes que los síes — quien entiende eso antes avanza más rápido. La intervención clave: disociar el resultado del valor personal. El "no" es sobre la causa, el momento o el estado de esa persona. No es sobre ti. Ejercicio: llevar un registro de "noes necesarios" diarios como indicador positivo de actividad.`
   },
   {
     cat:'rechazo', catLabel:'Miedo al rechazo', color:'#c62828',
@@ -3977,7 +4050,7 @@ const BIBLIOTECA = [
   {
     cat:'rechazo', catLabel:'Miedo al rechazo', color:'#c62828',
     creencia: 'No quiero molestar a la gente.',
-    intervencion: `Esta creencia convierte una interrupción amable en algo negativo antes de que ocurra. La intervención: cambiar el marco. No estás interrumpiendo, estás ofreciendo una oportunidad. Las personas que donan regularmente no recuerdan haber sido "molestadas", recuerdan haber tomado una decisión que les hizo sentir bien. La incomodidad es tuya, no de ellos. Trabaja la creencia antes de salir a campo.`
+    intervencion: `Esta creencia convierte una interrupción amable en algo negativo antes de que ocurra. La intervención: cambiar el marco. Parar a alguien con respeto, y aceptar su respuesta, no es molestar: es ofrecer una opción que puede rechazar con total libertad. Trabaja la creencia antes de salir a campo.`
   },
   {
     cat:'rechazo', catLabel:'Miedo al rechazo', color:'#c62828',
@@ -4026,12 +4099,12 @@ const BIBLIOTECA = [
   {
     cat:'proceso', catLabel:'Proceso', color:'#1565c0',
     creencia: 'Cuando llego al cierre me bloqueo y no sé cómo pedirlo.',
-    intervencion: `El bloqueo en el cierre tiene dos causas habituales: miedo al rechazo final o falta de automatización. La intervención: practicar el cierre de forma aislada en role-play, sin el contexto de todo el proceso anterior. Tener preparada una frase de transición al cierre que sea propia y natural. Después del último paso previo al cierre: silencio. No añadir más información.`
+    intervencion: `El bloqueo en el cierre suele mejorar con práctica específica, sea cual sea su origen. La intervención: practicar el cierre de forma aislada en role-play, sin el contexto de todo el proceso anterior. Tener preparada una frase de transición al cierre que sea propia y natural. Después del último paso previo al cierre: silencio. No añadir más información.`
   },
   {
     cat:'proceso', catLabel:'Proceso', color:'#1565c0',
     creencia: 'No sé cómo manejar las objeciones, me quedo sin respuesta.',
-    intervencion: `Las objeciones son siempre las mismas. No hay objeciones nuevas en este trabajo, solo variaciones de las mismas cinco o seis. La intervención: identificar las tres objeciones más frecuentes del captador y crear respuestas propias para cada una. Practicar con role-play hasta que la respuesta sea automática. El problema no es la objeción, es la falta de preparación para ella.`
+    intervencion: `La mayoría de objeciones se repiten: suelen ser variaciones de unas pocas. La intervención: identificar las tres objeciones más frecuentes del captador y crear respuestas propias para cada una. Practicar con role-play hasta que la respuesta sea automática. El problema no es la objeción, es la falta de preparación para ella.`
   },
   {
     cat:'proceso', catLabel:'Proceso', color:'#1565c0',
@@ -4041,29 +4114,29 @@ const BIBLIOTECA = [
   {
     cat:'proceso', catLabel:'Proceso', color:'#1565c0',
     creencia: 'Cuando alguien me rebate algo fuerte, me descoloco y pierdo el hilo.',
-    intervencion: `Una rebatida fuerte es una señal de que la persona está escuchando, no de que vaya a decir que no. La intervención: cambiar el marco de las rebatidas fuertes — son engagement, no rechazo. Tener preparada una frase puente para ganar tiempo ante rebatidas inesperadas: "Entiendo lo que me dices, déjame contarte por qué en este caso es diferente." Comprar dos segundos para recomponerse.`
+    intervencion: `Una rebatida fuerte no tiene por qué ser un no: puede ser una duda que merece respuesta. La intervención: tratarla como parte de la conversación, sin tomarla como algo personal. Tener preparada una frase puente para ganar tiempo ante rebatidas inesperadas: "Entiendo lo que me dices, déjame contarte por qué en este caso es diferente." Comprar dos segundos para recomponerse.`
   },
 
   // ── ENTORNO Y EQUIPO ──
   {
     cat:'entorno', catLabel:'Entorno y equipo', color:'#2e7d32',
     creencia: 'Esta zona es mala, aquí la gente no para.',
-    intervencion: `La zona es un factor real pero raramente el factor determinante. La intervención: separar lo que es datos de lo que es percepción. ¿Cuántas paradas ha hecho hoy realmente? ¿Cuántas en la "zona mala" vs la "buena"? Registrar datos durante dos jornadas en la misma zona y comparar con el promedio. Muchas veces la "zona mala" es la zona donde el captador tiene menos confianza, no donde hay menos personas.`
+    intervencion: `La zona es un factor real, pero no el único. La intervención: separar lo que es datos de lo que es percepción. ¿Cuántas paradas ha hecho hoy realmente? ¿Cuántas en esta zona frente a otras? Registrar datos durante dos jornadas en la misma zona y comparar con el promedio. Comparar datos ayuda a separar lo que depende de la zona de lo que depende de cómo se trabaja en ella.`
   },
   {
     cat:'entorno', catLabel:'Entorno y equipo', color:'#2e7d32',
     creencia: 'Hoy la gente no quiere escuchar, el ambiente está mal.',
-    intervencion: `La generalización de una mala racha a "la gente en general" es un mecanismo de protección normal pero limitante. La intervención: desafiar la generalización con datos del mismo día. ¿Cuántas personas han parado y escuchado? ¿El porcentaje es realmente diferente a otros días? Los días "malos" suelen tener diferencias estadísticas pequeñas, pero el foco selectivo en los rechazos los amplifica.`
+    intervencion: `La generalización de una mala racha a "la gente en general" es un mecanismo de protección normal pero limitante. La intervención: desafiar la generalización con datos del mismo día. ¿Cuántas personas han parado y escuchado? ¿El porcentaje es realmente diferente a otros días? A veces la diferencia con otros días es menor de lo que parece, porque los rechazos se recuerdan más.`
   },
   {
     cat:'entorno', catLabel:'Entorno y equipo', color:'#2e7d32',
     creencia: 'Mis compañeros tienen más suerte que yo.',
-    intervencion: `"Suerte" es la explicación que damos a resultados que no entendemos. La intervención: analizar concretamente qué hacen diferente esos compañeros. No en términos de personalidad, sino de comportamiento observable: ¿cuántas paradas hacen? ¿Cómo abren? ¿Qué dicen en el cierre? La diferencia casi siempre está en el volumen de actividad o en una parte concreta del proceso, no en la suerte.`
+    intervencion: `"Suerte" es la explicación que damos a resultados que no entendemos. La intervención: analizar concretamente qué hacen diferente esos compañeros. No en términos de personalidad, sino de comportamiento observable: ¿cuántas paradas hacen? ¿Cómo abren? ¿Qué dicen en el cierre? Con frecuencia la diferencia está en el volumen de actividad o en una parte concreta del proceso, más que en la suerte.`
   },
   {
     cat:'entorno', catLabel:'Entorno y equipo', color:'#2e7d32',
     creencia: 'Me contagio de la negatividad cuando el equipo está bajo.',
-    intervencion: `El contagio emocional en equipos de alta exposición al rechazo es un fenómeno real y documentado. La intervención: crear una separación consciente entre el estado del grupo y el estado propio. Técnica concreta: al inicio de jornada, definir el objetivo personal antes de interactuar con el equipo. Tener una playlist, una rutina o un ritual previo a campo que sea propio e independiente del ambiente grupal.`
+    intervencion: `El contagio emocional en equipos de alta exposición al rechazo es un fenómeno real. La intervención: crear una separación consciente entre el estado del grupo y el estado propio. Técnica concreta: al inicio de jornada, definir el objetivo personal antes de interactuar con el equipo. Tener una playlist, una rutina o un ritual previo a campo que sea propio e independiente del ambiente grupal.`
   },
 
   // ── LA CAUSA ──
@@ -4087,12 +4160,12 @@ const BIBLIOTECA = [
   {
     cat:'donantes', catLabel:'Los donantes', color:'#00695c',
     creencia: 'La gente no tiene dinero para donar.',
-    intervencion: `La percepción de que "nadie tiene dinero" es una generalización cognitiva derivada de los rechazos recibidos, no de datos reales. La intervención: contextualizar. El compromiso medio de donación mensual es menor que el coste de un café a la semana. El problema raramente es el dinero; es la prioridad y el momento. La objeción económica es con frecuencia una salida rápida, no una realidad financiera.`
+    intervencion: `La percepción de que "nadie tiene dinero" es una generalización cognitiva derivada de los rechazos recibidos, no de datos reales. La intervención: contextualizar. Para algunas personas el dinero es una limitación real, y hay que respetarlo; para otras, es una forma de decir que ahora no. En los dos casos, la respuesta es respetuosa y sin insistir.`
   },
   {
     cat:'donantes', catLabel:'Los donantes', color:'#00695c',
     creencia: 'Nadie quiere comprometerse con una cuota mensual en la calle.',
-    intervencion: `Millones de donantes activos en Europa se captaron exactamente así. La intervención: separar "nadie quiere" de "muchas personas dicen que no". El compromiso mensual es una barrera de entrada alta que requiere un proceso de comunicación sólido. Si el porcentaje de cierres es bajo, el problema está en el proceso, no en la disposición de la gente.`
+    intervencion: `Muchas personas se hacen socias de organizaciones precisamente así. La intervención: separar "nadie quiere" de "muchas personas dicen que no". El compromiso mensual es una barrera de entrada alta que requiere un proceso de comunicación sólido. Si el porcentaje de cierres es bajo, conviene revisar primero el proceso antes que atribuirlo a la disposición de la gente.`
   },
   {
     cat:'donantes', catLabel:'Los donantes', color:'#00695c',
@@ -4102,12 +4175,12 @@ const BIBLIOTECA = [
   {
     cat:'donantes', catLabel:'Los donantes', color:'#00695c',
     creencia: 'La gente ya dona por internet y no necesita hacerlo con nosotros.',
-    intervencion: `La donación online y la captación presencial no compiten, se complementan. La intervención: reencuadrar el valor del contacto presencial. Una persona que dona después de una conversación cara a cara tiene tasas de retención significativamente más altas que las captadas online. Lo que ofrecemos no es una alternativa a internet, es una experiencia de conexión diferente que genera compromisos más duraderos.`
+    intervencion: `La donación online y la captación presencial no compiten, se complementan. La intervención: reencuadrar el valor del contacto presencial. Lo que ofrecemos no es una alternativa a internet: es una conversación cara a cara, en la que la persona puede preguntar y entender bien a qué se compromete.`
   },
   {
     cat:'donantes', catLabel:'Los donantes', color:'#00695c',
     creencia: 'La gente joven no dona, solo los mayores lo hacen.',
-    intervencion: `Esta es una creencia aprendida del equipo, no de la realidad del campo. Los datos de muchas organizaciones muestran que los donantes más jóvenes son también los más fieles a largo plazo. La intervención: desafiar la creencia con datos propios si los hay, o con el encuadre de que el speech adaptado al perfil del interlocutor funciona en todas las franjas de edad. El problema suele ser un speech demasiado genérico, no la edad.`
+    intervencion: `Es una generalización que conviene contrastar con datos propios antes de darla por buena. La intervención: desafiar la creencia con datos propios si los hay, o con el encuadre de que el speech adaptado al perfil del interlocutor funciona en todas las franjas de edad. El problema suele ser un speech demasiado genérico, no la edad.`
   },
   {
     cat: 'rerp', catLabel: 'Creencias RE/RP', color: '#37474f',
@@ -4117,27 +4190,27 @@ const BIBLIOTECA = [
   {
     cat: 'rerp', catLabel: 'Creencias RE/RP', color: '#37474f',
     creencia: 'Si ya viene con actitud baja, no hay nada que hacer.',
-    intervencion: 'La actitud en los primeros dias refleja el miedo y la incertidumbre, no el perfil real. La persona nueva copia tu energia, no tus palabras. Antes de evaluar la actitud del captador, evaluar que energia esta recibiendo del equipo y del RE/RP.'
+    intervencion: 'La actitud en los primeros días puede reflejar miedo e incertidumbre más que el perfil real. La persona nueva copia tu energia, no tus palabras. Antes de evaluar la actitud del captador, evaluar que energia esta recibiendo del equipo y del RE/RP.'
   },
   {
     cat: 'rerp', catLabel: 'Creencias RE/RP', color: '#37474f',
     creencia: 'No tengo tiempo para acompanar a todos.',
-    intervencion: 'Un captador que se va en dia 12 por falta de acompanamiento costo mas tiempo que 15 contactos de 5 minutos. ESTANCIA = (Seguridad + Equipo + Identidad) x Progreso percibido. Todos estos factores dependen directamente del RE/RP. No hay tiempo para NO acompanar.'
+    intervencion: 'Contactos breves y frecuentes, de 5 minutos, pueden bastar para que nadie se sienta solo. La seguridad, el equipo, la identidad y la sensación de progreso influyen en que una persona siga, y el RE/RP puede trabajar sobre todas ellas. No hay tiempo para NO acompanar.'
   },
   {
     cat: 'rerp', catLabel: 'Creencias RE/RP', color: '#37474f',
     creencia: 'El perfil no era valido para este trabajo.',
-    intervencion: 'Esta creencia situa la responsabilidad fuera del RE/RP. La pregunta profesional no es si era valido el perfil sino: se ha acompanado con calidad, ha tenido micro victorias, se han dado expectativas realistas. Si la respuesta es no, el perfil nunca tuvo una oportunidad real.'
+    intervencion: 'Esta creencia situa la responsabilidad fuera del RE/RP. La pregunta profesional no es si era valido el perfil sino: se ha acompanado con calidad, ha tenido micro victorias, se han dado expectativas realistas. Si la respuesta es no, el perfil no tuvo una oportunidad real.'
   },
   {
     cat: 'rerp', catLabel: 'Creencias RE/RP', color: '#37474f',
     creencia: 'No soy responsable de que se quede o se vaya.',
-    intervencion: 'La calidad del acompanamiento en los primeros 100 dias es el factor mas determinante de permanencia. No queremos captadores que aguanten. Queremos profesionales que construyan su carrera aqui. Eso depende en gran parte del RE/RP.'
+    intervencion: 'La calidad del acompañamiento en los primeros 100 días es uno de los factores en los que más puede influir el RE/RP. No queremos captadores que aguanten. Queremos profesionales que construyan su carrera aqui. Eso depende en gran parte del RE/RP.'
   },
   {
     cat: 'rerp', catLabel: 'Creencias RE/RP', color: '#37474f',
     creencia: 'Si no mejora rapido es que no escucha.',
-    intervencion: 'La velocidad de aprendizaje varia enormemente. Lo que predice el exito es el patron: hay esfuerzo, aplica correcciones aunque sea lentamente, sigue el proceso. El resultado es el ultimo criterio, no el primero. Evaluar por patron, no por numero exacto.'
+    intervencion: 'La velocidad de aprendizaje varia enormemente. Lo que más información da es el patrón: hay esfuerzo, aplica correcciones aunque sea lentamente, sigue el proceso. El resultado es el ultimo criterio, no el primero. Evaluar por patron, no por numero exacto.'
   }
 ,
   // ══ MIEDO AL RECHAZO — AMPLIACIÓN ══
@@ -4154,7 +4227,7 @@ const BIBLIOTECA = [
   {
     cat:'rechazo', catLabel:'Miedo al rechazo', color:'#c62828',
     creencia: 'Hay días que siento que estoy molestando a todo el mundo.',
-    intervencion: 'Esa sensación no es una lectura objetiva de la realidad, es el resultado de acumular rechazos sin vaciarse entre medias. El cerebro hace patrones donde no los hay. Llevar un mini registro de cuántas personas sí escuchan ese día rompe el sesgo de confirmación. Rara vez es "todo el mundo". Casi siempre es "hoy me ha costado más que otros días" — lo cual es diferente.'
+    intervencion: 'Esa sensación no es una lectura objetiva de la realidad, es el resultado de acumular rechazos sin vaciarse entre medias. El cerebro hace patrones donde no los hay. Llevar un mini registro de cuántas personas sí escuchan ese día rompe el sesgo de confirmación. Rara vez es "todo el mundo". Lo más habitual es que sea «hoy me ha costado más que otros días» — lo cual es diferente.'
   },
   {
     cat:'rechazo', catLabel:'Miedo al rechazo', color:'#c62828',
@@ -4164,12 +4237,12 @@ const BIBLIOTECA = [
   {
     cat:'rechazo', catLabel:'Miedo al rechazo', color:'#c62828',
     creencia: 'Si alguien se detiene y luego se va sin donar me siento un fracasado.',
-    intervencion: 'Alguien que para y escucha durante 90 segundos ha cumplido la parte más difícil del proceso. El cierre no siempre llega en la primera conversación. Muchas personas que dicen que no hoy están en un proceso de decisión que puede completarse de otra forma. La intervención: separar "conversación de calidad" de "cierre" como métricas distintas. Ambas tienen valor real.'
+    intervencion: 'Alguien que para y escucha durante 90 segundos ha cumplido la parte más difícil del proceso. El cierre no siempre llega en la primera conversación. Una conversación que no termina en firma puede seguir teniendo valor. La intervención: separar "conversación de calidad" de "cierre" como métricas distintas. Ambas tienen valor real.'
   },
   {
     cat:'rechazo', catLabel:'Miedo al rechazo', color:'#c62828',
     creencia: 'Me cuesta arrancar en los primeros minutos de cada turno.',
-    intervencion: 'El arranque es el momento de mayor fricción en la jornada para la mayoría de captadores. No es señal de debilidad, es fisiología: el cerebro necesita los primeros intentos para calentarse. Protocolo demostrado: primera parada en los primeros 5 minutos sin negociar. No importa el resultado. La segunda es más fácil que la primera. La quinta ya es automática.'
+    intervencion: 'El arranque es el momento de mayor fricción en la jornada para la mayoría de captadores. No es señal de debilidad: es habitual necesitar unos primeros intentos para entrar en ritmo. Protocolo útil: primera parada en los primeros 5 minutos sin negociar. No importa el resultado. La segunda es más fácil que la primera. La quinta ya es automática.'
   },
   {
     cat:'rechazo', catLabel:'Miedo al rechazo', color:'#c62828',
@@ -4181,7 +4254,7 @@ const BIBLIOTECA = [
   {
     cat:'autoestima', catLabel:'Autoestima', color:'#6a1b9a',
     creencia: 'Cuando tengo una mala semana creo que nunca voy a mejorar.',
-    intervencion: 'Una semana mala no es una tendencia, es una muestra de tamaño 1. El cerebro interpreta el malestar reciente como pronóstico del futuro — eso es un sesgo cognitivo, no un análisis real. La intervención: revisar la semana anterior con datos. ¿Cuántas paradas? ¿Cuántas conversaciones de calidad? La mayoría de las veces la semana "mala" tiene más actividad de lo que se recuerda emocionalmente.'
+    intervencion: 'Una semana mala no es una tendencia, es una muestra de tamaño 1. El cerebro interpreta el malestar reciente como pronóstico del futuro — eso es un sesgo cognitivo, no un análisis real. La intervención: revisar la semana anterior con datos. ¿Cuántas paradas? ¿Cuántas conversaciones de calidad? A menudo la semana «mala» tiene más actividad de la que se recuerda.'
   },
   {
     cat:'autoestima', catLabel:'Autoestima', color:'#6a1b9a',
@@ -4206,39 +4279,39 @@ const BIBLIOTECA = [
   {
     cat:'autoestima', catLabel:'Autoestima', color:'#6a1b9a',
     creencia: 'No soy tan extrovertido como creo que hay que ser para este trabajo.',
-    intervencion: 'Los captadores más efectivos a largo plazo no son siempre los más extrovertidos: son los más consistentes. La extroversión ayuda en el arranque pero no predice el rendimiento a los 3 meses. La escucha activa, la paciencia y la autenticidad, cualidades frecuentes en introvertidos, generan más confianza en el interlocutor que la energía superficial. El trabajo se puede hacer desde distintos estilos.'
+    intervencion: 'No hace falta ser extrovertido para hacer bien este trabajo. La constancia, la escucha activa, la paciencia y la autenticidad se pueden entrenar y generan confianza en el interlocutor. El trabajo se puede hacer desde distintos estilos.'
   },
 
   // ══ PROCESO — AMPLIACIÓN ══
   {
     cat:'proceso', catLabel:'Proceso', color:'#1565c0',
     creencia: 'No sé cuándo es el momento de pasar de la conversación al cierre.',
-    intervencion: 'La señal no es verbal, es emocional. El momento de transición al cierre llega cuando la persona ha dejado de argumentar en contra y está en silencio o hace preguntas de detalle ("¿cómo funciona el pago?"). Esas preguntas no son objeciones: son señales de compra. La intervención: practicar en role-play específicamente el reconocimiento de esas señales, no solo las respuestas.'
+    intervencion: 'Cuando la persona hace preguntas de detalle («¿cómo funciona el pago?»), es un buen momento para responderlas con claridad y preguntarle si quiere colaborar. No hay que interpretar sus gestos como un sí: la decisión la expresa ella. La intervención: practicar en role-play cómo hacer esa pregunta con naturalidad.'
   },
   {
     cat:'proceso', catLabel:'Proceso', color:'#1565c0',
     creencia: 'Cuando alguien me da una larga excusa para no donar no sé cómo responder.',
-    intervencion: 'Una larga excusa es, paradójicamente, una señal de que la persona está comprometida en la conversación. Si no quisiera hablar, se iría. La intervención: reducir la respuesta a su mínima expresión. Validar brevemente y hacer una sola pregunta. "Entiendo. Si no fuera por eso, ¿lo haría?" Esta pregunta separa la objeción real de la de cortesía y define el siguiente paso.'
+    intervencion: 'Una explicación larga merece una respuesta breve y respetuosa. La intervención: reducir la respuesta a su mínima expresión. Validar brevemente y hacer una sola pregunta. "Entiendo. Si no fuera por eso, ¿lo haría?" Si la respuesta sigue siendo no, se acepta.'
   },
   {
     cat:'proceso', catLabel:'Proceso', color:'#1565c0',
     creencia: 'Cuando alguien me dice "lo pensaré" no sé si insistir o dejarle ir.',
-    intervencion: '"Lo pensaré" es casi siempre un no educado. La intervención profesional: preguntar qué información le falta para decidir ahora. Si responde algo concreto, dársela. Si no puede especificarlo, probablemente la decisión ya está tomada. Esto distingue el "lo pensaré porque tengo dudas reales" del "lo pensaré para salir de la conversación".'
+    intervencion: '«Lo pensaré» puede significar cosas distintas. La intervención profesional: preguntar si hay algo que necesite aclarar. Si lo hay, dárselo. Si prefiere pensarlo, respetarlo y dejarle la información para que decida con calma. No hay que insistir.'
   },
   {
     cat:'proceso', catLabel:'Proceso', color:'#1565c0',
     creencia: 'Las rebatidas que me preparo en casa se me olvidan en el momento.',
-    intervencion: 'Las rebatidas memorizadas se olvidan bajo presión porque van a la memoria declarativa, no a la procedimental. Lo que no se olvida es lo que se automatiza con repetición en contexto real o simulado. Role-play de 5 minutos antes de cada turno con las 3 objeciones más frecuentes vale más que 30 minutos de estudio en casa. La herramienta es la práctica, no la memorización.'
+    intervencion: 'Las rebatidas que solo se han leído se olvidan con facilidad bajo presión. Lo que no se olvida es lo que se automatiza con repetición en contexto real o simulado. Role-play de 5 minutos antes de cada turno con las 3 objeciones más frecuentes vale más que 30 minutos de estudio en casa. La herramienta es la práctica, no la memorización.'
   },
   {
     cat:'proceso', catLabel:'Proceso', color:'#1565c0',
     creencia: 'Me cuesta hablar con personas mayores, no sé cómo conectar con ellas.',
-    intervencion: 'Las personas mayores responden especialmente bien a dos cosas: respeto explícito por su tiempo y concreción en el impacto. El speech genérico no funciona con ningún perfil, pero con personas mayores la adaptación es especialmente importante. La intervención: practicar una versión del speech orientada a valores como legado, comunidad y responsabilidad colectiva, en lugar de urgencia o modernidad.'
+    intervencion: 'Con cualquier persona, también con las mayores, ayudan el respeto explícito por su tiempo y la concreción en el impacto. La intervención: practicar una versión del speech orientada a valores como legado, comunidad y responsabilidad colectiva, en lugar de urgencia o modernidad.'
   },
   {
     cat:'proceso', catLabel:'Proceso', color:'#1565c0',
     creencia: 'Con jóvenes me pongo nervioso porque creo que me van a ignorar.',
-    intervencion: 'La energía proyectada genera su respuesta. Si el captador se acerca a un joven con la expectativa de ser ignorado, su lenguaje corporal comunica esa inseguridad antes de abrir la boca. Con jóvenes funciona mejor la autenticidad directa que el speech formal. Intervención: adaptar el tono, ser más directo con el impacto y eliminar el lenguaje corporativo del speech.'
+    intervencion: 'La energía proyectada genera su respuesta. Si el captador se acerca a un joven con la expectativa de ser ignorado, su lenguaje corporal comunica esa inseguridad antes de abrir la boca. La autenticidad directa suele funcionar mejor que un speech formal, también con personas jóvenes. Intervención: adaptar el tono, ser más directo con el impacto y eliminar el lenguaje corporativo del speech.'
   },
   {
     cat:'proceso', catLabel:'Proceso', color:'#1565c0',
@@ -4250,7 +4323,7 @@ const BIBLIOTECA = [
   {
     cat:'entorno', catLabel:'Entorno y equipo', color:'#2e7d32',
     creencia: 'El equipo negativo me baja la energía antes de empezar.',
-    intervencion: 'La energía del equipo en el momento previo al turno tiene un impacto real y documentado en el rendimiento individual. Esto no es debilidad: es neurología social. La solución no es ignorarlo sino crear un protocolo personal previo que funcione independientemente del entorno. Antes de interactuar con el equipo: objetivo del día, primera parada en X minutos, frase de activación propia.'
+    intervencion: 'La energía del equipo en el momento previo al turno puede influir en el rendimiento individual. No es debilidad. La solución no es ignorarlo sino crear un protocolo personal previo que funcione independientemente del entorno. Antes de interactuar con el equipo: objetivo del día, primera parada en X minutos, frase de activación propia.'
   },
   {
     cat:'entorno', catLabel:'Entorno y equipo', color:'#2e7d32',
@@ -4265,7 +4338,7 @@ const BIBLIOTECA = [
   {
     cat:'entorno', catLabel:'Entorno y equipo', color:'#2e7d32',
     creencia: 'Mi zona es la peor de todas y por eso no tengo resultados.',
-    intervencion: 'La zona es una variable real pero raramente la variable determinante. Antes de cambiar la zona, cambiar el análisis: ¿cuántas paradas reales se hacen por hora en esa zona? ¿En qué horario? ¿Qué perfil demográfico tiene y cómo se adapta el speech? La mayoría de las veces una "zona mala" es una zona subóptima para el speech actual, no una zona imposible para cualquier captador.'
+    intervencion: 'La zona es una variable real, pero no la única. Antes de cambiar la zona, cambiar el análisis: ¿cuántas paradas reales se hacen por hora en esa zona? ¿En qué horario? ¿Qué perfil demográfico tiene y cómo se adapta el speech? A menudo una zona difícil pide adaptar el speech actual, más que darla por perdida.'
   },
   {
     cat:'entorno', catLabel:'Entorno y equipo', color:'#2e7d32',
@@ -4282,7 +4355,7 @@ const BIBLIOTECA = [
   {
     cat:'causa', catLabel:'La causa', color:'#e65100',
     creencia: 'A veces siento que le estamos pidiendo dinero a gente que lo necesita más que nosotros.',
-    intervencion: 'Esta creencia refleja empatía real pero aplica mal el análisis. El impacto de la organización llega a personas en situaciones de vulnerabilidad mucho más grave que las de la mayoría de donantes potenciales. Una persona que dona 5€ al mes en un país de renta media contribuye a proyectos que cambian condiciones de vida en contextos de pobreza extrema. La desproporción no es razón para no pedir: es la razón fundamental para pedirlo.'
+    intervencion: 'Esta creencia refleja una empatía real que conviene cuidar. Tu trabajo es ofrecer la opción con información clara sobre a quién llega la ayuda; la decisión es de cada persona según su situación. Si alguien dice que no puede, se acepta sin insistir.'
   },
   {
     cat:'causa', catLabel:'La causa', color:'#e65100',
@@ -4302,19 +4375,19 @@ const BIBLIOTECA = [
   {
     cat:'causa', catLabel:'La causa', color:'#e65100',
     creencia: 'No entiendo por qué es mejor donar mensualmente que hacer una donación única.',
-    intervencion: 'La donación periódica permite planificación de proyectos a largo plazo que las donaciones puntuales no pueden financiar. Un ejemplo concreto ayuda más que cualquier argumento abstracto: "Con 5€ al mes durante un año, la organización puede comprometerse a financiar un programa completo. Con una donación única de 60€ solo puede hacer una aportación puntual sin garantía de continuidad." Esta diferencia es real y comunicable.'
+    intervencion: 'La donación periódica permite planificación de proyectos a largo plazo que las donaciones puntuales no pueden financiar. Un ejemplo concreto ayuda más que cualquier argumento abstracto: usa un caso real de la organización que muestre qué permite una aportación estable y que una puntual no permite.'
   },
 
   // ══ LOS DONANTES — AMPLIACIÓN ══
   {
     cat:'donantes', catLabel:'Los donantes', color:'#00695c',
     creencia: 'La gente con aspecto más humilde no puede permitirse donar.',
-    intervencion: 'Juzgar la capacidad económica por la apariencia es uno de los sesgos más costosos en captación. Estudios de comportamiento filantrópico muestran consistentemente que la propensión a donar no correlaciona de forma simple con el nivel socioeconómico visible. La intervención: eliminar el filtro previo de a quién se para. La parada se hace a todo el mundo. La adaptación se hace después de escuchar, no antes de hablar.'
+    intervencion: 'Juzgar la capacidad económica por la apariencia es un sesgo: el aspecto no dice si alguien puede o quiere colaborar. La intervención: eliminar el filtro previo de a quién se para. La parada se hace a todo el mundo. La adaptación se hace después de escuchar, no antes de hablar.'
   },
   {
     cat:'donantes', catLabel:'Los donantes', color:'#00695c',
     creencia: 'La gente que lleva auriculares nunca va a parar.',
-    intervencion: 'Los auriculares son una señal de preferencia por no ser interrumpido, no una garantía de que la persona se niegue. Un porcentaje significativo de personas con auriculares para cuando se les aborda con la actitud correcta. La variable determinante no es el auricular: es la energía y el timing del captador. Estadística útil: llevar el cuenta propia de cuántas personas con auriculares paran en 50 intentos. El número sorprende.'
+    intervencion: 'Los auriculares son una señal de preferencia por no ser interrumpido, no una garantía de que la persona se niegue. Algunas personas con auriculares sí paran; la energía y el momento de la parada influyen. Ejercicio útil: llevar el cuenta propia de cuántas personas con auriculares paran en 50 intentos. El número sorprende.'
   },
   {
     cat:'donantes', catLabel:'Los donantes', color:'#00695c',
@@ -4324,44 +4397,44 @@ const BIBLIOTECA = [
   {
     cat:'donantes', catLabel:'Los donantes', color:'#00695c',
     creencia: 'Cuando alguien ya dona a una ONG no tiene sentido intentar captarle.',
-    intervencion: 'Alguien que ya dona a otra organización ha tomado la decisión más difícil: convertirse en donante. El paso de "no donante" a "donante" es el más costoso cognitivamente. El paso de "donante de X" a "donante de X e Y" es mucho más pequeño. La objeción "ya dono a otra" merece una respuesta diferenciada: reconocer el compromiso y explicar qué hace única a esta causa.'
+    intervencion: 'Alguien que ya dona a otra organización ha tomado la decisión más difícil: convertirse en donante. La objeción "ya dono a otra" merece una respuesta diferenciada: reconocer el compromiso y explicar qué hace única a esta causa.'
   },
   {
     cat:'donantes', catLabel:'Los donantes', color:'#00695c',
     creencia: 'La gente está saturada de pedir donaciones y ya no escucha.',
-    intervencion: 'La saturación es real como fenómeno de sector. Pero la respuesta no es rendirse: es diferenciarse. La diferenciación se construye en los primeros 8 segundos: si el speech suena igual que todos los demás, la saturación actúa. Si hay algo específico, concreto y humano en el arranque, la barrera de saturación se rompe. La saturación no afecta por igual a todos los captadores: afecta a los genéricos.'
+    intervencion: 'La saturación es real como fenómeno de sector. Pero la respuesta no es rendirse: es diferenciarse. La diferenciación se construye en los primeros 8 segundos: si el speech suena igual que todos los demás, la saturación actúa. Un arranque específico, concreto y humano ayuda a superar esa barrera.'
   },
   {
     cat:'donantes', catLabel:'Los donantes', color:'#00695c',
     creencia: 'Los hombres jóvenes casi nunca donan, no merece la pena intentarlo.',
-    intervencion: 'Esta generalización puede ser estadísticamente aproximada como promedio pero es peligrosa como guía de comportamiento individual. Un captador que internaliza este sesgo lo proyecta inconscientemente en su energía al acercarse a ese perfil, creando una profecía autocumplida. La solución no es ignorar la estadística: es no dejar que determine a quién se para y con qué energía.'
+    intervencion: 'Esta generalización es peligrosa como guía para tratar a cada persona. Un captador que internaliza este sesgo lo proyecta inconscientemente en su energía al acercarse a ese perfil, creando una profecía autocumplida. La solución es no dejar que determine a quién se para y con qué energía.'
   },
   {
     cat:'donantes', catLabel:'Los donantes', color:'#00695c',
     creencia: 'Cuando la persona tiene prisa no tiene sentido intentarlo.',
-    intervencion: 'La prisa real y la prisa como escape son difíciles de distinguir antes de intentarlo. Un captador con un speech muy breve y directo tiene posibilidades con alguien con prisa real que un speech largo nunca tendrá. Práctica útil: desarrollar una versión de 30 segundos del speech completo para contextos de alta movilidad. Funciona menos que la versión larga, pero más que no intentarlo.'
+    intervencion: 'La prisa real y la prisa como escape son difíciles de distinguir antes de intentarlo. Un captador con un speech muy breve y directo tiene posibilidades con alguien con prisa real que un speech largo difícilmente tendrá. Práctica útil: desarrollar una versión de 30 segundos del speech completo para contextos de alta movilidad. Funciona menos que la versión larga, pero más que no intentarlo.'
   },
 
   // ══ RE/RP — AMPLIACIÓN ══
   {
     cat:'rerp', catLabel:'Creencias RE/RP', color:'#37474f',
     creencia: 'Si un captador no mejora después de dos semanas es que no tiene perfil.',
-    intervencion: 'Dos semanas es un período demasiado corto para evaluar el perfil. La curva de aprendizaje en captación tiene una fase de rendimiento negativo documentada entre el día 13 y el 25. Un captador que no ha mejorado en dos semanas puede estar exactamente en ese valle. La evaluación de perfil requiere al menos 4-6 semanas con acompañamiento de calidad. Sin ese mínimo, no hay información suficiente para una decisión.'
+    intervencion: 'Dos semanas es un período demasiado corto para evaluar el perfil. La curva de aprendizaje en captación suele tener un bache entre el día 13 y el 25. Un captador que no ha mejorado en dos semanas puede estar exactamente en ese valle. La evaluación de perfil requiere al menos 4-6 semanas con acompañamiento de calidad. Sin ese mínimo, no hay información suficiente para una decisión.'
   },
   {
     cat:'rerp', catLabel:'Creencias RE/RP', color:'#37474f',
     creencia: 'Los captadores deberían motivarse solos, yo no tengo que estar encima constantemente.',
-    intervencion: 'La motivación sostenida en trabajo de alto rechazo no es autogenerada: es producto del entorno, del reconocimiento y de la percepción de progreso. Un RE/RP que espera que los captadores se motiven solos está externalizando una responsabilidad central de su rol. La motivación no es un carácter fijo: es un estado dinámico que el acompañamiento puede sostener o destruir. No es estar "encima": es crear las condiciones.'
+    intervencion: 'La motivación sostenida en trabajo de alto rechazo depende mucho del entorno, del reconocimiento y de la percepción de progreso. Un RE/RP que espera que los captadores se motiven solos está externalizando una responsabilidad central de su rol. La motivación no es un carácter fijo: es un estado dinámico que el acompañamiento puede sostener o destruir. No es estar "encima": es crear las condiciones.'
   },
   {
     cat:'rerp', catLabel:'Creencias RE/RP', color:'#37474f',
     creencia: 'Ya le dije lo que tenía que hacer, si no lo aplica es su problema.',
-    intervencion: 'Decir algo una vez no es suficiente para generar cambio de comportamiento. La investigación en aprendizaje motor muestra que la automatización de una habilidad requiere repetición en contexto, feedback inmediato y corrección progresiva. Si el captador no aplica algo que se le dijo una vez, el problema no es su falta de voluntad: es que el proceso de transferencia de habilidad no se ha completado.'
+    intervencion: 'Decir algo una vez no es suficiente para generar cambio de comportamiento. Automatizar una habilidad requiere repetición en contexto, feedback inmediato y corrección progresiva. Si el captador no aplica algo que se le dijo una vez, el problema no es su falta de voluntad: es que el proceso de transferencia de habilidad no se ha completado.'
   },
   {
     cat:'rerp', catLabel:'Creencias RE/RP', color:'#37474f',
     creencia: 'El captador tiene buena actitud pero los resultados no dan para más.',
-    intervencion: 'Actitud buena con resultado bajo es casi siempre un problema técnico, no de motivación. El primer paso es identificar exactamente en qué punto del proceso se pierde: ¿parada, speech, rebatida o cierre? Una observación directa de 30 minutos en campo revela más que horas de conversación. La actitud es el activo — la técnica es el trabajo pendiente del RE/RP.'
+    intervencion: 'Con buena actitud y resultado bajo, lo primero es revisar la técnica. El primer paso es identificar exactamente en qué punto del proceso se pierde: ¿parada, speech, rebatida o cierre? Una observación directa de 30 minutos en campo revela más que horas de conversación. La actitud es el activo — la técnica es el trabajo pendiente del RE/RP.'
   },
   {
     cat:'rerp', catLabel:'Creencias RE/RP', color:'#37474f',
@@ -4371,35 +4444,35 @@ const BIBLIOTECA = [
   {
     cat:'rerp', catLabel:'Creencias RE/RP', color:'#37474f',
     creencia: 'Prefiero esperar a que el captador pregunte antes de dar feedback proactivo.',
-    intervencion: 'Los captadores en fases iniciales raramente preguntan por miedo a parecer torpes o incapaces. Esperar a que pregunten es dejar la iniciativa del aprendizaje en la persona con menos recursos para ejercerla. El feedback proactivo estructurado ("voy a contarte lo que observé hoy") no es intrusivo: es profesional. La persona que espera que te pidan permiso para ayudar suele llegar tarde.'
+    intervencion: 'Los captadores en fases iniciales a menudo no preguntan. Esperar a que pregunten es dejar la iniciativa del aprendizaje en la persona con menos recursos para ejercerla. El feedback proactivo estructurado ("voy a contarte lo que observé hoy") no es intrusivo: es profesional. La persona que espera que te pidan permiso para ayudar suele llegar tarde.'
   },
   {
     cat:'rerp', catLabel:'Creencias RE/RP', color:'#37474f',
     creencia: 'Los resultados del equipo dependen más del mercado que de mi trabajo como RE.',
-    intervencion: 'El mercado explica la variación entre períodos y zonas. No explica la diferencia entre equipos con condiciones similares. La variable con mayor poder predictivo sobre los resultados del equipo a 3 meses es la calidad del acompañamiento en los primeros 45 días. Dos equipos en la misma ciudad con las mismas causas pueden tener resultados muy diferentes si uno tiene RE/RP de calidad y el otro no. El mercado es el contexto. El RE/RP es la variable.'
+    intervencion: 'El mercado explica parte de la variación entre períodos y zonas, pero no toda la diferencia entre equipos con condiciones parecidas. La calidad del acompañamiento en los primeros 45 días es una de las variables en las que más influye el RE/RP. Dos equipos en la misma ciudad con las mismas causas pueden tener resultados muy diferentes si uno tiene RE/RP de calidad y el otro no. El mercado es el contexto; el acompañamiento es lo que el RE/RP puede mejorar.'
   },
 
   // ══ LA CUOTA MEDIA ══
   { cat:'cuota', catLabel:'La cuota media', color:'#1a237e',
     creencia: 'La cuota media baja porque la gente no puede pagar más.',
-    intervencion: 'La cuota media refleja la convicción del captador, no la capacidad del donante. Cuando el captador cree que 5 euros es mucho pedir, lo comunica antes de que el donante lo diga. Reprogramación: que cuota propondrías si creyeras que el donante puede pagarlo fácilmente? Esa es la cuota que hay que proponer. El donante llega a donde el captador le lleva con confianza.' },
+    intervencion: 'La cuota que se propone no debería depender de suposiciones sobre lo que la persona puede pagar. Si el captador rebaja la propuesta por adelantado, transmite inseguridad. Reprogramación: presentar las opciones habituales con claridad y seguridad, y dejar que cada persona elija la que le encaje. Quien no puede más no tiene que justificarse.' },
   { cat:'cuota', catLabel:'La cuota media', color:'#1a237e',
     creencia: 'Si pido mucho el donante se asusta y no firma.',
-    intervencion: 'Proponer primero una cuota alta y bajar si es necesario siempre da mejor resultado que proponer bajo sin poder subir. El donante que iba a decir que no por 10 euros también lo habría dicho por 5. El que iba a decir que sí acepta lo que se propone con confianza. La cuota alta con convicción es mejor que la cuota baja con miedo.' },
+    intervencion: 'Presenta las opciones de cuota de forma clara, explicando qué permite cada una, y deja que la persona elija la que considere adecuada. El primer importe no debe usarse como presión. Lo que da seguridad no es la cifra: es explicarla con convicción y respetar la decisión.' },
   { cat:'cuota', catLabel:'La cuota media', color:'#1a237e',
     creencia: 'Con este perfil de persona no tiene sentido proponer más de X euros.',
-    intervencion: 'El filtro por perfil visual es el sesgo que más dinero pierde en captación. La cuota que el captador propone depende de su convicción, no del aspecto del donante. Ejercicio: proponer la misma cuota a todos los perfiles durante una sesión y medir los resultados reales. El sistema funciona cuando el captador cree en lo que propone, no cuando filtra a quién propone.' },
+    intervencion: 'Decidir la cuota por el aspecto de la persona es un sesgo. Ejercicio: presentar las mismas opciones a todo el mundo durante una sesión y observar los resultados reales. Cada persona elige; el captador no filtra por apariencia.' },
   { cat:'cuota', catLabel:'La cuota media', color:'#1a237e',
     creencia: 'Si subo la cuota media tendré más rechazos.',
-    intervencion: 'El número de rechazos no es la métrica que importa: es el resultado económico del equipo. Una cuota media más alta con el mismo número de cierres produce más impacto. Los rechazos adicionales por proponer más no superan el beneficio de los cierres a cuota superior. El dato que hay que mirar no es el porcentaje de rechazos: es la media de cuota de los que sí firman.' },
+    intervencion: 'Una cuota media más alta con el mismo número de cierres produce más impacto, pero solo si es la cuota que la persona elige con libertad. Lo que mejora la media de forma sana es explicar bien el impacto de cada opción, no presionar. Conviene mirar la media de cuota de quienes firman y también si se mantienen (las bajas tempranas).' },
 
   // ══ LA CALIDAD ══
   { cat:'calidad', catLabel:'La calidad', color:'#004d40',
     creencia: 'Más socios es siempre mejor aunque sean a cuota baja.',
-    intervencion: 'El volumen sin calidad genera una base con alta tasa de cancelación. Un socio captado a 3 euros con baja conexión emocional cancela antes que uno captado a 8 euros con una conversación de calidad. La calidad de la captación predice la retención. El objetivo no es el número de altas: es el número de altas que se mantienen.' },
+    intervencion: 'El volumen sin calidad puede generar más bajas tempranas. No es solo cuestión de cuota: una persona que entiende bien a qué se compromete tiene más motivos para seguir. El objetivo no es el número de altas: es el número de altas que se mantienen.' },
   { cat:'calidad', catLabel:'La calidad', color:'#004d40',
     creencia: 'No tengo tiempo para hacer una captación de calidad, necesito el número.',
-    intervencion: 'La captación de calidad no lleva más tiempo que la captación rápida mal hecha. Lleva el mismo tiempo mejor distribuido: más atención en los primeros 30 segundos, una pregunta abierta, un cierre que surge de forma natural. El problema no es el tiempo: es la creencia de que cantidad y calidad son incompatibles. Los captadores con las mejores medias de cuota hacen paradas más intencionales, no menos.' },
+    intervencion: 'La captación de calidad no lleva más tiempo que la captación rápida mal hecha. Lleva el mismo tiempo mejor distribuido: más atención en los primeros 30 segundos, una pregunta abierta, un cierre que surge de forma natural. El problema no es el tiempo: es la creencia de que cantidad y calidad son incompatibles. Hacer paradas más intencionales no obliga a hacer menos.' },
   { cat:'calidad', catLabel:'La calidad', color:'#004d40',
     creencia: 'Si la conversación va bien pero no firma fue tiempo perdido.',
     intervencion: 'Una conversación de calidad que no cierra hoy tiene valor. La persona que tuvo una buena experiencia con la organización tiene más probabilidad de donar por otro canal o de hablar bien de la causa. La calidad construye marca. La captación agresiva y de baja calidad la destruye. El impacto no siempre es medible en el mismo turno.' },
@@ -4407,13 +4480,13 @@ const BIBLIOTECA = [
   // ══ LAS ZONAS ══
   { cat:'zonas', catLabel:'Las zonas', color:'#bf360c',
     creencia: 'Esta zona está quemada, ya no da más.',
-    intervencion: 'La zona quemada casi siempre es una zona donde se ha trabajado con una sola estrategia hasta agotarla. Cambiar el horario, el punto de trabajo o el arranque del speech puede reactivarla. Framework de reprogramación Wesser (4 pasos): 1) Hacer visible la creencia. 2) Cambiar el foco: que puedo hacer diferente. 3) Convertirlo en acción: probar un horario nuevo esta semana. 4) Frase entrenable: "Esta zona tiene oportunidades que aún no he encontrado."' },
+    intervencion: 'Muchas veces, lo que parece una zona quemada es una zona donde se ha agotado una sola estrategia. Cambiar el horario, el punto de trabajo o el arranque del speech puede reactivarla. Framework de reprogramación Wesser (4 pasos): 1) Hacer visible la creencia. 2) Cambiar el foco: que puedo hacer diferente. 3) Convertirlo en acción: probar un horario nuevo esta semana. 4) Frase entrenable: "Esta zona tiene oportunidades que aún no he encontrado."' },
   { cat:'zonas', catLabel:'Las zonas', color:'#bf360c',
     creencia: 'Siempre me dan las peores zonas y por eso mis resultados son peores.',
-    intervencion: 'La zona determina el volumen de peatones pero no el resultado. Hay captadores que trabajan bien en zonas difíciles y mal en zonas buenas. La variable más predictiva del resultado es la adaptabilidad del captador. Reprogramación: de "me han dado una zona mala" a "que puedo hacer diferente en esta zona" — ese desplazamiento del foco de fuera a dentro es el cambio que produce resultado.' },
+    intervencion: 'La zona influye en el volumen de peatones, pero no lo explica todo: la forma de adaptarse a ella también pesa. Reprogramación: de «me han tocado las peores zonas» a «qué puedo hacer diferente en esta zona». Ese cambio de foco, de fuera a dentro, es el que abre opciones de mejora.' },
   { cat:'zonas', catLabel:'Las zonas', color:'#bf360c',
     creencia: 'En el centro siempre hay más y en zonas periféricas es imposible.',
-    intervencion: 'El centro tiene más volumen pero también más saturación y más prisa. Las zonas periféricas tienen menos volumen pero más tiempo disponible por interlocutor y menos competencia. El perfil del donante periférico puede ser más comprometido. La estrategia correcta es diferente en cada zona — adaptarse es la habilidad, no cambiar de zona.' },
+    intervencion: 'El centro tiene más volumen pero también más saturación y más prisa. Las zonas periféricas tienen menos volumen pero más tiempo disponible por interlocutor y menos competencia. La estrategia correcta es diferente en cada zona — adaptarse es la habilidad, no cambiar de zona.' },
 
   // ══ LOGÍSTICA DEL DÍA A DÍA ══
   { cat:'logistica', catLabel:'Logistica del dia', color:'#4a148c',
@@ -4421,7 +4494,7 @@ const BIBLIOTECA = [
     intervencion: 'El tiempo adverso reduce el volumen de peatones pero no elimina la oportunidad. La respuesta profesional es adaptar la estrategia: zonas cubiertas, speech más breve y directo, mayor densidad de intentos. Los captadores que mantienen ritmo en condiciones adversas desarrollan consistencia bajo presión — una habilidad que no se puede entrenar en condiciones favorables.' },
   { cat:'logistica', catLabel:'Logistica del dia', color:'#4a148c',
     creencia: 'Los lunes y los viernes son los peores días para captar.',
-    intervencion: 'Los patrones de rendimiento por día varían enormemente según la zona, el tipo de donante y el captador. Generalizar sin datos propios es construir una profecía autocumplida. Llevar un registro de resultados por día durante 4 semanas da información real. La mayoría de las veces la diferencia entre días es menor de lo que la creencia hace pensar — lo que varía más es la energía de llegada, no el día.' },
+    intervencion: 'Los patrones de rendimiento por día varían enormemente según la zona, el tipo de donante y el captador. Generalizar sin datos propios es construir una profecía autocumplida. Llevar un registro de resultados por día durante 4 semanas da información real. A menudo la diferencia entre días es menor de lo que parece; la energía con la que se llega también influye.' },
   { cat:'logistica', catLabel:'Logistica del dia', color:'#4a148c',
     creencia: 'Cuando llego tarde al turno ya no merece la pena esforzarse.',
     intervencion: 'La tardanza reduce el tiempo pero no anula el turno. Un turno de 3 horas reducido a 2.5 sigue siendo productivo si el captador entra con la energía correcta. La creencia de que llegar tarde justifica bajar el nivel crea el daño real, no el retraso en sí. Reprogramación: "llegué tarde, voy a compensar en las próximas 2 horas con más intensidad." Esa es la actitud profesional.' },
@@ -4446,7 +4519,7 @@ const BIBLIOTECA = [
   {
     cat:'cuota', catLabel:'Cuota', color:'#b71c1c',
     creencia: 'La cuota es imposible de conseguir de forma consistente.',
-    intervencion: 'La cuota no es un techo: es un suelo. Los captadores que la interpretan como techo la alcanzan a veces. Los que la interpretan como suelo la superan con frecuencia. El problema no es la cuota sino el marco desde el que se contempla. Paso de reprogramación: ¿qué actividad diaria garantiza estadísticamente alcanzar la cuota? Define el proceso, no el número. El número es consecuencia.'
+    intervencion: 'La cuota no es un techo: es un suelo. Cómo se mira la cuota cambia cómo se trabaja. El problema no es la cuota sino el marco desde el que se contempla. Paso de reprogramación: ¿qué actividad diaria te acerca de forma realista a la cuota? Define el proceso, no el número. El número es consecuencia.'
   },
   {
     cat:'cuota', catLabel:'Cuota', color:'#b71c1c',
@@ -4456,7 +4529,7 @@ const BIBLIOTECA = [
   {
     cat:'cuota', catLabel:'Cuota', color:'#b71c1c',
     creencia: 'Algunos captadores tienen ventaja porque trabajan en mejores zonas y por eso llegan más fácil.',
-    intervencion: 'La zona tiene un impacto real pero raramente es el factor determinante de la diferencia entre captadores. Dos variables con más peso: el volumen de intentos por turno y la calidad del speech adaptado a ese contexto. Un captador con proceso sólido en una zona "difícil" supera consistentemente a uno con proceso débil en una zona "fácil". Enfocarse en la zona como explicación es enfocarse en lo que no se puede controlar.'
+    intervencion: 'La zona tiene un impacto real, pero no explica toda la diferencia entre captadores. Dos variables que también pesan mucho: el volumen de intentos por turno y la calidad del speech adaptado a ese contexto. Un captador con proceso sólido en una zona "difícil" puede superar a uno con proceso débil en una zona "fácil". Enfocarse en la zona como explicación es enfocarse en lo que no se puede controlar.'
   },
   {
     cat:'cuota', catLabel:'Cuota', color:'#b71c1c',
@@ -4478,14 +4551,14 @@ const BIBLIOTECA = [
   {
     cat:'calidad', catLabel:'Calidad', color:'#1a237e',
     creencia: 'Me presionan por número pero luego los donantes se van porque no son de calidad.',
-    intervencion: 'Esta tensión entre volumen y calidad es real en el sector. La respuesta no es elegir entre volumen y calidad sino entender que no son incompatibles. Un captador con buen proceso puede tener alto volumen y buena calidad. La intervención: analizar las conversaciones que terminaron en baja temprana. ¿Qué había diferente? ¿Expectativas no ajustadas? ¿Donante que no tenía real capacidad? Los datos muestran el patrón.'
+    intervencion: 'Esta tensión entre volumen y calidad es real en el sector. La respuesta no es elegir entre volumen y calidad sino entender que no son incompatibles. Un captador con buen proceso puede tener alto volumen y buena calidad. La intervención: analizar las conversaciones que terminaron en baja temprana. ¿Qué había diferente? ¿Expectativas no ajustadas? ¿Donante que no tenía real capacidad? Revisar esos casos ayuda a ver el patrón.'
   },
 
   // TEMA 3: ZONAS
   {
     cat:'zonas', catLabel:'Zonas', color:'#1b5e20',
     creencia: 'Mi zona está quemada, la gente ya me conoce y no quiere saber nada.',
-    intervencion: 'Una zona solo está verdaderamente "quemada" cuando la saturación es tan alta que el nombre de la organización genera rechazo activo. Antes de ese punto, "zona quemada" suele significar "he tenido malos resultados aquí". La intervención: cambiar el ángulo de ataque. Nueva zona dentro de la misma área, horario diferente, o simplemente un speech diferente. La zona no es el problema: es el contexto.'
+    intervencion: 'Una zona solo está verdaderamente "quemada" cuando la saturación es tan alta que el nombre de la organización genera rechazo activo. Antes de ese punto, "zona quemada" suele significar "he tenido malos resultados aquí". La intervención: cambiar el enfoque. Nueva zona dentro de la misma área, horario diferente, o simplemente un speech diferente. La zona no es el problema: es el contexto.'
   },
   {
     cat:'zonas', catLabel:'Zonas', color:'#1b5e20',
@@ -4524,24 +4597,24 @@ const BIBLIOTECA = [
   {
     cat:'causa', catLabel:'La causa', color:'#e65100',
     creencia: 'La gente ya tiene demasiados problemas propios como para pensar en los de otros.',
-    intervencion: 'Esta creencia proyecta una visión del donante como alguien con recursos limitados de atención y empatía. Pero la investigación sobre comportamiento filantrópico muestra lo contrario: las personas que tienen más conciencia de sus propias dificultades suelen tener mayor empatía hacia dificultades ajenas. El speech que conecta la experiencia del donante con la causa genera más compromiso que el que habla de la causa en abstracto.'
+    intervencion: 'Esta creencia da por hecho cómo se siente cada persona antes de hablar con ella. Muchas personas, aun con sus propias dificultades, se interesan por las de otros. El speech que conecta la experiencia del donante con la causa genera más compromiso que el que habla de la causa en abstracto.'
   },
   {
     cat:'causa', catLabel:'La causa', color:'#e65100',
     creencia: 'Ya hay demasiadas ONGs, la gente está harta y no quiere escuchar.',
-    intervencion: 'La saturación del sector es un fenómeno real. La respuesta no es rendirse sino diferenciarse. La diferenciación no viene del nombre de la organización sino de cómo se presenta la conversación: concreto vs. abstracto, específico vs. genérico, humano vs. institucional. Un captador que arranca con un dato específico e impactante tiene 3 veces más posibilidades de ser escuchado que uno que arranca con el nombre de la organización.'
+    intervencion: 'La saturación del sector es un fenómeno real. La respuesta no es rendirse sino diferenciarse. La diferenciación no viene del nombre de la organización sino de cómo se presenta la conversación: concreto vs. abstracto, específico vs. genérico, humano vs. institucional. Arrancar con un dato específico suele despertar más interés que empezar solo por el nombre de la organización.'
   },
 
   // TEMA 6: PERFILES DE DONANTE
   {
     cat:'donantes', catLabel:'Los donantes', color:'#00695c',
     creencia: 'Las personas de mediana edad son las más difíciles de captar.',
-    intervencion: 'Las personas entre 35 y 55 años suelen tener mayor capacidad económica, mayor consciencia sobre causas sociales y mayor estabilidad vital para comprometerse. Lo que puede percibirse como "dificultad" es en realidad que este perfil requiere más argumentos racionales y menos argumentos emocionales. Adaptar el speech a más datos concretos y menos apelaciones a la urgencia emocional.'
+    intervencion: 'La edad no define cómo va a responder cada persona. Si alguien pide más información antes de decidir, conviene darle datos concretos y espacio para preguntar, en lugar de apelar a la urgencia emocional.'
   },
   {
     cat:'donantes', catLabel:'Los donantes', color:'#00695c',
     creencia: 'La gente con aspecto de mucha prisa siempre dice que no tiene tiempo.',
-    intervencion: 'La prisa visible y la prisa real no son siempre la misma cosa. Muchas personas que parecen con prisa están en modo automático de evitación. Un captador con presencia y seguridad puede romper ese patrón con las primeras palabras. Útil: desarrollar un speech de arranque de 8 segundos que genere curiosidad sin pedir tiempo. Si la persona se detiene, el tiempo ya no es el obstáculo.'
+    intervencion: 'La prisa visible y la prisa real no son siempre la misma cosa. No se puede saber quién tiene prisa de verdad antes de intentarlo. Útil: desarrollar un speech de arranque de 8 segundos que genere curiosidad sin pedir tiempo. Si dice que no tiene tiempo, se respeta.'
   },
   {
     cat:'donantes', catLabel:'Los donantes', color:'#00695c',
@@ -4824,6 +4897,7 @@ function importarJSON(input) {
       if (!merge && added === 0) {
         resultEl.className = 'json-import-result err';
         resultEl.textContent = 'No se ha importado nada: el archivo no tiene ninguna ficha válida' + motivosTxt + '. Tus fichas no se han modificado.';
+        anunciar(resultEl.textContent);
         input.value = '';
         return;
       }
@@ -4837,21 +4911,31 @@ function importarJSON(input) {
           '\n\nLas fichas que tienes ahora se perderán. Si quieres conservarlas, cancela y marca «Combinar con las fichas que ya tienes».\n\n¿Reemplazar?')) {
           resultEl.className = 'json-import-result';
           resultEl.textContent = 'Importación cancelada: tus fichas no se han modificado.';
+          anunciar(resultEl.textContent);
           input.value = '';
           return;
         }
       }
       asegurarIds(existentes);   // sin repetidos dentro de lo importado
-      if (merge) salvarFichas(existentes); else reemplazarFichas(existentes);
+      if (!(merge ? salvarFichas(existentes, 'importacion') : reemplazarFichas(existentes))) {
+        resultEl.className = 'json-import-result err';
+        resultEl.textContent = AVISOS_ALMACEN.importacion;
+        anunciar(resultEl.textContent);
+        input.value = '';
+        try{ renderHistorialTab(); }catch(e){}
+        return;
+      }
       actualizarContador(); actualizarModoSesion();
       try{ renderHistorialTab(); }catch(e){} populateEvoSelect(); renderDashboard();
       resultEl.className = 'json-import-result ok';
       resultEl.textContent = added + ' fichas importadas' + (skipped ? ', ' + skipped + ' omitidas (ya existían)' : '') +
         (idsSustituidos ? ', ' + idsSustituidos + ' con identificador no válido (se ha sustituido)' : '') + motivosTxt + '.';
+      anunciar(resultEl.textContent);
       input.value = '';
     } catch(err) {
       resultEl.className = 'json-import-result err';
       resultEl.textContent = 'Error: ' + err.message;
+      anunciar('No se ha podido importar: ' + err.message);
     }
   };
   reader.readAsText(file);
@@ -5436,6 +5520,39 @@ function restaurarDecision(data) {
     cb.closest('.checklist-item')?.classList.toggle('checked', cb.checked);
   });
   actualizarChecklist();
+}
+// Decisión de la sesión para el PDF, tal como quedó registrada en sus datos (decisionMatrix, decisionResult,
+// checklistDespido). Los textos son los de la pantalla: nombres de los criterios, regla y puntos del checklist.
+function decisionParaPDF(d) {
+  const m = copiaMatriz(d && d.decisionMatrix);
+  const nombre = k => document.querySelector('#mc_' + k + ' .mz-crit-name')?.textContent.trim() || (k.charAt(0).toUpperCase() + k.slice(1));
+  const criterios = CRITERIOS_MATRIZ.map(k => ({ label: nombre(k), estado: m[k] === true ? 'S\u00ed' : m[k] === false ? 'No' : 'Sin decidir' }));
+  const r = d && d.decisionResult;
+  const cod = r && typeof r.regla === 'string' ? r.regla.match(/^E([01])A([01])P([01])R([01])$/) : null;
+  const regla = cod ? MATRIZ_REGLAS.find(x => x.cond({ esfuerzo: cod[1] === '1', aprendizaje: cod[2] === '1', proceso: cod[3] === '1', resultado: cod[4] === '1' })) : null;
+  let resultado, desc = '';
+  if (!r) {
+    resultado = 'No registrada';
+    desc = CRITERIOS_MATRIZ.some(k => m[k] === null) ? 'No hay una recomendaci\u00f3n registrada: faltan criterios por decidir.' : 'No hay una recomendaci\u00f3n registrada en esta sesi\u00f3n.';
+  } else if (r.sinBaseSalida) {
+    resultado = 'Sin base para valorar una salida';
+    desc = 'Los 4 criterios est\u00e1n en \u00abNo\u00bb, pero no se cumpl\u00edan los requisitos para valorar una salida (fase, patr\u00f3n de sesiones o evidencia suficiente).';
+  } else if (regla) {
+    resultado = fraseNormal(partirEmoji(regla.decision).texto);
+    desc = regla.desc;
+  } else resultado = 'Registrada sin descripci\u00f3n';
+  // Como en pantalla: el checklist solo aplica cuando la recomendación es valorar una salida
+  const aplica = !!(r && r.cls === 'mr-despedir' && !r.sinBaseSalida);
+  const lista = d && Array.isArray(d.checklistDespido) ? d.checklistDespido : null;
+  let checklist = null, checklistNota = '';
+  if (!aplica) checklistNota = 'No aplica: el checklist solo se usa cuando la recomendaci\u00f3n es valorar una salida.';
+  else if (!lista) checklistNota = 'No registrado en esta sesi\u00f3n.';
+  else {
+    const textos = [...document.querySelectorAll('#checklistSection .checklist-item-text')].map(el => el.textContent.trim());
+    const items = textos.map((t, i) => ({ texto: t, hecho: lista[i] === true }));
+    checklist = { items, hechos: items.filter(x => x.hecho).length, total: items.length };
+  }
+  return { resultado, desc, criterios, checklist, checklistNota };
 }
 
 
@@ -6505,14 +6622,22 @@ function guardarNuevaPlantilla() {
     document.getElementById('npTexto')?.focus();
     return;
   }
-  var propias = cargarPlantillasPropias();
+  var propias = cargarPlantillasPropias(true);
+  var fallo = 'No se ha podido guardar la plantilla: el almacenamiento del navegador no está disponible o está lleno. El texto sigue aquí.';
+  if (!propias) {
+    if (err) err.textContent = fallo;
+    return;
+  }
   if (id) {
     var idx2 = propias.findIndex(function(x){ return x._id===id; });
     if (idx2>=0){ propias[idx2].label=titulo||'Mi plantilla'; propias[idx2].texto=texto; }
   } else {
     propias.push({ _id: getNuevaPlantillaId(), label: titulo||'Mi plantilla', texto: texto });
   }
-  salvarPlantillasPropias(propias);
+  if (!salvarPlantillasPropias(propias)) {   // la ventana sigue abierta con lo escrito
+    if (err) err.textContent = fallo;
+    return;
+  }
   cerrarNuevaPlantilla();
   plantillasCatActiva = 'mias';
   renderCats();
@@ -6524,7 +6649,9 @@ function cerrarNuevaPlantilla() {
 }
 function eliminarPlantillaPropia(id) {
   if (!confirm('¿Eliminar esta plantilla?')) return;
-  salvarPlantillasPropias(cargarPlantillasPropias().filter(function(x){ return x._id!==id; }));
+  var propias = cargarPlantillasPropias(true);
+  if (!propias) { avisoAlmacen('eliminacion'); return; }
+  if (!salvarPlantillasPropias(propias.filter(function(x){ return x._id!==id; }), 'eliminacion')) return;
   filtrarPlantillas();
 }
 function insertarPlantillaPropia(id) {
