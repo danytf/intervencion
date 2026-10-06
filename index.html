@@ -1639,7 +1639,9 @@ const AVISOS_ALMACEN = {
 };
 let _lecturaAvisada = false;   // el aviso de lectura se da una vez, no en cada repintado
 const _danadoAvisado = new Set();   // al leer para mostrar, el aviso de datos dañados también se da una sola vez
+let _ultimoAvisoAlmacen = null;   // tipo del último fallo, para que un mensaje en pantalla diga lo mismo que el aviso
 function avisoAlmacen(tipo, alLeer) {
+  _ultimoAvisoAlmacen = tipo;
   if (tipo === 'lectura') { if (_lecturaAvisada) return; _lecturaAvisada = true; }
   if (alLeer && (tipo === 'danadoFichas' || tipo === 'danadoPlantillas')) { if (_danadoAvisado.has(tipo)) return; _danadoAvisado.add(tipo); }
   toast(AVISOS_ALMACEN[tipo], {ms:9000});
@@ -2446,6 +2448,7 @@ function eliminarFicha(id) {
   invalidarCache();   // se busca en lo guardado ahora (puede venir de otra pestaña), no en una caché antigua
   const fichaBackup = cargarFichas().find(f => f._id === id);
   if(!fichaBackup) { if (_fichasCache === null) avisoAlmacen('eliminacion'); return; }
+  const eraCargada = AppState.lastLoadedId === id;   // al deshacer, el formulario vuelve a quedar vinculado a ella
   invalidarCache();
   if (!salvarFichas(cargarFichas().filter(f => f._id !== id), 'eliminacion')) {
     actualizarContador(); try{renderHistorialTab();}catch(e){}
@@ -2459,14 +2462,16 @@ function eliminarFicha(id) {
     fichasActuales.push(fichaBackup);
     invalidarCache();
     if (!salvarFichas(fichasActuales)) return;
+    if (eraCargada) AppState.lastLoadedId = id;
     actualizarContador(); try{renderHistorialTab();}catch(e){}
     populateEvoSelect(); renderDashboard(); actualizarModoSesion();
   });
 }
 
 function cargarFichaEnFormulario(id) {
+  if (_hasUnsavedChanges && !confirm('Hay cambios sin guardar en el formulario. ¿Cargar otra sesión igualmente? Esos cambios se perderán.')) return false;
   const ficha = cargarFichas().find(f => f._id === id);
-  if(!ficha) return;
+  if(!ficha) return false;
   AppState.lastLoadedId = id;
   AppState.faseCongelada = true;   // consultar no modifica: se respeta la fase guardada
   cargarDatos(ficha);
@@ -2477,6 +2482,7 @@ function cargarFichaEnFormulario(id) {
   if (st) { st.textContent = txt; st.classList.add('saved'); setTimeout(()=>st.classList.remove('saved'),3000); }
   toast(txt);
   contarCampos();
+  return true;
 }
 
 // Deja el formulario vacío (sesión nueva sin captador)
@@ -3098,7 +3104,7 @@ function renderDashboard(){
     </tr>`;
   }).join('');
 }
-function cargarYAbrir(id){cargarFichaEnFormulario(id);goTab(0);}
+function cargarYAbrir(id){if(cargarFichaEnFormulario(id))goTab(0);}
 
 
 // ══════════════════════════════════════════
@@ -4934,7 +4940,7 @@ function importarJSON(input) {
       asegurarIds(existentes);   // sin repetidos dentro de lo importado
       if (!(merge ? salvarFichas(existentes, 'importacion') : reemplazarFichas(existentes))) {
         resultEl.className = 'json-import-result err';
-        resultEl.textContent = AVISOS_ALMACEN.importacion;
+        resultEl.textContent = AVISOS_ALMACEN[_ultimoAvisoAlmacen === 'danadoFichas' ? 'danadoFichas' : 'importacion'];
         anunciar(resultEl.textContent);
         input.value = '';
         try{ renderHistorialTab(); }catch(e){}
