@@ -932,7 +932,7 @@ input[type=date]{scroll-margin-top:96px;}
       </div>
       <div class="field-row cols-wide">
         <div class="field"><label for="d_responsable">Responsable</label><input type="text" id="d_responsable" placeholder="Nombre del RE/RP" autocomplete="off" oninput="autoguardar()"></div>
-        <div class="field"><label for="d_provincia">Provincia</label><input type="text" id="d_provincia" placeholder="Ciudad" autocomplete="off" oninput="autoguardar()"></div>
+        <div class="field"><label for="d_provincia">Provincia</label><input type="text" id="d_provincia" placeholder="Granada" autocomplete="off" oninput="autoguardar()"></div>
       </div>
     </section>
 
@@ -1035,14 +1035,14 @@ input[type=date]{scroll-margin-top:96px;}
         <div class="score-group-body" id="tbody-habitos"></div>
         <div class="score-scale" aria-hidden="true"><span>1 Muy bajo</span><span>3 Aceptable</span><span>5 Excelente</span></div>
       </div>
-      <div class="eyebrow-row"><h3 class="eyebrow">Intervención sobre Proceso 2.0</h3><button type="button" class="btn btn-tinted btn-sm" onclick="abrirPlantillas('habitos','ih',this)"><svg class="ic" aria-hidden="true"><use href="#i-clipboard"/></svg>Plantillas</button></div>
+      <div class="eyebrow-row"><h3 class="eyebrow">Intervención sobre hábitos</h3><button type="button" class="btn btn-tinted btn-sm" onclick="abrirPlantillas('habitos','ih',this)"><svg class="ic" aria-hidden="true"><use href="#i-clipboard"/></svg>Plantillas</button></div>
       <div class="intervencion-list" data-lista="ih">
-        <div class="intervencion-row"><span class="intervencion-num" aria-hidden="true">1</span><textarea id="ih1" aria-label="Intervención sobre Proceso 2.0, 1" placeholder="Describe la intervención…" oninput="autoguardar()"></textarea></div>
-        <div class="intervencion-row"><span class="intervencion-num" aria-hidden="true">2</span><textarea id="ih2" aria-label="Intervención sobre Proceso 2.0, 2" placeholder="Describe la intervención…" oninput="autoguardar()"></textarea></div>
-        <div class="intervencion-row"><span class="intervencion-num" aria-hidden="true">3</span><textarea id="ih3" aria-label="Intervención sobre Proceso 2.0, 3" placeholder="Describe la intervención…" oninput="autoguardar()"></textarea></div>
-        <div class="intervencion-row"><span class="intervencion-num" aria-hidden="true">4</span><textarea id="ih4" aria-label="Intervención sobre Proceso 2.0, 4" placeholder="Describe la intervención…" oninput="autoguardar()"></textarea></div>
-        <div class="intervencion-row"><span class="intervencion-num" aria-hidden="true">5</span><textarea id="ih5" aria-label="Intervención sobre Proceso 2.0, 5" placeholder="Describe la intervención…" oninput="autoguardar()"></textarea></div>
-        <div class="intervencion-row"><span class="intervencion-num" aria-hidden="true">6</span><textarea id="ih6" aria-label="Intervención sobre Proceso 2.0, 6" placeholder="Describe la intervención…" oninput="autoguardar()"></textarea></div>
+        <div class="intervencion-row"><span class="intervencion-num" aria-hidden="true">1</span><textarea id="ih1" aria-label="Intervención sobre hábitos 1" placeholder="Describe la intervención…" oninput="autoguardar()"></textarea></div>
+        <div class="intervencion-row"><span class="intervencion-num" aria-hidden="true">2</span><textarea id="ih2" aria-label="Intervención sobre hábitos 2" placeholder="Describe la intervención…" oninput="autoguardar()"></textarea></div>
+        <div class="intervencion-row"><span class="intervencion-num" aria-hidden="true">3</span><textarea id="ih3" aria-label="Intervención sobre hábitos 3" placeholder="Describe la intervención…" oninput="autoguardar()"></textarea></div>
+        <div class="intervencion-row"><span class="intervencion-num" aria-hidden="true">4</span><textarea id="ih4" aria-label="Intervención sobre hábitos 4" placeholder="Describe la intervención…" oninput="autoguardar()"></textarea></div>
+        <div class="intervencion-row"><span class="intervencion-num" aria-hidden="true">5</span><textarea id="ih5" aria-label="Intervención sobre hábitos 5" placeholder="Describe la intervención…" oninput="autoguardar()"></textarea></div>
+        <div class="intervencion-row"><span class="intervencion-num" aria-hidden="true">6</span><textarea id="ih6" aria-label="Intervención sobre hábitos 6" placeholder="Describe la intervención…" oninput="autoguardar()"></textarea></div>
       </div>
     </section>
   </section>
@@ -1094,7 +1094,7 @@ input[type=date]{scroll-margin-top:96px;}
         <span class="pill pill-type" id="diagTipo">—</span>
       </div>
       <div class="diag-body" id="diagBody"></div>
-      <div class="diag-footer"><svg class="ic ic-xs" aria-hidden="true"><use href="#i-gear"/></svg>Lectura generada por reglas a partir de la evaluación y la fase: orienta, no sustituye la observación en campo</div>
+      <div class="diag-footer"><svg class="ic ic-xs" aria-hidden="true"><use href="#i-gear"/></svg>Se construye con reglas a partir de la evaluación y la fase: orienta, no sustituye la observación en campo</div>
     </section>
 
     <!-- 2. Qué haría ahora -->
@@ -1285,7 +1285,7 @@ input[type=date]{scroll-margin-top:96px;}
   <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="t-pdf">
     <span class="tile" data-tone="slate"><svg class="ic" aria-hidden="true"><use href="#i-doc"/></svg></span>
     <h2 id="t-pdf">Exportar ficha a PDF</h2>
-    <p>Se generará un PDF con los datos del captador que tienes en el formulario: datos generales, creencias, puntuaciones de técnica y hábitos, fase e intervenciones.</p>
+    <p>Se generará un PDF de la sesión que tienes en el formulario: datos generales, índice de atención, lectura generada por reglas, creencias, valoraciones de técnica y hábitos con sus intervenciones, fase, decisión, registro de la sesión y, si hay sesiones anteriores, el historial hasta esa fecha.</p>
     <div class="dialog-actions">
       <button type="button" class="btn btn-secondary" onclick="cerrarPdfModal()">Cancelar</button>
       <button type="button" class="btn btn-primary" onclick="generarPDF()"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg>Descargar PDF</button>
@@ -1795,7 +1795,7 @@ const AYUDA_TABS = [
     icon: '🗓️',
     desc: 'Guía de intervención según la fase actual del captador.',
     secciones: [
-      { titulo: 'Hero de fase', texto: 'Muestra los días en el proceso, el nombre de la fase y lo que es frecuente que viva el captador en ese momento. El color cambia según la fase: azul (F1–F2), naranja (F3), verde (F4–F5), gris (F6).' },
+      { titulo: 'Cabecera de la fase', texto: 'Muestra los días en el proceso, el nombre de la fase y lo que es frecuente que viva el captador en ese momento. El color cambia según la fase: azul (F1–F2), naranja (F3), verde (F4–F5), gris (F6).' },
       { titulo: 'Garantizar ahora', texto: 'Los 3 puntos más importantes a trabajar en esta fase según la metodología Wesser. Referencia rápida antes de salir al campo.' },
       { titulo: 'Señales de alarma', texto: 'Dos conductas observables de esta fase. Si aparecen, conviene intervenir en menos de 48 h.' },
       { titulo: 'Registro de la sesión', texto: 'El único lugar donde se escribe la sesión: qué observé, qué trabajamos, qué acordamos y siguiente paso. Se guarda con la fecha de intervención y aparece en el historial. En fichas antiguas se muestran aquí, como solo lectura, las notas guardadas con el formato anterior.' },
@@ -2913,7 +2913,7 @@ function generarPDF(){
   y+=2; sec('DATOS GENERALES', NEG);
   const dgrid=[[{l:'Captador/a',v:d.captador},{l:'NIP',v:d.nip||'\u2014'}],
     [{l:'Responsable',v:d.responsable},{l:'Provincia',v:d.provincia}],
-    [{l:'Antig\u00fcedad',v:d.antiguedad},{l:'Fecha inicio',v:d.fechainicio?formatFecha(d.fechainicio):'\u2014'}],
+    [{l:'Antig\u00fcedad',v:fechaISOValida(d.fecha)?calcAntiguedad(d.fechainicio,d.fecha):d.antiguedad},{l:'Fecha inicio',v:d.fechainicio?formatFecha(d.fechainicio):'\u2014'}],
     [{l:'Fecha intervenci\u00f3n',v:d.fecha?formatFecha(d.fecha):'\u2014'},{l:'Estado',v:d.estado&&ESTADOS[d.estado]?ESTADOS[d.estado].label:'\u2014'}]];
   dgrid.forEach(rowItems=>{ chk(11); rowItems.forEach((item,ci)=>fld(item.l,item.v,M+ci*(cw/2),cw/2)); y+=10; });
   y+=2;
@@ -3279,7 +3279,7 @@ function diagnosticarReglas(data, sesionesAnteriores) {
     const foco = listaTxt(tb.slice(0, 2)) || 'el proceso';
     return res({ regla:'R5', tipo:'Hábitos altos / técnica baja', nivel: (tFilled.length >= 3 && hFilled.length >= 6) ? 'alto' : 'medio', icono:'💪', color:'blue',
       evidencia: [mediaH(), mediaT(), ...bajas('t', TECNICA_VARS).map(x => x.l + ': ' + x.v + '/5')],
-      lectura: 'Las puntuaciones sugieren buena predisposición y menor dominio del proceso' + (tb.length ? ', sobre todo en ' + foco : '') + '.',
+      lectura: 'Los hábitos están mejor valorados que la técnica' + (tb.length ? '; en técnica, lo más bajo es ' + foco : '') + '.',
       accion: 'Practicar ' + foco + ' con role-play antes de salir a campo y observarlo después en situaciones reales. No añadir pasos nuevos del proceso hasta que ese tramo salga con soltura.',
       revision: 'En la próxima observación, volver a puntuar ' + foco + ' y compararlo con hoy.' });
   }
@@ -3297,7 +3297,7 @@ function diagnosticarReglas(data, sesionesAnteriores) {
   if (bajo('t_1') && alto('t_0', 3)) {
     return res({ regla:'R7', tipo:'Speech por debajo de la parada', nivel: totalSuf ? 'alto' : 'medio', icono:'🎤', color:'orange',
       evidencia: [ev('t_0'), ev('t_1')],
-      lectura: 'La parada puntúa más alto que el speech. Los datos apuntan a que la conversación se pierde en los primeros segundos después de parar; conviene comprobar si influye la estructura del mensaje, el tono o la adaptación a la persona.',
+      lectura: 'La parada puntúa más alto que el speech. La conversación puede perderse tras la parada; conviene comprobar si influye la estructura del mensaje, el tono o la adaptación a la persona.',
       colorAccion: 'blue',
       accion: 'Escuchar el speech en campo (o grabado, si el captador está de acuerdo), compararlo con la estructura de referencia y practicar la apertura.',
       revision: 'En la próxima observación, comparar la ejecución de la parada y del speech y volver a puntuar el speech.' });
@@ -3482,7 +3482,7 @@ const PLANTILLAS = [
   { cat:'cr_autoestima', color:'#7b2d8b', label:'Creencias · Feedback',
     texto:'El acompañamiento sirve para aprender: lo que observo y valoro es para ayudarte a mejorar, y lo revisamos juntos. ¿Qué necesitas de mí cuando estoy contigo?' },
   { cat:'cr_rechazo', color:'#7b2d8b', label:'Creencias · Auriculares',
-    texto:'Los auriculares son preferencia, no prohibición. Hay personas con auriculares que sí paran. Llevar el cuenta propia para comprobarlo.' },
+    texto:'Los auriculares son preferencia, no prohibición. Hay personas con auriculares que sí paran. Llevar la cuenta propia para comprobarlo.' },
   { cat:'cr_proceso', color:'#7b2d8b', label:'Creencias · Turistas',
     texto:'Si al hablar descubres que la persona no puede hacerse socia (por ejemplo, porque no reside aquí), agradécele el tiempo y despídete. Para practicar, usa el role-play con el equipo.' },
   { cat:'cr_resultados', color:'#1a237e', label:'Creencias · Cuota',
@@ -3542,9 +3542,9 @@ const PLANTILLAS = [
   { cat:'t_parada', color:'#1565c0', label:'Parada · Zonas de flujo',
     texto:'Trabajar en puntos de flujo natural (entradas de metro, cruces de peatones, salidas de supermercados) multiplica el volumen sin multiplicar el esfuerzo. La zona no es fija — se adapta al horario y al día.' },
   { cat:'t_parada', color:'#1565c0', label:'Parada · Primeras palabras',
-    texto:'Las primeras palabras influyen mucho en que la persona pare o siga. Evitar "perdónate" y fórmulas gastadas. Opciones que funcionan: "¿Sabes que...", "Un momento, que...", "[causa] está haciendo algo importante en...".' },
+    texto:'Las primeras palabras influyen mucho en que la persona pare o siga. Evitar "perdona" y fórmulas gastadas. Opciones que funcionan: "¿Sabes que...", "Un momento, que...", "[causa] está haciendo algo importante en...".' },
   { cat:'t_parada', color:'#1565c0', label:'Parada · Grupos',
-    texto:'En grupos de dos o más, dirigirse siempre a la persona más receptiva visualmente. El resto del grupo sigue si la primera persona para. Intentar captar a un grupo entero desde el principio es el error más frecuente.' },
+    texto:'En grupos de dos o más, dirigirse siempre a la persona más receptiva visualmente. El resto del grupo sigue si la primera persona para. Intentar captar a un grupo entero desde el principio es un error frecuente.' },
   { cat:'t_parada', color:'#1565c0', label:'Parada · Gestión del no',
     texto:'Cuando alguien no para, siguiente parada inmediata. El tiempo entre un no y la siguiente parada debe ser menor de 15 segundos. Cada segundo de pausa alimenta la desmotivación.' },
   { cat:'t_speech', color:'#1976d2', label:'Speech · Estructura 8-15-10',
@@ -3600,9 +3600,9 @@ const PLANTILLAS = [
   { cat:'t_volumen', color:'#42a5f5', label:'Volumen · Gestión de la energía',
     texto:'La energía en el turno es gestionable: hidratación, postura, movimiento entre paradas. Un captador que espera parado tiene menos energía que uno que se mueve activamente hacia las personas.' },
   { cat:'t_volumen', color:'#42a5f5', label:'Volumen · Registro propio',
-    texto:'Llevar el cuenta personal de paradas por turno objetiva el esfuerzo real (raramente es tan bajo como se siente) y crea un reto interno. El autoregistro es el primer paso de la autogestión.' },
+    texto:'Llevar la cuenta personal de paradas por turno objetiva el esfuerzo real (raramente es tan bajo como se siente) y crea un reto interno. El autoregistro es el primer paso de la autogestión.' },
   { cat:'t_adaptacion', color:'#64b5f6', label:'Adaptación · Lectura rápida',
-    texto:'En los 3 segundos antes de la parada: edad aproximada, ritmo de paso, lenguaje corporal (abierto/cerrado), si va acompañado. Esa lectura define el tono de apertura. No es estereotipar — es adaptar el primer impacto a lo que la persona proyecta.' },
+    texto:'En los 3 segundos antes de la parada: edad aproximada, ritmo de paso, lenguaje corporal (abierto/cerrado), si va acompañado. Esa lectura define el tono de apertura. Es una orientación, no una regla: no es estereotipar, es adaptar el primer impacto a lo que la persona proyecta, y lo que cuenta es cómo responde ella, no su edad.' },
   { cat:'t_adaptacion', color:'#64b5f6', label:'Adaptación · Perfil joven',
     texto:'Orientación, no regla: con personas jóvenes puede funcionar un lenguaje directo, un impacto inmediato y concreto y referencias cotidianas. Compruébalo con cada persona. "Con menos de lo que gastas en Spotify al mes..." Evitar el lenguaje institucional. Conectar con su contexto específico.' },
   { cat:'t_adaptacion', color:'#64b5f6', label:'Adaptación · Perfil adulto',
@@ -3644,7 +3644,7 @@ const PLANTILLAS = [
   { cat:'h_autonomia', color:'#388e3c', label:'Autonomía · Construirla',
     texto:'La autonomía se construye reduciendo el acompañamiento de forma planificada: primero acompañamiento total, luego parcial, luego seguimiento por check-in. Cada fase debe ir acompañada de un reto autónomo específico para que la persona practique la autogestión.' },
   { cat:'h_autonomia', color:'#388e3c', label:'Autonomía · Retos',
-    texto:'Asignar un reto autónomo concreto por sesión: "Esta semana, sin que yo esté, haz X paradas por turno y regisístralo." El seguimiento posterior del reto enseña más sobre la autonomía real del captador que cualquier observación directa.' },
+    texto:'Asignar un reto autónomo concreto por sesión: "Esta semana, sin que yo esté, haz X paradas por turno y regístralo." El seguimiento posterior del reto enseña más sobre la autonomía real del captador que cualquier observación directa.' },
   { cat:'h_autonomia', color:'#388e3c', label:'Autonomía · Dependencia',
     texto:'Si el captador solo rinde bien cuando el RE está presente, conviene explorar con la persona qué cambia cuando trabaja sola, sin dar por hecha la causa. La solución no es más presencia del RE — es ayudar a la persona a construir su propio estándar interno.' },
   { cat:'h_conflictos', color:'#43a047', label:'Conflictos · Detención temprana',
@@ -3670,7 +3670,7 @@ const PLANTILLAS = [
   { cat:'h_criterios', color:'#66bb6a', label:'Criterios · Aplicación',
     texto:'Diferencia entre conocer los criterios y aplicarlos: un captador puede saber los criterios de memoria y no aplicarlos en campo por desgana, por hábito o por falta de autoexigencia. La pregunta clave: "¿Qué criterio concreto no se está cumpliendo hoy y por qué?"' },
   { cat:'h_criterios', color:'#66bb6a', label:'Criterios · Estándar de equipo',
-    texto:'Los criterios Wesser no son solo estadándares individuales — son el lenguaje compartido del equipo. Cuando todos conocen y usan el mismo marco, el feedback entre compañeros se vuelve concreto y accionable en lugar de subjetivo y personal.' },
+    texto:'Los criterios Wesser no son solo estándares individuales — son el lenguaje compartido del equipo. Cuando todos conocen y usan el mismo marco, el feedback entre compañeros se vuelve concreto y accionable en lugar de subjetivo y personal.' },
   { cat:'h_equipo', color:'#81c784', label:'Pro equipo · Cultura',
     texto:'Un captador que suma al equipo multiplica su propio impacto: enseña con el ejemplo, celebra los éxitos de otros, comparte lo que le está funcionando. Esa actitud no es personalidad — es un hábito que se puede enseñar y reforzar.' },
   { cat:'h_equipo', color:'#81c784', label:'Pro equipo · El captador que resta',
@@ -3704,7 +3704,7 @@ const PLANTILLAS = [
   { cat:'h_jornada', color:'#33691e', label:'Jornada · Preparación previa',
     texto:'Los primeros 10 minutos antes del turno determinan la calidad de las 4 horas siguientes. Objetivo del día, primera parada en 5 minutos, energización rápida. El captador que sale al campo sin ese protocolo empieza ya en desventaja.' },
   { cat:'h_jornada', color:'#33691e', label:'Jornada · Gestión de pausas',
-    texto:'Las pausas deben ser reales (completa desconexción, hidratación, cambio de postura) y programadas (no cuando la energía cae, sino antes de que caiga). Un captador que gestiona bien sus pausas llega con más energía al final del turno.' },
+    texto:'Las pausas deben ser reales (completa desconexión, hidratación, cambio de postura) y programadas (no cuando la energía cae, sino antes de que caiga). Un captador que gestiona bien sus pausas llega con más energía al final del turno.' },
   { cat:'h_jornada', color:'#33691e', label:'Jornada · Zonas y horarios',
     texto:'Optimizar la jornada implica adaptar la zona al horario: flujo peatonal máximo según día y hora, rotación de zonas para evitar saturación, adaptación del speech al perfil de cada zona. La jornada mejor aprovechada no es la más larga — es la más consciente.' },
   { cat:'h_jornada', color:'#33691e', label:'Jornada · Cierre',
@@ -4089,7 +4089,7 @@ const BIBLIOTECA = [
   {
     cat:'rechazo', catLabel:'Miedo al rechazo', color:'#c62828',
     creencia: 'Si me dicen que no, es porque he hecho algo mal.',
-    intervencion: `Confundir causa y efecto es el error más frecuente. El rechazo depende en gran parte de factores externos al captador: el momento del día, el estado emocional de la persona, si lleva prisa, si ya donó esa semana. Trabajar con el captador el análisis real de qué está dentro y qué está fuera de su control. Solo se puede mejorar lo que está dentro.`
+    intervencion: `Confundir causa y efecto es un error frecuente. El rechazo depende en gran parte de factores externos al captador: el momento del día, el estado emocional de la persona, si lleva prisa, si ya donó esa semana. Trabajar con el captador el análisis real de qué está dentro y qué está fuera de su control. Solo se puede mejorar lo que está dentro.`
   },
 
   // ── AUTOESTIMA ──
@@ -4213,33 +4213,33 @@ const BIBLIOTECA = [
   },
   {
     cat: 'rerp', catLabel: 'Creencias RE/RP', color: '#37474f',
-    creencia: 'La rotacion alta es normal, no se puede hacer mucho.',
+    creencia: 'La rotación alta es normal, no se puede hacer mucho.',
     intervencion: 'La rotación no es inevitable: se puede gestionar. Los primeros días son el momento en que el acompañamiento del RE/RP tiene más peso, por eso conviene cuidar especialmente su calidad durante la primera semana, más que fijarse en el perfil del captador.'
   },
   {
     cat: 'rerp', catLabel: 'Creencias RE/RP', color: '#37474f',
     creencia: 'Si ya viene con actitud baja, no hay nada que hacer.',
-    intervencion: 'La actitud en los primeros días puede reflejar miedo e incertidumbre más que el perfil real. La persona nueva copia tu energia, no tus palabras. Antes de evaluar la actitud del captador, evaluar que energia esta recibiendo del equipo y del RE/RP.'
+    intervencion: 'La actitud en los primeros días puede reflejar miedo e incertidumbre más que el perfil real. La persona nueva copia tu energía, no tus palabras. Antes de evaluar la actitud del captador, evaluar qué energía está recibiendo del equipo y del RE/RP.'
   },
   {
     cat: 'rerp', catLabel: 'Creencias RE/RP', color: '#37474f',
-    creencia: 'No tengo tiempo para acompanar a todos.',
-    intervencion: 'Contactos breves y frecuentes, de 5 minutos, pueden bastar para que nadie se sienta solo. La seguridad, el equipo, la identidad y la sensación de progreso influyen en que una persona siga, y el RE/RP puede trabajar sobre todas ellas. No hay tiempo para NO acompanar.'
+    creencia: 'No tengo tiempo para acompañar a todos.',
+    intervencion: 'Contactos breves y frecuentes, de 5 minutos, pueden bastar para que nadie se sienta solo. La seguridad, el equipo, la identidad y la sensación de progreso influyen en que una persona siga, y el RE/RP puede trabajar sobre todas ellas. No hay tiempo para NO acompañar.'
   },
   {
     cat: 'rerp', catLabel: 'Creencias RE/RP', color: '#37474f',
-    creencia: 'El perfil no era valido para este trabajo.',
-    intervencion: 'Esta creencia situa la responsabilidad fuera del RE/RP. La pregunta profesional no es si era valido el perfil sino: se ha acompanado con calidad, ha tenido micro victorias, se han dado expectativas realistas. Si la respuesta es no, el perfil no tuvo una oportunidad real.'
+    creencia: 'El perfil no era válido para este trabajo.',
+    intervencion: 'Esta creencia sitúa la responsabilidad fuera del RE/RP. La pregunta profesional no es si era válido el perfil sino: se ha acompañado con calidad, ha tenido micro victorias, se han dado expectativas realistas. Si la respuesta es no, el perfil no tuvo una oportunidad real.'
   },
   {
     cat: 'rerp', catLabel: 'Creencias RE/RP', color: '#37474f',
     creencia: 'No soy responsable de que se quede o se vaya.',
-    intervencion: 'La calidad del acompañamiento en los primeros 100 días es uno de los factores en los que más puede influir el RE/RP. No queremos captadores que aguanten. Queremos profesionales que construyan su carrera aqui. Eso depende en gran parte del RE/RP.'
+    intervencion: 'La calidad del acompañamiento en los primeros 100 días es uno de los factores en los que más puede influir el RE/RP. No queremos captadores que aguanten. Queremos profesionales que construyan su carrera aquí. Eso depende en gran parte del RE/RP.'
   },
   {
     cat: 'rerp', catLabel: 'Creencias RE/RP', color: '#37474f',
-    creencia: 'Si no mejora rapido es que no escucha.',
-    intervencion: 'La velocidad de aprendizaje varia enormemente. Lo que más información da es el patrón: hay esfuerzo, aplica correcciones aunque sea lentamente, sigue el proceso. El resultado es el ultimo criterio, no el primero. Evaluar por patron, no por numero exacto.'
+    creencia: 'Si no mejora rápido es que no escucha.',
+    intervencion: 'La velocidad de aprendizaje varía enormemente. Lo que más información da es el patrón: hay esfuerzo, aplica correcciones aunque sea lentamente, sigue el proceso. El resultado es el último criterio, no el primero. Evaluar por patrón, no por número exacto.'
   }
 ,
   // ══ MIEDO AL RECHAZO — AMPLIACIÓN ══
@@ -4271,7 +4271,7 @@ const BIBLIOTECA = [
   {
     cat:'rechazo', catLabel:'Miedo al rechazo', color:'#c62828',
     creencia: 'Me cuesta arrancar en los primeros minutos de cada turno.',
-    intervencion: 'El arranque es el momento de mayor fricción en la jornada para la mayoría de captadores. No es señal de debilidad: es habitual necesitar unos primeros intentos para entrar en ritmo. Protocolo útil: primera parada en los primeros 5 minutos sin negociar. No importa el resultado. La segunda es más fácil que la primera. La quinta ya es automática.'
+    intervencion: 'El arranque es el momento de mayor fricción en la jornada para la mayoría de captadores. No es señal de debilidad: es habitual necesitar unos primeros intentos para entrar en ritmo. Protocolo útil: primera parada en los primeros 5 minutos sin negociar. No importa el resultado. La segunda suele costar menos que la primera, y con las siguientes el ritmo va saliendo solo.'
   },
   {
     cat:'rechazo', catLabel:'Miedo al rechazo', color:'#c62828',
@@ -4288,7 +4288,7 @@ const BIBLIOTECA = [
   {
     cat:'autoestima', catLabel:'Autoestima', color:'#6a1b9a',
     creencia: 'Siento que no encajo en el equipo.',
-    intervencion: 'El sentido de pertenencia tarda semanas en construirse y días en destruirse. Si es nuevo, la sensación de no encajar es completamente normal hasta el día 25-30. Si lleva más tiempo, hay que explorar: ¿es un problema de dinámica de equipo, de expectativas propias, o de algo que está pasando fuera del trabajo? No asumir que es un problema de la persona antes de entender el contexto.'
+    intervencion: 'El sentido de pertenencia tarda semanas en construirse y días en destruirse. Si es nuevo, la sensación de no encajar es habitual durante las primeras semanas. Si lleva más tiempo, hay que explorar: ¿es un problema de dinámica de equipo, de expectativas propias, o de algo que está pasando fuera del trabajo? No asumir que es un problema de la persona antes de entender el contexto.'
   },
   {
     cat:'autoestima', catLabel:'Autoestima', color:'#6a1b9a',
@@ -4416,7 +4416,7 @@ const BIBLIOTECA = [
   {
     cat:'donantes', catLabel:'Los donantes', color:'#00695c',
     creencia: 'La gente que lleva auriculares nunca va a parar.',
-    intervencion: 'Los auriculares son una señal de preferencia por no ser interrumpido, no una garantía de que la persona se niegue. Algunas personas con auriculares sí paran; la energía y el momento de la parada influyen. Ejercicio útil: llevar el cuenta propia de cuántas personas con auriculares paran en 50 intentos. El número sorprende.'
+    intervencion: 'Los auriculares son una señal de preferencia por no ser interrumpido, no una garantía de que la persona se niegue. Algunas personas con auriculares sí paran; la energía y el momento de la parada influyen. Ejercicio útil: llevar la cuenta propia de cuántas personas con auriculares paran en 50 intentos. El número sorprende.'
   },
   {
     cat:'donantes', catLabel:'Los donantes', color:'#00695c',
@@ -4518,18 +4518,18 @@ const BIBLIOTECA = [
     intervencion: 'El centro tiene más volumen pero también más saturación y más prisa. Las zonas periféricas tienen menos volumen pero más tiempo disponible por interlocutor y menos competencia. La estrategia correcta es diferente en cada zona — adaptarse es la habilidad, no cambiar de zona.' },
 
   // ══ LOGÍSTICA DEL DÍA A DÍA ══
-  { cat:'logistica', catLabel:'Logistica del dia', color:'#4a148c',
+  { cat:'logistica', catLabel:'Logística del día', color:'#4a148c',
     creencia: 'Los días de lluvia o frío extremo no son aptos para captar.',
     intervencion: 'El tiempo adverso reduce el volumen de peatones pero no elimina la oportunidad. La respuesta profesional es adaptar la estrategia: zonas cubiertas, speech más breve y directo, mayor densidad de intentos. Los captadores que mantienen ritmo en condiciones adversas desarrollan consistencia bajo presión — una habilidad que no se puede entrenar en condiciones favorables.' },
-  { cat:'logistica', catLabel:'Logistica del dia', color:'#4a148c',
+  { cat:'logistica', catLabel:'Logística del día', color:'#4a148c',
     creencia: 'Los lunes y los viernes son los peores días para captar.',
     intervencion: 'Los patrones de rendimiento por día varían enormemente según la zona, el tipo de donante y el captador. Generalizar sin datos propios es construir una profecía autocumplida. Llevar un registro de resultados por día durante 4 semanas da información real. A menudo la diferencia entre días es menor de lo que parece; la energía con la que se llega también influye.' },
-  { cat:'logistica', catLabel:'Logistica del dia', color:'#4a148c',
+  { cat:'logistica', catLabel:'Logística del día', color:'#4a148c',
     creencia: 'Cuando llego tarde al turno ya no merece la pena esforzarse.',
     intervencion: 'La tardanza reduce el tiempo pero no anula el turno. Un turno de 3 horas reducido a 2.5 sigue siendo productivo si el captador entra con la energía correcta. La creencia de que llegar tarde justifica bajar el nivel crea el daño real, no el retraso en sí. Reprogramación: "llegué tarde, voy a compensar en las próximas 2 horas con más intensidad." Esa es la actitud profesional.' },
-  { cat:'logistica', catLabel:'Logistica del dia', color:'#4a148c',
+  { cat:'logistica', catLabel:'Logística del día', color:'#4a148c',
     creencia: 'Cuando hay eventos o festivales la gente está distraída y no para.',
-    intervencion: 'Los eventos concentran personas con tiempo libre y de buen humor — exactamente las condiciones más favorables. La creencia de que están distraídas proyecta una expectativa de rechazo antes de intentarlo. Los festivales son contextos de oportunidad si el captador adapta el speech al entorno y aprovecha la energía positiva del momento.' },
+    intervencion: 'Los eventos concentran personas con tiempo libre y de buen humor — unas condiciones especialmente favorables. La creencia de que están distraídas proyecta una expectativa de rechazo antes de intentarlo. Los festivales son contextos de oportunidad si el captador adapta el speech al entorno y aprovecha la energía positiva del momento.' },
 
   // ══ FRAMEWORK DE REPROGRAMACIÓN (4 pasos del documento) ══
   { cat:'rechazo', catLabel:'Miedo al rechazo', color:'#c62828',
@@ -5470,7 +5470,7 @@ const MATRIZ_REGLAS = [
     desc:'Aprende y cierra, pero sin esfuerzo ni proceso reconocibles. Observar en campo qué hace antes de corregir nada.' },
   { cond: (s) => !s.esfuerzo && s.aprendizaje && !s.proceso && !s.resultado,
     cls:'mr-hablar', decision:'💬 Hablar de compromiso y expectativas',
-    desc:'Aprende en las sesiones de feedback, pero no se observa en campo ni en el proceso. Conversación sobre lo acordado, lo que ocurre en la práctica y las expectativas de ambas partes.' },
+    desc:'Aprende en las sesiones de feedback, pero todavía no aplica las correcciones acordadas en campo. Conversación sobre lo acordado, lo que ocurre en la práctica y las expectativas de ambas partes.' },
   { cond: (s) => !s.esfuerzo && !s.aprendizaje && s.proceso && s.resultado,
     cls:'mr-investigar', decision:'🔍 Hablar de motivación',
     desc:'Cierra y sigue el proceso, pero sin esfuerzo ni aprendizaje observables. Preguntar por su motivación antes de tomar ninguna decisión.' },
@@ -5880,10 +5880,11 @@ const FASE_RANGOS = {
   f1: [1,5], f2: [6,12], f3: [13,25], f4: [26,45], f5: [46,90], f6: [91,999]
 };
 
-function calcAntiguedad(fechaInicio) {
+// Sin fechaRef, a día de hoy (campo Antigüedad); con fechaRef, en esa fecha (la de la sesión del PDF)
+function calcAntiguedad(fechaInicio, fechaRef) {
   if (!fechaInicio) return '';
   const inicio = new Date(fechaInicio);
-  const hoy = new Date();
+  const hoy = fechaRef ? new Date(fechaRef) : new Date();
   if (inicio > hoy) return 'Fecha futura';
   const dias = Math.max(0, Math.floor((hoy - inicio) / 86400000));
   const semanas = Math.floor(dias / 7);
@@ -6061,7 +6062,7 @@ function calcLMI() {
   if (tecSuf && habSuf && hAvg >= 3.5 && tAvg < 2.5) {
     add({ id:'tecnica', grupo:'tecnica', urgencia:'media', icono:'💪',
       titulo:'Reforzar la técnica — hábitos ' + fmt1(hAvg) + ' / técnica ' + fmt1(tAvg),
-      desc:'Las puntuaciones sugieren buena predisposición y menor dominio del proceso. Practicar Parada y Speech con role-play antes de salir a campo.' });
+      desc:'Los hábitos están mejor valorados que la técnica. Practicar Parada y Speech con role-play antes de salir a campo.' });
   }
   if (bajo('h_10')) {
     add({ id:'estabilidad', grupo:'estabilidad', urgencia:'media', icono:'📊',
