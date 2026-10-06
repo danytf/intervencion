@@ -1156,7 +1156,7 @@ input[type=date]{scroll-margin-top:96px;}
       <div class="mz-grid" style="margin-top:16px">
         <div class="mz-crit" id="mc_esfuerzo">
           <div class="mz-crit-head"><span class="tile tile-xs" data-tone="slate"><svg class="ic" aria-hidden="true"><use href="#i-dumbbell"/></svg></span><h3 class="mz-crit-name">Esfuerzo</h3></div>
-          <p class="mz-crit-desc">Busca volumen, cambia speech, atiende feedback</p>
+          <p class="mz-crit-desc">Volumen de intentos e intención en campo, con independencia del resultado</p>
           <div class="mz-toggle" role="group" aria-label="Esfuerzo">
             <button type="button" class="mz-btn" data-crit="esfuerzo" data-val="1" aria-pressed="false">Sí</button>
             <button type="button" class="mz-btn" data-crit="esfuerzo" data-val="0" aria-pressed="false">No</button>
@@ -1164,7 +1164,7 @@ input[type=date]{scroll-margin-top:96px;}
         </div>
         <div class="mz-crit" id="mc_aprendizaje">
           <div class="mz-crit-head"><span class="tile tile-xs" data-tone="slate"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg></span><h3 class="mz-crit-name">Aprendizaje</h3></div>
-          <p class="mz-crit-desc">Aplica correcciones, mejora día a día</p>
+          <p class="mz-crit-desc">Aplica en campo las correcciones acordadas</p>
           <div class="mz-toggle" role="group" aria-label="Aprendizaje">
             <button type="button" class="mz-btn" data-crit="aprendizaje" data-val="1" aria-pressed="false">Sí</button>
             <button type="button" class="mz-btn" data-crit="aprendizaje" data-val="0" aria-pressed="false">No</button>
@@ -1172,7 +1172,7 @@ input[type=date]{scroll-margin-top:96px;}
         </div>
         <div class="mz-crit" id="mc_proceso">
           <div class="mz-crit-head"><span class="tile tile-xs" data-tone="slate"><svg class="ic" aria-hidden="true"><use href="#i-refresh"/></svg></span><h3 class="mz-crit-name">Proceso</h3></div>
-          <p class="mz-crit-desc">Puntual, sin móvil, sigue la secuencia</p>
+          <p class="mz-crit-desc">Sigue la secuencia acordada: parada → speech → rebatida → cierre</p>
           <div class="mz-toggle" role="group" aria-label="Proceso">
             <button type="button" class="mz-btn" data-crit="proceso" data-val="1" aria-pressed="false">Sí</button>
             <button type="button" class="mz-btn" data-crit="proceso" data-val="0" aria-pressed="false">No</button>
@@ -1180,7 +1180,7 @@ input[type=date]{scroll-margin-top:96px;}
         </div>
         <div class="mz-crit" id="mc_resultado">
           <div class="mz-crit-head"><span class="tile tile-xs" data-tone="slate"><svg class="ic" aria-hidden="true"><use href="#i-target"/></svg></span><h3 class="mz-crit-name">Resultado</h3></div>
-          <p class="mz-crit-desc">Cierra algo, tendencia ascendente</p>
+          <p class="mz-crit-desc">Resultados observados en campo frente al objetivo de la fase</p>
           <div class="mz-toggle" role="group" aria-label="Resultado">
             <button type="button" class="mz-btn" data-crit="resultado" data-val="1" aria-pressed="false">Sí</button>
             <button type="button" class="mz-btn" data-crit="resultado" data-val="0" aria-pressed="false">No</button>
@@ -1208,8 +1208,8 @@ input[type=date]{scroll-margin-top:96px;}
         <label class="checklist-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="checklist-item-text">Ha tenido al menos una micro victoria reconocida por mí</span></label>
         <label class="checklist-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="checklist-item-text">He hecho revisión técnica profunda: detecté dónde se bloquea exactamente</span></label>
         <label class="checklist-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="checklist-item-text">He fijado expectativas realistas para su fase (no he exigido como a un veterano)</span></label>
-        <label class="checklist-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="checklist-item-text">He detectado señales de fuga y las he intervenido en menos de 48h</span></label>
-        <label class="checklist-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="checklist-item-text">Ha mostrado esfuerzo real: volumen, intención, actitud en campo</span></label>
+        <label class="checklist-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="checklist-item-text">Si he detectado señales de alarma, las he abordado en menos de 48 h</span></label>
+        <label class="checklist-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="checklist-item-text">He comprobado el esfuerzo con observación directa en campo (volumen, intención), no solo por el resultado</span></label>
         <label class="checklist-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="checklist-item-text">He revisado si el problema es técnico, emocional o de motivación profunda</span></label>
         <label class="checklist-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="checklist-item-text">He evaluado por patrón y no solo por número de socios</span></label>
         <label class="checklist-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="checklist-item-text">He reportado al RP/RE con información de esfuerzo, aprendizaje y proceso</span></label>
@@ -1813,8 +1813,8 @@ const AYUDA_TABS = [
       { titulo: 'Nivel de atención', texto: 'Índice interno de 0 a 100 calculado con reglas a partir de las señales registradas: seguimiento, puntuaciones, evolución y variables concretas. No es una probabilidad de baja. Niveles: baja, moderada, alta o prioritaria. En los Días 1–12 no se valoran las medias (son un punto de partida) y con estado «Baja» no se calcula.' },
       { titulo: 'Semáforo de seguimiento', texto: 'Visible a partir del Día 46. Compara las dos últimas sesiones (solo las variables evaluadas en ambas) y los días sin intervención para indicar el nivel de seguimiento: normal, reforzado o prioritario. No predice si la persona seguirá.' },
       { titulo: 'Señales de alarma', texto: 'Señales observables en esta fase. Márcalas si las has detectado: el resumen indica la urgencia del seguimiento. No se guardan con la ficha ni cambian el índice de atención.' },
-      { titulo: 'Decisión: los 4 criterios', texto: 'Esfuerzo (busca volumen, atiende feedback), Aprendizaje (aplica correcciones, mejora), Proceso (sigue la secuencia, puntual), Resultado (cierra algo, tendencia ascendente). Marca SÍ o NO en cada uno. «Sugerir desde la evaluación» propone cada criterio solo si hay al menos dos de sus variables evaluadas; revísalos siempre.' },
-      { titulo: 'Recomendación', texto: 'Resultado de las 16 combinaciones de la matriz, de «Potenciar» a «Valorar una salida». El resultado es el último criterio: si hay esfuerzo y aprendizaje, se prioriza el acompañamiento. Valorar una salida solo se recomienda a partir del Día 13, con al menos dos intervenciones registradas y evidencia suficiente.' },
+      { titulo: 'Decisión: los 4 criterios', texto: 'Esfuerzo (volumen de intentos e intención en campo, con independencia del resultado), Aprendizaje (aplica en campo las correcciones acordadas), Proceso (sigue la secuencia acordada: parada → speech → rebatida → cierre), Resultado (resultados observados en campo frente al objetivo de la fase). Marca SÍ o NO en cada uno. «Sugerir desde la evaluación» es una orientación basada solo en las variables disponibles: propone Esfuerzo con Aprovechamiento de la jornada y Praxis, Aprendizaje con «Aplica el feedback acordado» y Proceso con al menos dos variables de técnica. Resultado no se sugiere, porque la app no registra altas. Revísalos siempre.' },
+      { titulo: 'Recomendación', texto: 'Resultado de las 16 combinaciones de la matriz, de «Potenciar» a «Valorar una salida». El resultado es el último criterio: si hay esfuerzo y aprendizaje, se prioriza el acompañamiento. Valorar una salida solo se recomienda a partir del Día 13, con al menos dos sesiones registradas y al menos 8 variables evaluadas.' },
       { titulo: 'Antes de una salida', texto: 'Checklist de 10 puntos. Solo aparece cuando la recomendación es valorar una salida. Sirve para revisar que se ha hecho todo el acompañamiento necesario; la decisión es del responsable, contrastada con el RP/RE.' },
     ],
     siguiente: 'Equipo — consulta el historial y la evolución de todos tus captadores.',
@@ -1864,7 +1864,7 @@ window.cerrarAyuda = function cerrarAyuda() {
 
 
 const TECNICA_VARS = ['Parada','Speech','Rebatidas','Cierre'];
-const HABITOS_VARS = ['Puntualidad','Rendimiento en ausencia del RE/RP','Gestión de conflictos','Manejo de la negatividad / creencias aprendidas','Conocimiento de los criterios Wesser','Dinámicas de captación pro equipo','Disposición para recibir/aplicar feedback/formación','Cuidado del aspecto personal','Praxis durante la captación','Aprovechamiento de la jornada','Estabilidad semanal del rendimiento'];
+const HABITOS_VARS = ['Puntualidad','Rendimiento en ausencia del RE/RP','Gestión de conflictos','Manejo de la negatividad / creencias aprendidas','Conocimiento de los criterios Wesser','Dinámicas de captación pro equipo','Aplica el feedback acordado','Cuidado del aspecto personal','Praxis durante la captación','Aprovechamiento de la jornada','Estabilidad semanal del rendimiento'];
 const FASES = [{id:'f1',label:'Día 1–5'},{id:'f2',label:'Día 6–12'},{id:'f3',label:'Día 13–25'},{id:'f4',label:'Día 26–45'},{id:'f5',label:'Día 46–90'},{id:'f6',label:'+ de 90'}];
 const ESTADOS={progreso:{label:'En progreso',cls:'sp-progreso',dot:'🟢'},estancado:{label:'Estancado',cls:'sp-estancado',dot:'🟡'},riesgo:{label:'En riesgo',cls:'sp-riesgo',dot:'🔴'},baja:{label:'Baja',cls:'sp-baja',dot:'⚫'}};
 const LS_KEY = 'wesser_fichas_v2';
@@ -2903,7 +2903,7 @@ function generarPDF(){
     doc.setFillColor(...rC.map(x=>Math.min(255,x+180))); doc.rect(M-2,y,cw+4,9,'F');
     doc.setFillColor(...rC); doc.rect(M-2,y,3,9,'F');
     doc.setFontSize(7.5);doc.setFont('helvetica','bold');doc.setTextColor(...rC);
-    doc.text('\u00cdNDICE DE ATENCI\u00d3N: '+riesgo.score+'/100 \u2014 '+nR.label.toUpperCase(),M+5,y+6); y+=12; }
+    doc.text('\u00cdNDICE DE ATENCI\u00d3N: '+riesgo.score+'/100 \u2014 '+nR.label.toUpperCase()+' (\u00edndice interno; no es una probabilidad de baja)',M+5,y+6); y+=12; }
 
   // Datos generales
   y+=2; sec('DATOS GENERALES', NEG);
@@ -2916,10 +2916,18 @@ function generarPDF(){
 
   // Diagnóstico
   const diagResult = (() => { try{ return diagnosticar(d, d.captador ? sesionesAnterioresA(d.captador.trim(), d) : null); }catch(e){return null;} })();
-  if(diagResult){ sec('DIAGN\u00d3STICO AUTOM\u00c1TICO', AZUL);
+  if(diagResult){ sec('LECTURA ORIENTATIVA (GENERADA POR REGLAS)', AZUL);
     chk(8); doc.setFillColor(232,234,246); doc.rect(M-2,y-4,cw+4,7,'F');
     doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(...AZUL);
     doc.text(diagResult.tipo,M,y); y+=8;
+    // Como en pantalla: procede de reglas, orienta y depende de la evidencia disponible
+    const avisoLns=doc.splitTextToSize('Lectura generada por reglas a partir de la evaluaci\u00f3n y la fase: orienta, no sustituye la observaci\u00f3n en campo y depende de la evidencia disponible. No es un diagn\u00f3stico confirmado.',cw-4);
+    doc.setFontSize(7.5);doc.setFont('helvetica','italic');doc.setTextColor(...GRIS);
+    chk(avisoLns.length*4.4+2); doc.text(avisoLns,M,y); y+=avisoLns.length*4.4+2;
+    const nivelTxt={alto:'Evidencia suficiente',medio:'Evidencia parcial',bajo:'Sin evidencia suficiente'}[diagResult.nivelEvidencia]||'Evidencia parcial';
+    const evidLns=doc.splitTextToSize('EVIDENCIA ('+nivelTxt.toUpperCase()+'): '+((diagResult.evidencia||[]).join(' \u00b7 ')||'sin datos'),cw-4);
+    doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.setTextColor(...MID);
+    chk(evidLns.length*4.4+2); doc.text(evidLns,M,y); y+=evidLns.length*4.4+3;
     const dlns=doc.splitTextToSize(diagResult.diagnostico.texto,cw-4);
     doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(...NEG);
     chk(dlns.length*4.8+2); doc.text(dlns,M,y); y+=dlns.length*4.8+3;
@@ -2930,9 +2938,11 @@ function generarPDF(){
       doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(...NEG);
       chk(rlns.length*4.8+2); doc.text(rlns,M,y); y+=rlns.length*4.8+3;
     }
-    if(diagResult.palanca){ chk(7);
+    if(diagResult.palanca){
+      const palLns=doc.splitTextToSize('VARIABLE PRIORITARIA POR PUNTUACIÓN: '+diagResult.palanca.label+' ('+diagResult.palanca.val+'/5). Es la prioridad por puntuación, no una causa demostrada.',cw-4);
+      chk(palLns.length*4.6+3);
       doc.setFontSize(7.5);doc.setFont('helvetica','bold');doc.setTextColor(...NARANJA);
-      doc.text('VARIABLE CLAVE: '+diagResult.palanca.label+' ('+diagResult.palanca.val+'/5)',M,y); y+=8; }
+      doc.text(palLns,M,y); y+=palLns.length*4.6+3; }
     y+=2; }
 
   // Creencias
@@ -2971,7 +2981,7 @@ function generarPDF(){
 
   // Decisión de salida: la recomendación, los 4 criterios y el checklist registrados en ESTA sesión
   const dec = decisionParaPDF(d);
-  sec('5. DECISI\u00d3N DE SALIDA',AZUL);
+  sec('5. DECISI\u00d3N',AZUL);
   chk(14); doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(...GRIS);
   doc.text('RECOMENDACI\u00d3N REGISTRADA:',M,y); y+=5;
   doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(...NEG);
@@ -3020,11 +3030,6 @@ function generarPDF(){
         let x=M;for(let k=0;k<j;k++)x+=cw2[k];
         const vt=String(v);doc.text(vt.length>Math.floor(cw2[j]/2.2)?vt.slice(0,Math.floor(cw2[j]/2.2))+'…':vt,x,y);});
       y+=6; }); y+=4; }
-
-  // Frase final
-  chk(10);
-  doc.setFontSize(7.5);doc.setFont('helvetica','italic');doc.setTextColor(...GRIS);
-  doc.text('\u201cNo queremos captadores que aguanten. Queremos profesionales que construyan su carrera aqu\u00ed.\u201d',W/2,y,{align:'center'});
 
   // Pie de página en todas las páginas
   const pages=doc.getNumberOfPages();
@@ -3115,7 +3120,7 @@ const ALL_VARS_LABELS = {
   t_0:'Parada', t_1:'Speech', t_2:'Rebatidas', t_3:'Cierre',
   h_0:'Puntualidad', h_1:'Rendimiento sin RE/RP', h_2:'Gestión de conflictos',
   h_3:'Manejo de la negatividad', h_4:'Conocimiento criterios Wesser',
-  h_5:'Dinámicas pro equipo', h_6:'Disposición al feedback',
+  h_5:'Dinámicas pro equipo', h_6:'Aplica el feedback acordado',
   h_7:'Aspecto personal', h_8:'Praxis durante captación',
   h_9:'Aprovechamiento de jornada', h_10:'Estabilidad semanal'
 };
@@ -3222,7 +3227,7 @@ function diagnosticarReglas(data, sesionesAnteriores) {
       accion: (faseNum === 1
           ? 'Acompañar los turnos y centrar el trabajo en la Parada y el inicio del Speech. Reconocer los avances concretos que observes.'
           : 'Centrar el trabajo en que la Parada y el Speech salgan con soltura antes de valorar el resto del proceso. Reconocer los avances concretos que observes.') +
-        (bajo('h_6') ? ' La valoración baja en disposición al feedback (' + scoreDe(data, 'h_6') + '/5) aconseja preguntar cómo está recibiendo las correcciones antes de añadir otras nuevas.' : ''),
+        (bajo('h_6') ? ' La valoración baja en «Aplica el feedback acordado» (' + scoreDe(data, 'h_6') + '/5) aconseja preguntar cómo está recibiendo las correcciones antes de añadir otras nuevas.' : ''),
       revision: 'En la próxima sesión, volver a puntuar Parada y Speech' + (inicio.length ? ' y compararlos con hoy (' + inicio.join(' · ') + ').' : '.') });
   }
 
@@ -3235,13 +3240,13 @@ function diagnosticarReglas(data, sesionesAnteriores) {
       revision: 'Comprobar que la siguiente intervención se registra antes de 14 días.' });
   }
 
-  // R2: Disposición al feedback baja
+  // R2: Aplicación del feedback baja
   if (bajo('h_6')) {
     return res({ regla:'R2', tipo:'Feedback con valoración baja', nivel: totalSuf ? 'alto' : 'medio', icono:'🚧', color:'orange',
       evidencia: [ev('h_6'), mediaH()],
-      lectura: 'Se observa una valoración baja en disposición para recibir o aplicar feedback, lo que puede limitar el efecto de otras correcciones. Conviene explorar qué dificulta recibirlas o aplicarlas. Hipótesis a explorar, no comprobadas: cómo y cuándo se da el feedback, experiencias anteriores con correcciones o cómo se siente al recibirlas.',
+      lectura: 'Se observa una valoración baja en la aplicación del feedback acordado, lo que puede limitar el efecto de otras correcciones. Conviene explorar qué dificulta recibirlas o aplicarlas. Hipótesis a explorar, no comprobadas: cómo y cuándo se da el feedback, experiencias anteriores con correcciones o cómo se siente al recibirlas.',
       accion: 'Hablar a solas con el captador sobre cómo vive las correcciones y qué le cuesta aplicar. Acordar una sola corrección concreta y cómo se va a comprobar.',
-      revision: 'En la próxima sesión, comprobar si ha aplicado la corrección acordada y volver a valorar la disposición al feedback.' });
+      revision: 'En la próxima sesión, comprobar si ha aplicado la corrección acordada y volver a valorar «Aplica el feedback acordado».' });
   }
 
   // R3: Creencias registradas + manejo de la negatividad bajo
@@ -3509,11 +3514,9 @@ const PLANTILLAS = [
   { cat:'t_speech', color:'#1976d2', label:'Speech',
     texto:'El speech es una conversación, no un monólogo. Lanzar una pregunta abierta en los primeros 20 segundos.' },
   { cat:'t_rebatidas', color:'#1e88e5', label:'Rebatidas',
-    texto:'"No tengo dinero": validar la objeción + redirigir hacia el compromiso mínimo posible.' },
+    texto:'"No tengo dinero": respetarlo, agradecer el tiempo y despedirse con amabilidad. Si la persona pregunta por las opciones, informar de ellas sin insistir.' },
   { cat:'t_rebatidas', color:'#1e88e5', label:'Rebatidas',
     texto:'"Ya dono a otra ONG": reconocer y felicitar + diferenciar la causa específica que se representa.' },
-  { cat:'t_rebatidas', color:'#1e88e5', label:'Rebatidas',
-    texto:'"Necesito pensarlo": concretar qué información le falta para decidir ahora mismo.' },
   { cat:'t_rebatidas', color:'#1e88e5', label:'Rebatidas',
     texto:'"No me fío de las ONGs": es una creencia sobre el sector en general. Trabajar la transparencia de esta organización concreta.' },
   { cat:'t_rebatidas', color:'#1e88e5', label:'Rebatidas',
@@ -3561,13 +3564,13 @@ const PLANTILLAS = [
   { cat:'t_rebatidas', color:'#1e88e5', label:'Rebatidas · No tengo tiempo',
     texto:'«No tengo tiempo» puede ser una forma rápida de decir que ahora no. Puedes ofrecer una vez: «Solo 30 segundos, te cuento una cosa y decides». Si vuelve a decir que no, respeta su respuesta y despídete con amabilidad.' },
   { cat:'t_rebatidas', color:'#1e88e5', label:'Rebatidas · Crisis económica',
-    texto:'"Estoy pasando un mal momento": validar y proponer mínimo. "Entiendo, por eso la cantidad mínima es X al mes. Si en algún momento necesitas pausarla, puedes hacerlo con una llamada." Empatía y propuesta mínima juntas.' },
+    texto:'"Estoy pasando un mal momento": no proponer ninguna cuota. Agradecer que lo comparta, desearle lo mejor y despedirse.' },
   { cat:'t_rebatidas', color:'#1e88e5', label:'Rebatidas · Ya dono',
     texto:'"Ya dono": "Qué bien, significa que ya tomaste la decisión más difícil. Lo que te propongo es complementario: [diferenciador concreto]. Algunas personas que ya donan deciden apoyar una segunda causa cuando ven su impacto; si no es el caso, se respeta."' },
   { cat:'t_rebatidas', color:'#1e88e5', label:'Rebatidas · No me fío',
     texto:'"No me fío de las ONGs": no es una objeción a esta organización — es una creencia sobre el sector. Respuesta: "Es normal, hay mucha información contradictoria. De esta organización específicamente: [certificación + porcentaje + ejemplo concreto]."' },
   { cat:'t_rebatidas', color:'#1e88e5', label:'Rebatidas · Necesito pensarlo',
-    texto:'"Necesito pensarlo": preguntar si hay alguna información que le ayudaría a decidir. Si la hay, dársela con claridad. Si prefiere pensarlo con calma, respetarlo y dejarle la información para que pueda decidir después.' },
+    texto:'"Necesito pensarlo": preguntar si le falta alguna información; si prefiere pensarlo, respetarlo y dejarle la información.' },
   { cat:'t_rebatidas', color:'#1e88e5', label:'Rebatidas · Ya me han parado',
     texto:'"Ya me han parado antes": reconocer y compensar con brevedad extrema. "Lo sé y lo entiendo. Por eso voy a ser muy directo: [impacto en 15 segundos + propuesta mínima]." Reconocer la saturación es la primera rebatida.' },
   { cat:'t_rebatidas', color:'#1e88e5', label:'Rebatidas · Tono',
@@ -3644,8 +3647,8 @@ const PLANTILLAS = [
     texto:'Los conflictos en el equipo se resuelven mejor cuanto antes. Dejarlos pasar genera distancia emocional que después es mucho más difícil de revertir. La cultura de abordar las tensiones pronto es más importante que ninguna técnica de resolución.' },
   { cat:'h_conflictos', color:'#43a047', label:'Conflictos · Conversación',
     texto:'Estructura para abordar un conflicto: (1) Describir el comportamiento observable sin juicio. (2) Explicar el impacto concreto en el equipo. (3) Preguntar qué necesita la persona. (4) Acordar qué cambia. Sin los cuatro pasos, la conversación es una queja, no una resolución.' },
-  { cat:'h_conflictos', color:'#43a047', label:'Conflictos · Captador problemático',
-    texto:'Un captador que genera conflictos recurrentes en el equipo tiene un coste que va más allá de sus propios resultados: baja la energía colectiva, distrae al RE/RP y contamina la cultura. Evaluar ese coste total antes de decidir cuánto tiempo más se invierte en la intervención.' },
+  { cat:'h_conflictos', color:'#43a047', label:'Conflictos · Conflictos recurrentes',
+    texto:'Un captador que genera conflictos recurrentes en el equipo tiene un coste que va más allá de sus propios resultados: baja la energía colectiva, distrae al RE/RP y contamina la cultura. Abordarlo con hechos concretos y acordar un cambio. Cualquier decisión se valora con los cuatro criterios y el checklist.' },
   { cat:'h_conflictos', color:'#43a047', label:'Conflictos · Origen',
     texto:'Tres orígenes frecuentes de conflicto en equipos de captación: (1) competencia por zonas o recursos, (2) diferencias de energía o actitud, (3) feedback no gestionado. Identificar el origen antes de intervenir define qué tipo de conversación hay que tener.' },
   { cat:'h_negatividad', color:'#4caf50', label:'Negatividad · Contagio',
@@ -3715,7 +3718,7 @@ const PLANTILLAS = [
   { cat:'ac_f2', color:'#e65100', label:'Acomp. · Día 6–12',
     texto:'Introducir el primer feedback técnico. Solo una cosa a mejorar por sesión. No saturar con información.' },
   { cat:'ac_f3', color:'#e65100', label:'Acomp. · Día 13–25',
-    texto:'Reducir el acompañamiento directo. Dejar salir solo y revisar resultados después, no durante.' },
+    texto:'Mantener al menos dos turnos de acompañamiento a la semana y observar en terreno dónde se bloquea. Revisar juntos después de cada tramo.' },
   { cat:'ac_f4', color:'#e65100', label:'Acomp. · Día 26–45',
     texto:'El captador debe tener ya un proceso propio interiorizado. El rol del RE/RP es ajustar, no enseñar.' },
   { cat:'ac_f5', color:'#e65100', label:'Acomp. · Día 46–90',
@@ -3744,7 +3747,7 @@ const PLANTILLAS = [
     texto:'No has fallado. Estás en fase de ajuste. Es frecuente que entre el día 13 y el 25 el proceso empiece a exigirte más de lo que esperabas. No es señal de que no puedas, es señal de que estás creciendo.' },
   { cat:'ac_f3', color:'#6a1b9a', label:'Día 13–25 · Comparación',
     texto:'¿Con quién te estás comparando? Los veteranos llevan meses o años haciendo esto. Tú llevas 3 semanas. La comparación correcta es: ¿eres mejor que hace 10 días? Esa es la única que importa.' },
-  { cat:'ac_f3', color:'#6a1b9a', label:'Día 13–25 · Señal de fuga',
+  { cat:'ac_f3', color:'#6a1b9a', label:'Día 13–25 · Señal de alarma',
     texto:'He notado que en las últimas sesiones sonríes menos en calle. Quiero preguntarte directamente: ¿qué está pasando realmente? Aquí puedes decirme lo que sea.' },
   { cat:'ac_f4', color:'#c62828', label:'Día 26–45 · Estancamiento',
     texto:'Llevamos X semanas trabajando juntos y veo un patrón. Has llegado a un nivel sólido pero llevas tiempo sin mejorar. No es un problema tuyo, es una señal de que necesitamos cambiar algo en el enfoque. ¿Qué crees tú que podría cambiar?' },
@@ -3777,7 +3780,7 @@ const PLANTILLAS = [
   { cat:'cr_rerp', color:'#37474f', label:'RE/RP · El objetivo real',
     texto:'El objetivo del acompañamiento no es el resultado de ese turno. Es generar las condiciones para que el captador funcione bien cuando no estás. Acompañar para ver resultados inmediatos confunde el indicador con el objetivo.' },
   { cat:'cr_rerp', color:'#37474f', label:'RE/RP · Perfil prematuro',
-    texto:'Dos semanas es demasiado corto para evaluar el perfil. Es frecuente un bache de rendimiento entre el día 13 y el 25. Sin 4-6 semanas de acompañamiento de calidad, no hay información suficiente para una decisión.' },
+    texto:'No mejorar en las primeras semanas no indica falta de perfil: es frecuente un bache de rendimiento entre el día 13 y el 25. Para valorar una salida debe haberse llegado al menos al Día 13, con 2 sesiones registradas y 8 variables evaluadas.' },
   { cat:'cr_rerp', color:'#37474f', label:'RE/RP · Variable clave',
     texto:'El contexto explica parte de la variación entre períodos, pero no toda la diferencia entre equipos con condiciones parecidas. La calidad del acompañamiento en los primeros 45 días es una de las variables en las que más puede influir el RE/RP.' },
   { cat:'cr_proceso', color:'#1565c0', label:'Proceso · Perfil y adaptación',
@@ -4440,7 +4443,7 @@ const BIBLIOTECA = [
   {
     cat:'rerp', catLabel:'Creencias RE/RP', color:'#37474f',
     creencia: 'Si un captador no mejora después de dos semanas es que no tiene perfil.',
-    intervencion: 'Dos semanas es un período demasiado corto para evaluar el perfil. La curva de aprendizaje en captación suele tener un bache entre el día 13 y el 25. Un captador que no ha mejorado en dos semanas puede estar exactamente en ese valle. La evaluación de perfil requiere al menos 4-6 semanas con acompañamiento de calidad. Sin ese mínimo, no hay información suficiente para una decisión.'
+    intervencion: 'No haber mejorado en dos semanas no indica falta de perfil. La curva de aprendizaje en captación suele tener un bache entre el día 13 y el 25, y un captador que no ha mejorado puede estar exactamente en ese valle. Para valorar una salida debe haberse llegado al menos al Día 13, con 2 sesiones registradas y 8 variables evaluadas; aun así, la decisión se toma con los cuatro criterios y el checklist.'
   },
   {
     cat:'rerp', catLabel:'Creencias RE/RP', color:'#37474f',
@@ -5131,7 +5134,7 @@ function calcRiesgo(sessions, estado, opts) {
       }
     }
   }
-  if (bajoV('h_6', 2))  add('feedback', 'proceso', 12, 'Disposición al feedback ' + v('h_6') + '/5', 'ban');
+  if (bajoV('h_6', 2))  add('feedback', 'proceso', 12, 'Aplica el feedback acordado ' + v('h_6') + '/5', 'ban');
   if (bajoV('h_3', 2))  add('negatividad', 'proceso', 10, 'Manejo de la negatividad ' + v('h_3') + '/5', 'msg');
   if (bajoV('h_1', 2))  add('autonomia', 'proceso', 8, 'Rendimiento sin RE/RP ' + v('h_1') + '/5', 'link');
   if (bajoV('h_10', 2)) add('estabilidad', 'proceso', 8, 'Estabilidad semanal ' + v('h_10') + '/5', 'trend-down');
@@ -5306,7 +5309,7 @@ const GUIA_FASES = {
     ],
     senales: ['Se queda mirando el móvil entre paradas', 'Responde en monosílabos, evita contacto visual', 'Evita paradas activamente', '"Creo que no voy a durar"'],
     intervencion: '"Tu parada está bien, pero no insistes. El speech es bueno, pero demasiado largo. Vamos a entrenar las pausas."',
-    despido: 'Solo si hay patrón evidente y rápido de: cero esfuerzo (se esconde, no lo intenta) + cero actitud + cero aprendizaje. Nunca por número de socios.',
+    despido: 'En esta fase no se valora una salida: las puntuaciones son un punto de partida. Si observas cero esfuerzo sostenido (se esconde, no lo intenta), regístralo y coméntalo con el RP/RE. Nunca por número de socios.',
   },
   f3: {
     label: 'Día 13–25',
@@ -5372,7 +5375,7 @@ const GUIA_FASES = {
     senales: ['Cansancio visible en campo', 'Se compara con otros en negativo', 'Dice que duda de su futuro aquí'],
     indicadores: ['Puntualidad estable', 'Energía constante', 'Ritmo sostenido', 'Autocontrol emocional', 'Capacidad de autoevaluación'],
     intervencion: 'Conversación de futuro: qué camino ve aquí y qué necesitaría para recorrerlo.',
-    despido: 'Solo si: no hay autonomía + no hay ritmo + no hay profesionalización + se han hecho todas las intervenciones de la Fase 2.',
+    despido: 'Solo si: no hay autonomía + no hay ritmo + no hay profesionalización, y se han hecho las intervenciones de las fases anteriores.',
   },
   f6: {
     label: '+ de 90 días',
@@ -5633,7 +5636,7 @@ function actualizarChecklist() {
   if (checked === 0) { result.className = 'checklist-result notice'; result.innerHTML = ''; return; }
   let tone, icono, texto;
   if (checked === total) { tone='ok'; icono='check-circle'; texto='<strong>Todos los puntos revisados.</strong> Se han revisado los criterios previos; la decisión sigue siendo del responsable, contrastada con el RP/RE.'; }
-  else if (checked >= 7) { tone='warn'; icono='warn'; texto=`<strong>Faltan ${total-checked} punto${total-checked>1?'s':''}.</strong> Valora si es posible completarlos antes de ejecutar la decisión.`; }
+  else if (checked >= 7) { tone='warn'; icono='warn'; texto=`<strong>Faltan ${total-checked} punto${total-checked>1?'s':''}.</strong> Complétalos antes de tomar la decisión.`; }
   else if (checked >= 4) { tone='warn'; icono='warn'; texto=`<strong>Has completado ${checked} de ${total} puntos.</strong> Sigue revisando antes de decidir.`; }
   else { tone='bad'; icono='alert'; texto=`<strong>Solo ${checked} de ${total} puntos completados.</strong> Hay trabajo de acompañamiento que hacer antes de ejecutar esta decisión.`; }
   result.className = 'checklist-result notice show';
@@ -6022,7 +6025,7 @@ function calcLMI() {
   // Señales de la evaluación (cada una exige su variable evaluada)
   if (bajo('h_6')) {
     add({ id:'feedback', grupo:'feedback', urgencia:'alta', icono:'🚧',
-      titulo:'Abordar primero la disposición al feedback (' + s('h_6') + '/5)',
+      titulo:'Abordar primero la aplicación del feedback (' + s('h_6') + '/5)',
       desc:'Conviene abordarla antes de añadir nuevas correcciones: hablar a solas sobre cómo vive las correcciones y acordar una sola corrección que se pueda comprobar en la próxima sesión.' });
   }
   if (nCreencias >= 2 && bajo('h_3')) {
@@ -6577,19 +6580,21 @@ function sugerirMatriz() {
     return;
   }
 
-  // Cada criterio se propone solo con sus propias variables y con al menos dos evaluadas; si no, queda sin proponer
+  // Cada criterio se propone solo con las variables que lo miden y con el mínimo indicado; si no, queda sin proponer.
+  // Esfuerzo: actividad e intención en campo · Aprendizaje: aplica lo acordado · Proceso: ejecución de la secuencia.
+  // Resultado no se propone: la app no registra altas y una puntuación técnica no es un resultado.
   var FUENTES = {
-    esfuerzo:    ['h_0','h_9','h_8'],
-    aprendizaje: ['h_6','h_4'],
-    proceso:     ['t_0','t_1','t_2','t_3'],
-    resultado:   ['t_3','h_10'],
+    esfuerzo:    { vars: ['h_9','h_8'], min: 2 },
+    aprendizaje: { vars: ['h_6'], min: 1 },
+    proceso:     { vars: ['t_0','t_1','t_2','t_3'], min: 2 },
   };
   var labels = { esfuerzo:'Esfuerzo', aprendizaje:'Aprendizaje', proceso:'Proceso', resultado:'Resultado' };
   var suggest = {}, faltan = [];
   Object.keys(FUENTES).forEach(function(k) {
-    var v = FUENTES[k].map(function(x){ return scoreDe(d, x); }).filter(function(x){ return x !== null; });
-    if (v.length >= 2) suggest[k] = v.reduce(function(a,b){ return a+b; }, 0) / v.length >= 2.5;
-    else { suggest[k] = null; faltan.push(labels[k] + ' (' + FUENTES[k].map(function(x){ return ALL_VARS_LABELS[x]; }).join(', ') + ')'); }
+    var f = FUENTES[k];
+    var v = f.vars.map(function(x){ return scoreDe(d, x); }).filter(function(x){ return x !== null; });
+    if (v.length >= f.min) suggest[k] = v.reduce(function(a,b){ return a+b; }, 0) / v.length >= 2.5;
+    else { suggest[k] = null; faltan.push(labels[k] + ' (' + f.vars.map(function(x){ return ALL_VARS_LABELS[x]; }).join(', ') + ')'); }
   });
 
   var aplicados = [], respetados = [];
@@ -6602,12 +6607,13 @@ function sugerirMatriz() {
   });
 
   if (banner) {
-    var faltanTxt = faltan.length ? ' <strong>Sin datos suficientes</strong> (hacen falta al menos dos variables evaluadas) para: ' + esc(faltan.join(' · ')) + '.' : '';
+    var faltanTxt = faltan.length ? ' <strong>Sin datos suficientes</strong> para: ' + esc(faltan.join(' · ')) + '.' : '';
     var respetadosTxt = respetados.length ? ' Se mantienen tus decisiones en: ' + esc(respetados.join(', ')) + '.' : '';
+    var resultadoTxt = ' Resultado no se sugiere: la app no registra altas; márcalo tú según lo observado en campo.';
     if (aplicados.length) {
-      avisoMatriz(banner, 'blue', 'bolt', '<strong>Sugerido desde la evaluación.</strong> ' + aplicados.join(' · ') + '. Revísalo y cambia lo que no encaje.' + respetadosTxt + faltanTxt);
+      avisoMatriz(banner, 'blue', 'bolt', '<strong>Sugerido desde la evaluación.</strong> ' + aplicados.join(' · ') + '. Es una orientación con las variables disponibles: revísalo y cambia lo que no encaje.' + respetadosTxt + faltanTxt + resultadoTxt);
     } else {
-      avisoMatriz(banner, 'warn', 'warn', '<strong>No se ha propuesto ningún criterio.</strong>' + respetadosTxt + faltanTxt);
+      avisoMatriz(banner, 'warn', 'warn', '<strong>No se ha propuesto ningún criterio.</strong>' + respetadosTxt + faltanTxt + resultadoTxt);
     }
   }
 }
