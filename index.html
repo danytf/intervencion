@@ -982,11 +982,11 @@ input[type=date]{scroll-margin-top:96px;}
       </div>
       <h3 class="eyebrow" style="margin-bottom:12px">Creencias detectadas</h3>
       <div class="creencias-list" data-lista="c">
-        <div class="creencia-row"><span class="creencia-num" aria-hidden="true">1</span><input type="text" id="c1" aria-label="Creencia 1" placeholder="Escribe la creencia detectada…" oninput="autoguardar()"></div>
-        <div class="creencia-row"><span class="creencia-num" aria-hidden="true">2</span><input type="text" id="c2" aria-label="Creencia 2" placeholder="Escribe la creencia detectada…" oninput="autoguardar()"></div>
-        <div class="creencia-row"><span class="creencia-num" aria-hidden="true">3</span><input type="text" id="c3" aria-label="Creencia 3" placeholder="Escribe la creencia detectada…" oninput="autoguardar()"></div>
-        <div class="creencia-row"><span class="creencia-num" aria-hidden="true">4</span><input type="text" id="c4" aria-label="Creencia 4" placeholder="Escribe la creencia detectada…" oninput="autoguardar()"></div>
-        <div class="creencia-row"><span class="creencia-num" aria-hidden="true">5</span><input type="text" id="c5" aria-label="Creencia 5" placeholder="Escribe la creencia detectada…" oninput="autoguardar()"></div>
+        <div class="creencia-row"><span class="creencia-num" aria-hidden="true">1</span><input type="text" id="c1" aria-label="Creencia 1" placeholder="Lo que dice el captador, con sus palabras cuando sea posible" oninput="autoguardar()"></div>
+        <div class="creencia-row"><span class="creencia-num" aria-hidden="true">2</span><input type="text" id="c2" aria-label="Creencia 2" placeholder="Lo que dice el captador, con sus palabras cuando sea posible" oninput="autoguardar()"></div>
+        <div class="creencia-row"><span class="creencia-num" aria-hidden="true">3</span><input type="text" id="c3" aria-label="Creencia 3" placeholder="Lo que dice el captador, con sus palabras cuando sea posible" oninput="autoguardar()"></div>
+        <div class="creencia-row"><span class="creencia-num" aria-hidden="true">4</span><input type="text" id="c4" aria-label="Creencia 4" placeholder="Lo que dice el captador, con sus palabras cuando sea posible" oninput="autoguardar()"></div>
+        <div class="creencia-row"><span class="creencia-num" aria-hidden="true">5</span><input type="text" id="c5" aria-label="Creencia 5" placeholder="Lo que dice el captador, con sus palabras cuando sea posible" oninput="autoguardar()"></div>
       </div>
       <div class="eyebrow-row"><h3 class="eyebrow">Intervención sobre creencias</h3><button type="button" class="btn btn-tinted btn-sm" onclick="abrirPlantillas('creencias','ic',this)"><svg class="ic" aria-hidden="true"><use href="#i-clipboard"/></svg>Plantillas</button></div>
       <div class="intervencion-list" data-lista="ic">
@@ -1090,7 +1090,7 @@ input[type=date]{scroll-margin-top:96px;}
     <section class="card diag-card" id="diagCard" aria-labelledby="h-diag">
       <div class="card-head">
         <span class="tile tile-sm" data-tone="slate"><svg class="ic" aria-hidden="true"><use href="#i-pulse"/></svg></span>
-        <div class="card-head-text"><p class="eyebrow">Qué veo · Qué significa</p><h2 class="card-title" id="h-diag">Diagnóstico automático</h2></div>
+        <div class="card-head-text"><p class="eyebrow">Qué veo · Qué significa</p><h2 class="card-title" id="h-diag">Lectura generada por reglas</h2></div>
         <span class="pill pill-type" id="diagTipo">—</span>
       </div>
       <div class="diag-body" id="diagBody"></div>
@@ -1248,7 +1248,7 @@ input[type=date]{scroll-margin-top:96px;}
       <section class="card card-flush alertas-card" id="alertasCard" style="margin-top:16px" aria-labelledby="h-alertas">
         <div class="card-head" style="padding:16px 16px 0;margin-bottom:8px">
           <span class="tile tile-sm" data-tone="bad"><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg></span>
-          <h2 class="card-title" id="h-alertas">Atención urgente</h2>
+          <h2 class="card-title" id="h-alertas">Atención alta o prioritaria</h2>
           <span class="pill" id="alertasCount">0</span>
         </div>
         <div class="alertas-list" id="alertasList"></div>
@@ -1772,7 +1772,7 @@ const AYUDA_TABS = [
       { titulo: 'Fecha de comienzo', texto: 'Fecha en que el captador inició su actividad. Permite calcular automáticamente la fase actual (F1–F6) y los días de antigüedad.' },
       { titulo: 'Badge de fase', texto: 'Se actualiza solo al introducir la fecha de comienzo. Muestra los días activos, la fase actual, el rango de días de esa fase y el estado del captador.' },
       { titulo: 'Fecha de intervención', texto: 'Fecha de esta sesión concreta. Puede ser diferente al día de hoy si se rellena a posteriori.' },
-      { titulo: 'Estado', texto: 'Situación actual del captador: En progreso, Estancado, En riesgo o Baja. Se muestra como contexto junto al índice de atención y al semáforo; no cambia su cálculo.' },
+      { titulo: 'Estado', texto: 'Situación actual del captador: En progreso, Estancado, En riesgo o Baja. Se muestra como contexto junto al índice de atención y al semáforo; no cambia su cálculo, salvo «Baja»: entonces no se calculan ni el índice ni el semáforo.' },
     ],
     siguiente: 'Evaluación — puntúa las variables para activar el diagnóstico.',
   },
@@ -1781,10 +1781,10 @@ const AYUDA_TABS = [
     icon: '⭐',
     desc: 'Puntuación de las variables de técnica, hábitos y creencias del captador.',
     secciones: [
-      { titulo: 'Mentalidad (Creencias)', texto: 'Registra las creencias limitantes activas que verbaliza o muestra el captador. Cuantas más estén marcadas, mayor peso tienen en el diagnóstico automático.' },
+      { titulo: 'Mentalidad (Creencias)', texto: 'Anota las creencias limitantes que el captador verbaliza, con sus palabras cuando sea posible. Con dos o más registradas y una valoración baja en manejo de la negatividad, la lectura propone revisarlas; no suman al índice de atención.' },
       { titulo: 'Técnica (azul)', texto: 'Puntúa del 1 al 5: Parada, Speech, Rebatidas y Cierre. El promedio del grupo aparece en tiempo real arriba a la derecha del bloque.' },
       { titulo: 'Hábitos (verde)', texto: 'Puntúa del 1 al 5 once variables: desde Puntualidad hasta Estabilidad semanal. El promedio del grupo también se calcula en tiempo real.' },
-      { titulo: 'Escala de puntuación', texto: '1 = Muy bajo / sin dominio. 2 = Bajo. 3 = Aceptable. 4 = Bueno. 5 = Excelente. Solo puntúa las variables que hayas podido observar.' },
+      { titulo: 'Escala de puntuación', texto: '1 = no lo hace, o con errores graves casi siempre · 2 = a veces, con errores frecuentes · 3 = en la mayoría de los intentos, con errores menores · 4 = con soltura casi siempre · 5 = con soltura y adaptándose a cada situación/persona. Solo puntúa las variables que hayas podido observar.' },
       { titulo: 'Promedio en tiempo real', texto: 'Cada grupo muestra su media actualizada y una barra de progreso. El número junto a cada estrella indica la puntuación seleccionada.' },
       { titulo: 'Biblioteca y Plantillas', texto: 'Ambos botones abren Recursos en la sección correspondiente. Recursos también está en el menú «Más acciones».' },
     ],
@@ -2613,11 +2613,15 @@ function renderEvolucion() {
   const hAvgs=sessions.map(f=>avgScores(f,'h',HABITOS_VARS.length));
   const labels=sessions.map((f,i)=>`S${i+1}`);
 
-  function delta(arr) {
-    if(arr.length<2) return null;
-    const last=parseFloat(arr[arr.length-1]), prev=parseFloat(arr[arr.length-2]);
-    if(isNaN(last)||isNaN(prev)) return null;
-    return (last-prev).toFixed(1);
+  // Cambio entre las dos últimas sesiones, solo con las variables del grupo evaluadas en ambas (como en el resto de la app).
+  // Por debajo del mínimo de variables comunes no hay comparación: restar medias de variables distintas no es un cambio.
+  function delta(prefix, n, min) {
+    if(sessions.length<2) return null;
+    const a=sessions[sessions.length-2], b=sessions[sessions.length-1];
+    const difs=[];
+    for(let i=0;i<n;i++){ const x=scoreDe(a,prefix+'_'+i), y=scoreDe(b,prefix+'_'+i); if(x!==null&&y!==null) difs.push(y-x); }
+    if(difs.length<min) return null;
+    return (difs.reduce((s,v)=>s+v,0)/difs.length).toFixed(1);
   }
   function deltaHtml(d) {
     if(d===null) return `<span class="delta-eq evo-pill-delta">Sin comparación</span>`;
@@ -2635,7 +2639,7 @@ function renderEvolucion() {
   }
 
   const lastT=tAvgs[tAvgs.length-1], lastH=hAvgs[hAvgs.length-1];
-  const dT=delta(tAvgs), dH=delta(hAvgs);
+  const dT=delta('t',TECNICA_VARS.length,2), dH=delta('h',HABITOS_VARS.length,3);
 
   function varRow(label, prefix, idx) {
     const vals=sessions.map(f=>{ const v=f[`${prefix}_${idx}`]; return v>0?parseFloat(v).toFixed(1):null; });
@@ -2924,7 +2928,7 @@ function generarPDF(){
     const avisoLns=doc.splitTextToSize('Lectura generada por reglas a partir de la evaluaci\u00f3n y la fase: orienta, no sustituye la observaci\u00f3n en campo y depende de la evidencia disponible. No es un diagn\u00f3stico confirmado.',cw-4);
     doc.setFontSize(7.5);doc.setFont('helvetica','italic');doc.setTextColor(...GRIS);
     chk(avisoLns.length*4.4+2); doc.text(avisoLns,M,y); y+=avisoLns.length*4.4+2;
-    const nivelTxt={alto:'Evidencia suficiente',medio:'Evidencia parcial',bajo:'Sin evidencia suficiente'}[diagResult.nivelEvidencia]||'Evidencia parcial';
+    const nivelTxt={alto:'Datos suficientes para esta lectura',medio:'Datos parciales',bajo:'Datos insuficientes'}[diagResult.nivelEvidencia]||'Datos parciales';
     const evidLns=doc.splitTextToSize('EVIDENCIA ('+nivelTxt.toUpperCase()+'): '+((diagResult.evidencia||[]).join(' \u00b7 ')||'sin datos'),cw-4);
     doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.setTextColor(...MID);
     chk(evidLns.length*4.4+2); doc.text(evidLns,M,y); y+=evidLns.length*4.4+3;
@@ -2950,7 +2954,7 @@ function generarPDF(){
   if(creencias.length){ sec('1. MENTALIDAD \u2014 CREENCIAS',AZUL);
     creencias.forEach((c,i)=>{ chk(7);
       doc.setFontSize(7.5);doc.setFont('helvetica','bold');doc.setTextColor(...ROJO); doc.text((i+1)+'.',M,y);
-      const lns=doc.splitTextToSize('\u201c'+c+'\u201d',cw-8);
+      const lns=doc.splitTextToSize(c,cw-8);
       doc.setFont('helvetica','italic');doc.setTextColor(...NEG); doc.text(lns,M+6,y); y+=lns.length*4.8+2; });
     const ic=[1,2,3,4,5,6].map(i=>d['ic'+i]).filter(Boolean);
     if(ic.length){ chk(7);doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(...GRIS);doc.text('INTERVENCIONES:',M,y);y+=5;blk(ic);} y+=2; }
@@ -3419,7 +3423,7 @@ function renderDiagnostico() {
       </div>
     </div>`;
   const texto = t => '<p class="diag-block-text">' + esc(t) + '</p>';
-  const NIVEL = { alto:{ txt:'Evidencia suficiente', cls:'good' }, medio:{ txt:'Evidencia parcial', cls:'mid' }, bajo:{ txt:'Sin evidencia suficiente', cls:'' } };
+  const NIVEL = { alto:{ txt:'Datos suficientes para esta lectura', cls:'good' }, medio:{ txt:'Datos parciales', cls:'mid' }, bajo:{ txt:'Datos insuficientes', cls:'' } };
   const nv = NIVEL[diag.nivelEvidencia] || NIVEL.medio;
   const evidencia = (diag.evidencia || []).length
     ? '<ul class="diag-evid">' + diag.evidencia.map(e => '<li class="pill">' + esc(e) + '</li>').join('') + '</ul>'
@@ -3476,11 +3480,11 @@ const PLANTILLAS = [
   { cat:'cr_causa', color:'#7b2d8b', label:'Creencias · Causa',
     texto:'Si no puedes explicar la misión en 20 segundos con tus propias palabras, sin términos del material oficial, es señal de que hay trabajo pendiente de interiorización, no de memoria.' },
   { cat:'cr_autoestima', color:'#7b2d8b', label:'Creencias · Feedback',
-    texto:'El acompañamiento no es una evaluación. En la evaluación te juzgan. En el aprendizaje te ayudan. ¿Qué necesitas de mí cuando estoy contigo? — esa pregunta lo cambia todo.' },
+    texto:'El acompañamiento sirve para aprender: lo que observo y valoro es para ayudarte a mejorar, y lo revisamos juntos. ¿Qué necesitas de mí cuando estoy contigo?' },
   { cat:'cr_rechazo', color:'#7b2d8b', label:'Creencias · Auriculares',
     texto:'Los auriculares son preferencia, no prohibición. Hay personas con auriculares que sí paran. Llevar el cuenta propia para comprobarlo.' },
   { cat:'cr_proceso', color:'#7b2d8b', label:'Creencias · Turistas',
-    texto:'Los no captables tienen valor de entrenamiento real. Practicar parada, speech y rebatida con alguien que no puede comprometerse es trabajo técnico que no debe desperdiciarse.' },
+    texto:'Si al hablar descubres que la persona no puede hacerse socia (por ejemplo, porque no reside aquí), agradécele el tiempo y despídete. Para practicar, usa el role-play con el equipo.' },
   { cat:'cr_resultados', color:'#1a237e', label:'Creencias · Cuota',
     texto:'No rebajes la cuota por adelantado suponiendo lo que la otra persona puede pagar. Presenta las opciones con seguridad y claridad, y deja que cada persona elija la que le encaje: la decisión es suya.' },
   { cat:'cr_resultados', color:'#1a237e', label:'Creencias · Cuota',
@@ -3522,13 +3526,13 @@ const PLANTILLAS = [
   { cat:'t_rebatidas', color:'#1e88e5', label:'Rebatidas',
     texto:'Las rebatidas se automatizan con role-play repetido hasta que la respuesta sale sin pensar.' },
   { cat:'t_cierre', color:'#2196f3', label:'Cierre',
-    texto:'El cierre no se pide, se facilita. Formulario preparado antes de llegar a ese momento.' },
+    texto:'Tener el formulario preparado evita esperas, pero el cierre se pide con claridad: «¿Te gustaría hacerte socio/a?».' },
   { cat:'t_cierre', color:'#2196f3', label:'Cierre',
     texto:'Después de la última rebatida, dar espacio. Dejar que la persona piense y decida sin llenar el silencio con más argumentos.' },
   { cat:'t_cierre', color:'#2196f3', label:'Cierre',
-    texto:'Dar opciones concretas reduce la parálisis de decisión: "¿Prefieres 5€ o 10€ al mes?" en lugar de "¿Cuánto puedes?".' },
+    texto:'Cuando la persona ya ha dicho que quiere colaborar, dar opciones concretas ayuda a elegir: «¿Prefieres 5€ o 10€ al mes?» en lugar de «¿Cuánto puedes?».' },
   { cat:'t_cierre', color:'#2196f3', label:'Cierre',
-    texto:'Si dice que sí, cerrar rápido. No añadir más información innecesaria después del sí.' },
+    texto:'Si dice que sí, completar los datos con agilidad y confirmar lo esencial: que es una donación periódica, el importe, la fecha de cobro y cómo pausarla o darse de baja.' },
   { cat:'t_parada', color:'#1565c0', label:'Parada · Energía',
     texto:'La parada empieza antes de abrir la boca. El captador que proyecta energía positiva a 3 metros para a más personas que el que espera que la persona le mire. La energía se contagia o se repele — no es neutral.' },
   { cat:'t_parada', color:'#1565c0', label:'Parada · Posición',
@@ -3546,9 +3550,9 @@ const PLANTILLAS = [
   { cat:'t_speech', color:'#1976d2', label:'Speech · Estructura 8-15-10',
     texto:'Speech efectivo = Gancho (8 seg) + Impacto concreto (15 seg) + Propuesta específica (10 seg). Todo lo que no cabe en 33 segundos no cabe en el speech. La concisión es respeto por el tiempo del interlocutor.' },
   { cat:'t_speech', color:'#1976d2', label:'Speech · Gancho de apertura',
-    texto:'El gancho debe responder la pregunta no dicha: "¿Por qué debería escucharte?". Un dato sorprendente o una pregunta retórica. Nunca empezar con el nombre de la organización — eso es el final del gancho, no el principio.' },
+    texto:'El gancho debe responder la pregunta no dicha: «¿Por qué debería escucharte?». Puede ser un dato o una pregunta, pero identifícate y nombra la organización al principio de la conversación, antes de la propuesta.' },
   { cat:'t_speech', color:'#1976d2', label:'Speech · Storytelling',
-    texto:'Un caso concreto de una persona real suele conectar más que una estadística. "Gracias a captadores como tú, María pudo..." activa la empatía. "Ayudamos a millones" no activa nada. Lo específico conecta.' },
+    texto:'Un caso real y verificable de la organización («gracias a socios como tú, [caso real]…») conecta más que «Ayudamos a millones». Nunca inventes nombres ni historias.' },
   { cat:'t_speech', color:'#1976d2', label:'Speech · Palabras que cierran',
     texto:'Abrir con palabras como «proyecto», «impacto» o «personas reales» suele invitar más a escuchar que empezar por «donación» o «firma». Eso no significa esconderlo: cuando llegue la propuesta, se dice con claridad que es una donación.' },
   { cat:'t_speech', color:'#1976d2', label:'Speech · Pregunta de enganche',
@@ -3582,7 +3586,7 @@ const PLANTILLAS = [
   { cat:'t_cierre', color:'#2196f3', label:'Cierre · El silencio',
     texto:'Después de la pregunta de cierre, dar espacio para pensar. No añadir más argumentos ni llenar el silencio: el silencio da tiempo a procesar y decidir. Si la persona dice que no, se acepta.' },
   { cat:'t_cierre', color:'#2196f3', label:'Cierre · Opciones concretas',
-    texto:'Dar dos opciones específicas reduce la parálisis: "¿Prefieres 5 o 10 euros al mes?" vs "¿Cuánto quieres donar?" La primera encuadra la decisión en un rango manejable. La segunda la deja abierta y genera más dudas.' },
+    texto:'Cuando la persona ya ha dicho que quiere colaborar, dar dos opciones específicas ayuda a elegir el importe: «¿Prefieres 5 o 10 euros al mes?» en lugar de «¿Cuánto quieres donar?». Si aún no ha decidido, primero se pregunta si quiere colaborar.' },
   { cat:'t_cierre', color:'#2196f3', label:'Cierre · Casi sí',
     texto:'Si la persona duda, puedes preguntarle con respeto si hay algo que le gustaría aclarar. Si lo hay, respóndelo como una rebatida más. Si prefiere no decidir hoy, se acepta sin insistir.' },
   { cat:'t_cierre', color:'#2196f3', label:'Cierre · Recapitulación',
@@ -3724,7 +3728,7 @@ const PLANTILLAS = [
   { cat:'ac_f5', color:'#e65100', label:'Acomp. · Día 46–90',
     texto:'Conversación sobre motivación y objetivos personales. El proceso técnico ya está consolidado o no se consolidará solo.' },
   { cat:'ac_f6', color:'#e65100', label:'Acomp. · +90 días',
-    texto:'Si hay problemas a esta altura, conviene explorar, además de la técnica, la motivación, el contexto personal y el encaje en el rol.' },
+    texto:'Si hay problemas a esta altura, conviene explorar, además de la técnica, la motivación, el contexto personal y el encaje en el rol. Si surge algo personal, escuchar y no registrar en la ficha detalles que no sean necesarios para la gestión profesional.' },
   { cat:'ac_general', color:'#e65100', label:'Acomp. · General',
     texto:'Lo más importante en la próxima sesión: una sola cosa. El foco múltiple genera parálisis.' },
   { cat:'ac_general', color:'#e65100', label:'Acomp. · General',
@@ -3748,7 +3752,7 @@ const PLANTILLAS = [
   { cat:'ac_f3', color:'#6a1b9a', label:'Día 13–25 · Comparación',
     texto:'¿Con quién te estás comparando? Los veteranos llevan meses o años haciendo esto. Tú llevas 3 semanas. La comparación correcta es: ¿eres mejor que hace 10 días? Esa es la única que importa.' },
   { cat:'ac_f3', color:'#6a1b9a', label:'Día 13–25 · Señal de alarma',
-    texto:'He notado que en las últimas sesiones sonríes menos en calle. Quiero preguntarte directamente: ¿qué está pasando realmente? Aquí puedes decirme lo que sea.' },
+    texto:'He notado que en las últimas sesiones sonríes menos en calle. Quiero preguntarte directamente: ¿cómo te estás sintiendo estos días en calle? Si hay algo que podamos ajustar, lo vemos juntos.' },
   { cat:'ac_f4', color:'#c62828', label:'Día 26–45 · Estancamiento',
     texto:'Llevamos X semanas trabajando juntos y veo un patrón. Has llegado a un nivel sólido pero llevas tiempo sin mejorar. No es un problema tuyo, es una señal de que necesitamos cambiar algo en el enfoque. ¿Qué crees tú que podría cambiar?' },
   { cat:'ac_f4', color:'#c62828', label:'Día 26–45 · Falsa seguridad',
@@ -3760,7 +3764,7 @@ const PLANTILLAS = [
   { cat:'ac_f5', color:'#e65100', label:'Día 46–90 · Autonomía',
     texto:'Este mes vamos a reducir el acompañamiento directo porque ya no lo necesitas de la misma forma. Lo que sí vamos a mantener es el seguimiento semanal. Quiero que empieces a confiar más en tu propio proceso.' },
   { cat:'ac_f5', color:'#e65100', label:'Día 46–90 · Desconexión silenciosa',
-    texto:'Tengo la sensación de que estás aquí pero que algo ha cambiado en las últimas semanas. No te pido que me digas que todo está bien. Te pido que me digas qué está pasando realmente. Tenemos que hablarlo hoy.' },
+    texto:'He notado que algo ha cambiado en las últimas semanas: [conducta concreta]. ¿Cómo lo estás viviendo tú? Si quieres hablarlo, aquí estoy; y si hay algo del trabajo que podamos ajustar, lo vemos juntos.' },
   { cat:'ac_f6', color:'#2e7d32', label:'+90 días · Identidad profesional',
     texto:'Ya no eres nuevo. Llevas más de 3 meses construyendo algo. Quiero que empieces a verte como un profesional de este trabajo, no como alguien que está aprendiendo. ¿Qué significa eso para ti?' },
   { cat:'ac_f6', color:'#2e7d32', label:'+90 días · Reto avanzado',
@@ -4034,7 +4038,7 @@ function insertarTextoPlantilla(texto) {
   target.style.height = 'auto';
   target.style.height = target.scrollHeight + 'px';
   try { target.focus({preventScroll:true}); target.scrollIntoView({block:'center'}); } catch(e) {}
-  toast('Plantilla insertada');
+  toast('Plantilla insertada: adáptala a lo que has trabajado de verdad; así quedará en el historial y en el PDF.', {ms:5000});
 }
 
 
@@ -4053,6 +4057,7 @@ const BIBLIOTECA_CATS = [
   { id:'donantes',      label:'Los donantes',        color:'#00695c' },
   { id:'rerp',          label:'Creencias RE/RP',     color:'#37474f' },
   { id:'cuota',         label:'Cuota',               color:'#b71c1c' },
+  { id:'objetivo',      label:'Objetivo',            color:'#b71c1c' },
   { id:'calidad',       label:'Calidad',             color:'#1a237e' },
   { id:'zonas',         label:'Zonas',               color:'#1b5e20' },
   { id:'logistica',     label:'Logística',           color:'#455a64' },
@@ -4293,7 +4298,7 @@ const BIBLIOTECA = [
   {
     cat:'autoestima', catLabel:'Autoestima', color:'#6a1b9a',
     creencia: 'Me siento juzgado cuando el RE me observa trabajar.',
-    intervencion: 'El acompañamiento no es una evaluación, es un proceso de aprendizaje. La diferencia es que en la evaluación te juzgan, en el aprendizaje te ayudan. Si el captador lo vive como juicio, puede ser por experiencias previas con feedback mal dado o por inseguridad con el proceso. Conversación directa: "¿Qué necesitas de mí cuando estoy con vosotros?" La respuesta da mucha información sobre cómo acompañar mejor.'
+    intervencion: 'El acompañamiento sirve para aprender: lo que el RE/RP observa y valora es para ayudar a mejorar, y se revisa juntos. Si el captador lo vive como juicio, puede ser por experiencias previas con feedback mal dado o por inseguridad con el proceso. Conversación directa: "¿Qué necesitas de mí cuando estoy con vosotros?" La respuesta da mucha información sobre cómo acompañar mejor.'
   },
   {
     cat:'autoestima', catLabel:'Autoestima', color:'#6a1b9a',
@@ -4416,7 +4421,7 @@ const BIBLIOTECA = [
   {
     cat:'donantes', catLabel:'Los donantes', color:'#00695c',
     creencia: 'Los turistas nunca donan porque no van a comprometerse con algo de aquí.',
-    intervencion: 'Esta creencia es parcialmente cierta para donaciones con domiciliación bancaria española. Pero hay organizaciones internacionales donde esto no aplica. Más relevante: la práctica de captar a alguien que claramente no puede comprometerse es entrenamiento real de todas las fases del proceso excepto el cierre. Los "no captables" tienen un valor de entrenamiento que no debe subestimarse.'
+    intervencion: 'Algunas personas no pueden hacerse socias por su situación, y eso se respeta: agradece el tiempo y despídete. Lo que sí conviene evitar es descartar a nadie antes de hablar con él.'
   },
   {
     cat:'donantes', catLabel:'Los donantes', color:'#00695c',
@@ -4541,24 +4546,24 @@ const BIBLIOTECA = [
 
   // TEMA 1: CUOTA
   {
-    cat:'cuota', catLabel:'Cuota', color:'#b71c1c',
-    creencia: 'La cuota es imposible de conseguir de forma consistente.',
-    intervencion: 'La cuota no es un techo: es un suelo. Cómo se mira la cuota cambia cómo se trabaja. El problema no es la cuota sino el marco desde el que se contempla. Paso de reprogramación: ¿qué actividad diaria te acerca de forma realista a la cuota? Define el proceso, no el número. El número es consecuencia.'
+    cat:'objetivo', catLabel:'Objetivo', color:'#b71c1c',
+    creencia: 'El objetivo es imposible de conseguir de forma consistente.',
+    intervencion: 'El objetivo es una referencia; lo que controlas es la actividad diaria que te acerca a él. Cómo se mira el objetivo cambia cómo se trabaja. Paso de reprogramación: ¿qué actividad diaria te acerca de forma realista al objetivo? Define el proceso, no el número. El número es consecuencia.'
   },
   {
-    cat:'cuota', catLabel:'Cuota', color:'#b71c1c',
-    creencia: 'Cuando no llego a la cuota me siento un fracasado.',
-    intervencion: 'La cuota mide el resultado. El resultado depende de muchas variables, algunas fuera de tu control. Lo que sí controlas es el proceso: número de paradas, calidad de speech, seguimiento de rebatidas. La intervención: evaluar el proceso de esa semana con datos. Si el proceso fue correcto y el resultado no llegó, la conclusión es ajustar alguna variable, no redefinir tu capacidad.'
+    cat:'objetivo', catLabel:'Objetivo', color:'#b71c1c',
+    creencia: 'Cuando no llego al objetivo me siento un fracasado.',
+    intervencion: 'El objetivo mide el resultado. El resultado depende de muchas variables, algunas fuera de tu control. Lo que sí controlas es el proceso: número de paradas, calidad de speech, seguimiento de rebatidas. La intervención: evaluar el proceso de esa semana con datos. Si el proceso fue correcto y el resultado no llegó, la conclusión es ajustar alguna variable, no redefinir tu capacidad.'
   },
   {
-    cat:'cuota', catLabel:'Cuota', color:'#b71c1c',
+    cat:'objetivo', catLabel:'Objetivo', color:'#b71c1c',
     creencia: 'Algunos captadores tienen ventaja porque trabajan en mejores zonas y por eso llegan más fácil.',
     intervencion: 'La zona tiene un impacto real, pero no explica toda la diferencia entre captadores. Dos variables que también pesan mucho: el volumen de intentos por turno y la calidad del speech adaptado a ese contexto. Un captador con proceso sólido en una zona "difícil" puede superar a uno con proceso débil en una zona "fácil". Enfocarse en la zona como explicación es enfocarse en lo que no se puede controlar.'
   },
   {
-    cat:'cuota', catLabel:'Cuota', color:'#b71c1c',
-    creencia: 'En temporada baja es imposible llegar a cuota, no es justo exigirlo.',
-    intervencion: 'La temporada baja afecta al volumen de personas disponibles, lo cual es real. La respuesta profesional es adaptar la estrategia: más intentos por hora, zonas más densas, horarios pico más precisos, speech más conciso para personas con menos tiempo. El objetivo en temporada baja no es "alcanzar cuota como en temporada alta": es maximizar el rendimiento dado el contexto. Son objetivos distintos.'
+    cat:'objetivo', catLabel:'Objetivo', color:'#b71c1c',
+    creencia: 'En temporada baja es imposible llegar al objetivo, no es justo exigirlo.',
+    intervencion: 'La temporada baja afecta al volumen de personas disponibles, lo cual es real. La respuesta profesional es adaptar la estrategia: más intentos por hora, zonas más densas, horarios pico más precisos, speech más conciso para personas con menos tiempo. El objetivo en temporada baja no es "alcanzar el objetivo como en temporada alta": es maximizar el rendimiento dado el contexto. Son objetivos distintos.'
   },
 
   // TEMA 2: CALIDAD
@@ -4735,7 +4740,7 @@ function usarCreencia(idx, conIntervencion) {
   }
   cerrarRecursos(true);
   if (!targetCreencia) toast('Las 5 creencias ya están ocupadas. Borra una para insertar otra.', {ms:4500});
-  else toast(conIntervencion ? 'Creencia e intervención insertadas' : 'Creencia insertada');
+  else toast(conIntervencion ? 'Insertadas: adáptalas a lo que dice el captador y a lo que habéis trabajado; así quedarán en el historial y en el PDF.' : 'Creencia insertada: adáptala a lo que dice el captador; así quedará en el historial y en el PDF.', {ms:5000});
   goTab(1);
   setTimeout(() => { if (targetCreencia) try { targetCreencia.focus({preventScroll:true}); targetCreencia.scrollIntoView({block:'center'}); } catch(e){} }, 60);
 }
@@ -5086,9 +5091,9 @@ function calcRiesgo(sessions, estado, opts) {
 
   // Rendimiento: nivel general y por grupo (solo grupos evaluados)
   if (!inicial && nivelOk && m.global !== null) {
-    if (m.global < 2)        add('media_global', 'rendimiento', 30, 'Media ' + fmt1(m.global) + '/5, muy baja', 'trend-down');
-    else if (m.global < 2.5) add('media_global', 'rendimiento', 20, 'Media ' + fmt1(m.global) + '/5, baja', 'trend-down');
-    else if (m.global < 3)   add('media_global', 'rendimiento', 10, 'Media ' + fmt1(m.global) + '/5, por debajo de 3', 'chart');
+    if (m.global < 2)        add('media_global', 'rendimiento', 30, 'Media de técnica y hábitos ' + fmt1(m.global) + '/5, muy baja', 'trend-down');
+    else if (m.global < 2.5) add('media_global', 'rendimiento', 20, 'Media de técnica y hábitos ' + fmt1(m.global) + '/5, baja', 'trend-down');
+    else if (m.global < 3)   add('media_global', 'rendimiento', 10, 'Media de técnica y hábitos ' + fmt1(m.global) + '/5, por debajo de 3', 'chart');
   }
   if (!inicial && m.t !== null && m.nT >= 2) {
     if (m.t < 2)        add('media_tecnica', 'rendimiento', 18, 'Técnica ' + fmt1(m.t) + '/5, muy baja (' + m.nT + ' de ' + TECNICA_VARS.length + ' evaluadas)', 'bolt');
@@ -5115,7 +5120,7 @@ function calcRiesgo(sessions, estado, opts) {
     if (critica && g < critica[1]) cands.push(critica);
     if (cands.length) {
       const best = cands.reduce((a, b) => b[0] > a[0] ? b : a);
-      add('media_para_fase', 'rendimiento', best[0], 'Media ' + fmt1(g) + '/5, por debajo del nivel de referencia interno para ' + faseLabel + ' (' + fmt1(best[1]) + ')', 'compass');
+      add('media_para_fase', 'rendimiento', best[0], 'Media de técnica y hábitos ' + fmt1(g) + '/5, por debajo del nivel de referencia interno para ' + faseLabel + ' (' + fmt1(best[1]) + ')', 'compass');
     }
   }
 
@@ -5285,7 +5290,7 @@ const GUIA_FASES = {
       'Frases como "esto es fácil, solo tienes que…"',
       'Discursos largos en lugar de acciones claras',
     ],
-    senales: ['Baja la mirada y se pasa de largo sin parar', 'Se queda rígido y repite siempre lo mismo', 'Hace 1 parada cada 5 minutos', 'No pregunta nada aunque se le vea perdido'],
+    senales: ['Baja la mirada y se pasa de largo sin intentar parar', 'Se queda rígido y repite siempre exactamente lo mismo', 'Menos de 1 parada cada 5 minutos', 'No hace preguntas aunque no sepa cómo seguir'],
     intervencion: '"Lo que hiciste bien fue… Para mañana solo mejora esto… Inténtalo así."',
   },
   f2: {
@@ -5307,7 +5312,7 @@ const GUIA_FASES = {
       'Interpretar el bajón como incapacidad',
       'Descartar por número y no por patrón',
     ],
-    senales: ['Se queda mirando el móvil entre paradas', 'Responde en monosílabos, evita contacto visual', 'Evita paradas activamente', '"Creo que no voy a durar"'],
+    senales: ['Mira el móvil entre paradas', 'Responde con monosílabos y evita el contacto visual con el equipo', 'Deja pasar personas sin intentar parar', 'Dice que duda de seguir («creo que no voy a durar»)'],
     intervencion: '"Tu parada está bien, pero no insistes. El speech es bueno, pero demasiado largo. Vamos a entrenar las pausas."',
     despido: 'En esta fase no se valora una salida: las puntuaciones son un punto de partida. Si observas cero esfuerzo sostenido (se esconde, no lo intenta), regístralo y coméntalo con el RP/RE. Nunca por número de socios.',
   },
@@ -5329,7 +5334,7 @@ const GUIA_FASES = {
       'Dejar de acompañar porque "ya debería saber"',
       'Interpretar la crisis como incapacidad permanente',
     ],
-    senales: ['Atribuye los resultados a factores externos («la gente hoy está rara», «hoy no es mi día»)', 'Sonríe menos en calle que en días anteriores', 'Habla menos con el equipo y no plantea dudas'],
+    senales: ['Atribuye los resultados a factores externos («la gente hoy está rara»)', 'Sonríe menos en calle que en días anteriores', 'Habla menos con el equipo y no plantea dudas'],
     intervencion: 'No decir "has fallado". Decir "estás en fase de ajuste". Preguntar: "¿Con quién te comparas?" para trabajar la diferencia nivel vs senior.',
     despido: 'Solo si hay patrón claro: no mejora nada + no aplica correcciones + actitud pasiva/negativa. Y solo después de haber acompañado.',
   },
@@ -5340,7 +5345,7 @@ const GUIA_FASES = {
       'Revisión semanal estructurada (obligatoria)',
       'Correcciones técnicas finas, no generalidades',
       'Exigencia progresiva y real',
-      'Apoyo emocional activo — conversaciones de fondo',
+      'Apoyo emocional activo: preguntar cómo está y escuchar. Si surge algo personal, respetar lo que quiera contar y no registrar en la ficha detalles personales que no sean necesarios para la gestión profesional',
       'Acompañamiento mínimo 1 turno/semana',
       'Intervenir en ≤48h si aparecen señales de alarma',
     ],
@@ -5348,7 +5353,7 @@ const GUIA_FASES = {
       'Relajarse: "ya irá solo"',
       'Exigir como a veterano',
       'Ignorar señales emocionales',
-      'No tener conversaciones profundas sobre su situación',
+      'No preguntar cómo está ni escuchar lo que le preocupa del trabajo',
       'Hablar solo del número semanal',
     ],
     senales: ['Sus puntuaciones no cambian en varias sesiones', 'Se le ve desanimado y no lo comenta con el equipo', 'Expresa frustración («ya debería saber hacer esto»)'],
@@ -5372,7 +5377,7 @@ const GUIA_FASES = {
       'No hablar de futuro — sin visión vuelve la duda',
       'Tratarlo aún como nuevo: excesiva supervisión frena la autonomía',
     ],
-    senales: ['Cansancio visible en campo', 'Se compara con otros en negativo', 'Dice que duda de su futuro aquí'],
+    senales: ['Cansancio visible en campo', 'Se compara con otros en negativo, sin preguntarles cómo lo hacen', 'Dice que duda de su futuro aquí («¿me veo aquí a largo plazo?»)'],
     indicadores: ['Puntualidad estable', 'Energía constante', 'Ritmo sostenido', 'Autocontrol emocional', 'Capacidad de autoevaluación'],
     intervencion: 'Conversación de futuro: qué camino ve aquí y qué necesitaría para recorrerlo.',
     despido: 'Solo si: no hay autonomía + no hay ritmo + no hay profesionalización, y se han hecho las intervenciones de las fases anteriores.',
@@ -5391,8 +5396,8 @@ const GUIA_FASES = {
       'No invertir tiempo en quien ya funciona bien',
       'Seguir hablando solo de número semanal',
     ],
-    senales: ['Menos energía o iniciativa en campo que antes', 'Sus puntuaciones no cambian en varias sesiones', 'Dice que no ve posibilidades de desarrollo'],
-    intervencion: 'No queremos captadores que aguanten. Queremos profesionales que construyan su carrera aquí.',
+    senales: ['Menos energía o iniciativa en campo que antes', 'Sus puntuaciones no cambian en varias sesiones', 'Dice que no ve posibilidades de desarrollo profesional'],
+    intervencion: 'Conversación de desarrollo: qué recorrido ve aquí y qué necesitaría para recorrerlo.',
   },
 };
 
@@ -5769,9 +5774,9 @@ function actualizarSenalesResult() {
   const n = senalesActivas.size;
   if (n === 0) { result.className = 'senales-result notice'; result.innerHTML = ''; return; }
   let tone, icono, texto;
-  if (n >= 5) { tone='bad'; icono='alert'; texto=`<strong>${n} señales activas.</strong> Intervención urgente en menos de 48h. Contacto directo hoy.`; }
+  if (n >= 5) { tone='bad'; icono='alert'; texto=`<strong>${n} señales activas.</strong> Hablar con el captador hoy o mañana, sin esperar a la próxima sesión.`; }
   else if (n >= 3) { tone='warn'; icono='warn'; texto=`<strong>${n} señales activas.</strong> Acompañamiento prioritario esta semana. No dejar pasar más de 48h sin intervenir.`; }
-  else { tone='blue'; icono='eye'; texto=`<strong>${n} señal${n>1?'es':''} detectada${n>1?'s':''}.</strong> Mantener seguimiento en la próxima sesión.`; }
+  else { tone='blue'; icono='eye'; texto=`<strong>${n} señal${n>1?'es':''} detectada${n>1?'s':''}.</strong> Mantener seguimiento en la próxima sesión; si la señal indica que se plantea dejarlo, habla con él antes.`; }
   result.className = 'senales-result notice show';
   result.setAttribute('data-tone', tone);
   result.innerHTML = ic(icono) + '<div>' + texto + '</div>';
@@ -5789,8 +5794,8 @@ const SEMAFORO_CONFIG = {
     accion: '<strong>Seguimiento reforzado.</strong> Hay alguna señal de atención. Conviene hablar esta semana con el captador sobre cómo se ve en el equipo y qué necesita, y revisar estas señales en la próxima sesión.'
   },
   rojo: {
-    cls: 'semaforo-rojo', title: 'Atención prioritaria',
-    accion: '<strong>Atención prioritaria.</strong> Conviene hablar con el captador en los próximos días, sin esperar a la próxima sesión programada, para entender qué está pasando.'
+    cls: 'semaforo-rojo', title: 'Seguimiento prioritario',
+    accion: '<strong>Seguimiento prioritario.</strong> Conviene hablar con el captador en los próximos días, sin esperar a la próxima sesión programada, para entender qué está pasando.'
   },
 };
 
@@ -5821,8 +5826,8 @@ function evaluarSemaforo(sessions, faseId, estado, opts) {
   const senales = [];
   if (delta < -0.8)   senales.push({ tipo:'critica', label:'Caída de ' + fmt1(-delta) + ' puntos respecto a la sesión anterior' });
   else if (delta < 0) senales.push({ tipo:'atencion', label:'Bajada de ' + fmt1(-delta) + ' puntos respecto a la sesión anterior' });
-  if (gLast !== null && gLast < 2.5 && delta <= 0) senales.push({ tipo:'critica', label:'Media ' + fmt1(gLast) + '/5 sin mejora' });
-  else if (gLast !== null && gLast < 3)            senales.push({ tipo:'atencion', label:'Media ' + fmt1(gLast) + '/5, por debajo de 3' });
+  if (gLast !== null && gLast < 2.5 && delta <= 0) senales.push({ tipo:'critica', label:'Media de técnica y hábitos ' + fmt1(gLast) + '/5 sin mejora' });
+  else if (gLast !== null && gLast < 3)            senales.push({ tipo:'atencion', label:'Media de técnica y hábitos ' + fmt1(gLast) + '/5, por debajo de 3' });
   if (diasSin !== null && diasSin > 14)     senales.push({ tipo:'atencion', temporal:true, label: diasSin + ' días sin intervención (criterio interno: más de 14)' });
   else if (diasSin !== null && diasSin > 7) senales.push({ tipo:'atencion', temporal:true, label: diasSin + ' días sin intervención (criterio interno: más de 7)' });
 
