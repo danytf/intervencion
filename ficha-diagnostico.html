@@ -869,7 +869,9 @@ function resolverCase(i){
 /* ── Copia en archivo (.json) — mismo formato que la ficha original ── */
 function saveFile(){
   try{
-    const data = JSON.stringify({app:"clinica_rp", version:1, fecha:new Date().toISOString(), cases, current}, null, 1);
+    /* La copia nunca incluye la solución modelo del banco (_resolucion); se reconstruye al cargar desde _bancoIdx */
+    const exportCases = cases.map(c=>{ const o=Object.assign({}, c); delete o._resolucion; return o; });
+    const data = JSON.stringify({app:"clinica_rp", version:1, fecha:new Date().toISOString(), cases:exportCases, current}, null, 1);
     const blob = new Blob([data], {type:"application/json"});
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -892,7 +894,13 @@ function loadFile(ev){
       const d = JSON.parse(e.target.result);
       const loaded = Array.isArray(d) ? d : d.cases;
       if(!Array.isArray(loaded) || !loaded.length) throw new Error("formato");
-      norm = loaded.map(normCase);
+      norm = loaded.map(normCase).map(c=>{
+        delete c._resolucion;
+        const i = c._bancoIdx;
+        const b = (Number.isInteger(i) && i>=0 && i<BANCO_COMPLETO.length) ? BANCO_COMPLETO[i] : null;
+        if(b && typeof b==="object") c._resolucion = JSON.parse(JSON.stringify(b));
+        return c;
+      });
     }catch(err){
       toast("No se ha podido leer el archivo. Elige un .json guardado con esta ficha.");
       input.value=""; return;
