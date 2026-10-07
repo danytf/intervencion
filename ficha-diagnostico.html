@@ -925,7 +925,7 @@ function loadBanco(){
   if(cases.length===1 && !isFilled(cases[0]) && !cases[0]._resolucion){
     cases[0] = nuevo; current = 0;
   } else if(cases.length < MAX_CASES){
-    cases.push(nuevo); current = cases.length - 1;
+    cases.push(nuevo); current = cases.length - 1; ui.other={vars:false,indics:false};
   } else {
     toast("Has llegado al máximo de "+MAX_CASES+" casos"); return;
   }
@@ -998,7 +998,8 @@ function importCase(raw, n){
   ["vars","indics"].forEach(k=>{ if(has(k)){
     if(!Array.isArray(raw[k]) || !raw[k].every(v=>typeof v==="string")) throw bad(k);
     raw[k].forEach(v=>okLen(v,k));
-    c[k] = raw[k].slice();
+    /* Sin valores en blanco ni repetidos: la ficha no puede crearlos y rompían el desmarcado y el recuento del mapa */
+    const vistos=new Set(); c[k] = raw[k].filter(v=>v.trim()!=="" && !vistos.has(v) && vistos.add(v));
   }});
   [["diagTipo",DTYPES],["sema",SEMAS],["cierre",CIERRES]].forEach(([k,lista])=>{ if(has(k)){
     if(raw[k]!==null && !lista.some(o=>o.k===raw[k])) throw new ImportError("el caso "+n+" tiene un valor no válido en «"+k+"».");
@@ -1056,7 +1057,7 @@ function loadFile(ev){
       msg: tieneDatos ? "Sustituye a los casos que tienes ahora. Si quieres conservarlos, cancela y usa antes Guardar en archivo." : "Se abrirán en esta ficha.",
       okText:"Cargar casos", icon:"upload", tone:"neutral",
       onOk:()=>{
-        flushSave(); cases = norm; current = normCurrent; view="case"; saveNow(); render(); scrollTop();
+        flushSave(); cases = norm; current = normCurrent; ui.other={vars:false,indics:false}; view="case"; saveNow(); render(); scrollTop();
         toast(norm.length+(norm.length===1?" caso cargado":" casos cargados")+" del archivo");
       },
       onClose:()=>{ input.value=""; }
@@ -1412,6 +1413,10 @@ function toggleIn(kind, v){
   saveNow();
   const base = kind==="vars"?VARS:INDICS;
   rerender(base.includes(v)||arr.includes(v) ? `[data-act="chip"][data-kind="${kind}"][data-val="${cssq(v)}"]` : `[data-act="other"][data-kind="${kind}"]`);
+  if(!document.activeElement || document.activeElement===document.body){
+    const alt=document.querySelector(`[data-act="more"][data-kind="${kind}"]`)||document.querySelector(`[data-act="other"][data-kind="${kind}"]`);
+    if(alt) alt.focus({preventScroll:true});
+  }
 }
 function addOther(kind){
   const el=$("other-"+kind); if(!el) return;
@@ -1432,7 +1437,7 @@ function goCase(i){ if(i<0||i>=cases.length) return; flushSave(); view="case"; c
 function goView(v){ flushSave(); view=v; saveNow(); render(); scrollTop(); $("main").focus({preventScroll:true}); }
 function addCase(){
   if(cases.length>=MAX_CASES){ toast("Has llegado al máximo de "+MAX_CASES+" casos"); return; }
-  flushSave(); view="case"; cases.push(blankCase()); current=cases.length-1; saveNow(); render(); scrollTop();
+  flushSave(); view="case"; cases.push(blankCase()); current=cases.length-1; ui.other={vars:false,indics:false}; saveNow(); render(); scrollTop();
   toast("Caso "+cases.length+" añadido");
   const f=$("f_nombre"); if(f) f.focus({preventScroll:true});
 }
@@ -1448,6 +1453,7 @@ function deleteCase(i){
       cases.splice(i,1);
       if(current>=cases.length) current=cases.length-1;
       else if(i<current) current--;
+      ui.other={vars:false,indics:false};
       saveNow(); render(); toast("Caso borrado");
     }
   });
