@@ -761,15 +761,6 @@ function blankCase(){
     cierre:null, aprendizaje:""
   };
 }
-/* Completa los campos que falten sin tocar los que hay */
-function normCase(c){
-  const n = Object.assign(blankCase(), c||{});
-  if(!Array.isArray(n.hip)) n.hip=["","",""];
-  while(n.hip.length<3) n.hip.push("");
-  if(!Array.isArray(n.vars)) n.vars=[];
-  if(!Array.isArray(n.indics)) n.indics=[];
-  return n;
-}
 
 /* Máximo de casos: única fuente de verdad para crear, cargar del banco e importar */
 const MAX_CASES = 12;
@@ -795,34 +786,97 @@ function $(id){return document.getElementById(id);}
 /* ── Guardado en este navegador ── */
 const KEY = "clinica_rp_fichas_v1";
 const KEY_VIEW = "clinica_rp_vista";
+/* Formato guardado: {storageVersion, cases, current}; view va aparte en KEY_VIEW.
+   Sin storageVersion = formato antiguo ({cases,current} o array), que se migra al cargar.
+   _resolucion no se guarda: se reconstruye desde el banco con _bancoIdx. */
+const STORAGE_VERSION = 1;
+const KEY_LEGACY_BACKUP = KEY+"_copia_mas_de_12";   // copia íntegra de datos antiguos con más de MAX_CASES casos
+const SAVE_DELAY = 300;
+let saveTimer = null;          // como máximo un guardado pendiente
+let saveFailed = false;        // resultado real del último intento de guardar
+let writesBlocked = false;     // no se escribe para no sobrescribir datos que no se han podido leer ni apartar
+function StoredError(kind){ this.kind = kind; }   // "danado" | "version"
+/* Valida lo guardado reutilizando importCase(): mismo modelo, conserva _bancoIdx válido y
+   reconstruye _resolucion desde el banco. Lanza StoredError si no es recuperable. */
+function parseStored(raw){
+  let d;
+  try{ d = JSON.parse(raw); }catch(e){ throw new StoredError("danado"); }
+  let list, cur = 0;
+  if(Array.isArray(d)) list = d;                           // formato antiguo: array de casos
+  else if(isPlainObject(d)){
+    if("storageVersion" in d){
+      if(!Number.isInteger(d.storageVersion) || d.storageVersion<1) throw new StoredError("danado");
+      if(d.storageVersion > STORAGE_VERSION) throw new StoredError("version");
+    }
+    list = d.cases; cur = d.current;
+  }
+  if(!Array.isArray(list) || !list.length) throw new StoredError("danado");
+  let cs;
+  try{ cs = list.map((c,i)=>importCase(c, i+1)); }catch(e){ throw new StoredError("danado"); }
+  /* current inválido no es dato del usuario: se usa 0 */
+  if(!Number.isInteger(cur) || cur<0 || cur>=cs.length) cur = 0;
+  return {cases:cs, current:cur};
+}
+function backupRaw(key, raw){
+  try{ localStorage.setItem(key, raw); return true; }catch(e){ return false; }
+}
 function load(){
-  let raw = null;
-  try{ raw = localStorage.getItem(KEY); }catch(e){}
-  if(raw){
+  let raw = null, aviso = null;
+  try{ raw = localStorage.getItem(KEY); }
+  catch(e){ writesBlocked = true; aviso = "No se pueden leer los casos guardados en este navegador. Para no sobrescribirlos, no se guardará automáticamente. Usa Guardar en archivo."; }
+  if(raw !== null){
     try{
-      const d = JSON.parse(raw);
-      cases = (Array.isArray(d) ? d : (d.cases||[])).map(normCase);
-      current = Math.min(Math.max(0, (d && d.current)|0), Math.max(0,cases.length-1));
+      const r = parseStored(raw);
+      cases = r.cases; current = r.current;
+      if(cases.length > MAX_CASES){
+        /* Datos de la versión que permitía 16 casos: copia íntegra en una clave estable que el autosave no toca */
+        const n = cases.length;
+        let ok = false;
+        try{ ok = localStorage.getItem(KEY_LEGACY_BACKUP)===raw || (localStorage.getItem(KEY_LEGACY_BACKUP)===null ? backupRaw(KEY_LEGACY_BACKUP, raw) : backupRaw(KEY_LEGACY_BACKUP+"_"+Date.now(), raw)); }catch(e){}
+        cases = cases.slice(0, MAX_CASES);
+        if(current >= MAX_CASES) current = 0;
+        if(ok) aviso = "Había "+n+" casos guardados de una versión anterior y el máximo es "+MAX_CASES+". Se ha guardado una copia completa en este navegador y se muestran los "+MAX_CASES+" primeros.";
+        else { writesBlocked = true; aviso = "Había "+n+" casos guardados y el máximo es "+MAX_CASES+". No se ha podido hacer copia, así que no se guardará automáticamente para no perderlos. Usa Guardar en archivo."; }
+      }
     }catch(e){
-      /* Datos dañados: se apartan en una copia antes de seguir, nunca se pierden en silencio */
-      try{ localStorage.setItem(KEY+"_danado_"+Date.now(), raw); }catch(_){}
-      setTimeout(()=>toast("Los casos guardados estaban dañados. Se ha apartado una copia y se empieza en blanco."),400);
+      const version = e instanceof StoredError && e.kind==="version";
+      /* Nunca se usa ni se pierde en silencio: se aparta una copia antes de empezar en blanco */
+      if(backupRaw(KEY+(version?"_version_desconocida_":"_danado_")+Date.now(), raw)){
+        aviso = version ? "Los casos guardados son de una versión más nueva de la ficha. Se ha apartado una copia y se empieza en blanco."
+                        : "Los casos guardados estaban dañados. Se ha apartado una copia y se empieza en blanco.";
+      } else {
+        writesBlocked = true;
+        aviso = "Los casos guardados no se pueden usar y no se ha podido apartar una copia. Para no perderlos, no se guardará automáticamente. Usa Guardar en archivo.";
+      }
       cases = [];
     }
   }
   if(!cases.length){ cases = [blankCase()]; current = 0; }
   try{ const v = localStorage.getItem(KEY_VIEW); if(v==="map"||v==="case") view = v; }catch(e){}
+  if(writesBlocked) saveFailed = true;
+  if(aviso) setTimeout(()=>toast(aviso), 400);
 }
-let saveFailed = false;
-function save(){
+function markSaveFailed(){
+  if(!saveFailed){ saveFailed = true; setSub(); toast("No se ha podido guardar en este navegador. Usa Guardar en archivo."); }
+}
+/* Guardado inmediato: cancela el pendiente y escribe el estado actual completo */
+function saveNow(){
+  clearTimeout(saveTimer); saveTimer = null;
+  if(writesBlocked){ saveFailed = true; setSub(); return false; }
+  let data;
   try{
-    localStorage.setItem(KEY, JSON.stringify({cases,current}));
-    localStorage.setItem(KEY_VIEW, view);
-    if(saveFailed){ saveFailed=false; setSub(); }
-  }catch(e){
-    if(!saveFailed){ saveFailed=true; setSub(); toast("No se ha podido guardar en este navegador. Usa Guardar en archivo."); }
-  }
+    data = JSON.stringify({storageVersion:STORAGE_VERSION, current,
+      cases: cases.map(c=>{ const o=Object.assign({}, c); delete o._resolucion; return o; })});
+  }catch(e){ markSaveFailed(); return false; }
+  try{ localStorage.setItem(KEY, data); localStorage.setItem(KEY_VIEW, view); }
+  catch(e){ markSaveFailed(); return false; }
+  if(saveFailed){ saveFailed = false; setSub(); }
+  return true;
 }
+/* Edición de texto: agrupa las pulsaciones en un único guardado */
+function scheduleSave(){ clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, SAVE_DELAY); }
+/* Antes de una acción estructural: materializa lo pendiente */
+function flushSave(){ if(saveTimer) saveNow(); }
 function setSub(){
   const s=$("hdrSub");
   s.textContent = saveFailed ? "Sin guardar en este navegador" : "Ficha de diagnóstico y receta";
@@ -832,6 +886,7 @@ function setSub(){
 /* ── Banco de casos (solo enunciado; la solución se aplica con «Ver solución modelo») ── */
 function bancoCargados(){ return new Set(cases.filter(c=>typeof c._bancoIdx==="number").map(c=>c._bancoIdx)); }
 function loadBanco(){
+  flushSave();
   const cargados = bancoCargados();
   let next = -1;
   for(let i=0;i<BANCO_COMPLETO.length;i++){ if(!cargados.has(i)){ next=i; break; } }
@@ -849,7 +904,7 @@ function loadBanco(){
   } else {
     toast("Has llegado al máximo de "+MAX_CASES+" casos"); return;
   }
-  view="case"; save(); render(); scrollTop();
+  view="case"; saveNow(); render(); scrollTop();
   toast("Añadido del banco: caso "+(cargados.size+1)+" de "+BANCO_COMPLETO.length);
 }
 function updateBancoHint(){
@@ -863,11 +918,12 @@ function resolverCase(i){
     msg:"Se rellenan el diagnóstico, el tratamiento, la receta y el cierre con la solución del banco. Sirve para enseñar un ejemplo o desbloquear al grupo. Después puedes editar lo que quieras.",
     okText:"Rellenar con la solución", icon:"bulb", tone:"amber",
     onOk:()=>{
+      flushSave();
       const r = c._resolucion;
       ["hip","diagTipo","vars","objetivo","n1","n2","n3","dosis","responsable",
        "duracion","seguimiento","indics","rx1","rxCon","rx2","rx3","sema","cierre","aprendizaje"
       ].forEach(k=>{ if(r[k]!==undefined) c[k] = JSON.parse(JSON.stringify(r[k])); });
-      save(); render();
+      saveNow(); render();
       toast("Caso rellenado con la solución modelo");
     }
   });
@@ -892,8 +948,8 @@ function saveFile(){
 }
 /* ── Validación de la importación ──
    Solo se aceptan estados que la propia ficha puede producir. Cualquier dato inválido
-   rechaza el archivo completo (no se corrige en silencio). normCase() no se toca porque
-   también la usa la carga desde este navegador. */
+   rechaza el archivo completo (no se corrige en silencio). importCase() también valida
+   lo guardado en este navegador (parseStored). */
 const FILE_VERSION = 1;
 const TEXT_FIELDS = ["nombre","sintomas","objetivo","n1","n2","n3","dosis","responsable","duracion","seguimiento","rx1","rxCon","rx2","rx3","aprendizaje"];
 function ImportError(msg){ this.userMsg = msg; }
@@ -968,7 +1024,7 @@ function loadFile(ev){
       msg: tieneDatos ? "Sustituye a los casos que tienes ahora. Si quieres conservarlos, cancela y usa antes Guardar en archivo." : "Se abrirán en esta ficha.",
       okText:"Cargar casos", icon:"upload", tone:"neutral",
       onOk:()=>{
-        cases = norm; current = normCurrent; view="case"; save(); render(); scrollTop();
+        flushSave(); cases = norm; current = normCurrent; view="case"; saveNow(); render(); scrollTop();
         toast(norm.length+(norm.length===1?" caso cargado":" casos cargados")+" del archivo");
       },
       onClose:()=>{ input.value=""; }
@@ -1309,7 +1365,7 @@ function cssq(v){ return String(v).replace(/\\/g,"\\\\").replace(/"/g,'\\"'); }
 function toggleIn(kind, v){
   const c=cur(); const arr=c[kind]; const i=arr.indexOf(v);
   i>=0?arr.splice(i,1):arr.push(v);
-  save();
+  saveNow();
   const base = kind==="vars"?VARS:INDICS;
   rerender(base.includes(v)||arr.includes(v) ? `[data-act="chip"][data-kind="${kind}"][data-val="${cssq(v)}"]` : `[data-act="other"][data-kind="${kind}"]`);
 }
@@ -1323,14 +1379,14 @@ function addOther(kind){
   const match = base.find(x=>x.toLowerCase()===v.toLowerCase());
   c[kind].push(match||v);
   if(match) ui.expand[kind]=true;
-  save(); rerender("#other-"+kind);
+  saveNow(); rerender("#other-"+kind);
   toast(kind==="vars"?"Variable añadida":"Indicador añadido");
 }
-function goCase(i){ if(i<0||i>=cases.length) return; view="case"; current=i; ui.other={vars:false,indics:false}; save(); render(); scrollTop(); }
-function goView(v){ view=v; save(); render(); scrollTop(); $("main").focus({preventScroll:true}); }
+function goCase(i){ if(i<0||i>=cases.length) return; flushSave(); view="case"; current=i; ui.other={vars:false,indics:false}; saveNow(); render(); scrollTop(); }
+function goView(v){ flushSave(); view=v; saveNow(); render(); scrollTop(); $("main").focus({preventScroll:true}); }
 function addCase(){
   if(cases.length>=MAX_CASES){ toast("Has llegado al máximo de "+MAX_CASES+" casos"); return; }
-  view="case"; cases.push(blankCase()); current=cases.length-1; save(); render(); scrollTop();
+  flushSave(); view="case"; cases.push(blankCase()); current=cases.length-1; saveNow(); render(); scrollTop();
   toast("Caso "+cases.length+" añadido");
   setTimeout(()=>{const f=$("f_nombre"); if(f) f.focus({preventScroll:true});},50);
 }
@@ -1342,10 +1398,11 @@ function deleteCase(i){
     msg: isFilled(c) ? "Tiene contenido y no se puede deshacer. Si quieres conservarlo, usa antes Guardar en archivo." : "Está vacío.",
     okText:"Borrar caso", icon:"trash", tone:"brand",
     onOk:()=>{
+      flushSave();
       cases.splice(i,1);
       if(current>=cases.length) current=cases.length-1;
       else if(i<current) current--;
-      save(); render(); toast("Caso borrado");
+      saveNow(); render(); toast("Caso borrado");
     }
   });
 }
@@ -1354,7 +1411,7 @@ function clearCase(){
     title:"¿Vaciar el caso "+(current+1)+"?",
     msg:"Se borra todo lo escrito en este caso. No se puede deshacer.",
     okText:"Vaciar caso", icon:"refresh", tone:"brand",
-    onOk:()=>{ cases[current]=blankCase(); save(); render(); toast("Caso vaciado"); }
+    onOk:()=>{ flushSave(); cases[current]=blankCase(); saveNow(); render(); toast("Caso vaciado"); }
   });
 }
 
@@ -1578,9 +1635,9 @@ document.addEventListener("click", e=>{
     case "theme": toggleTheme(); break;
     case "proj": toggleProj(); break;
     case "menu": $("hdrDropdown").classList.contains("open") ? closeMenu(true) : openMenu(); break;
-    case "diag": c.diagTipo = (c.diagTipo===t.dataset.k?null:t.dataset.k); save(); rerender(`[data-act="diag"][data-k="${t.dataset.k}"]`); break;
-    case "sema": c.sema = (c.sema===t.dataset.k?null:t.dataset.k); save(); rerender(`[data-act="sema"][data-k="${t.dataset.k}"]`); break;
-    case "cierre": c.cierre = (c.cierre===t.dataset.k?null:t.dataset.k); save(); rerender(`[data-act="cierre"][data-k="${t.dataset.k}"]`); break;
+    case "diag": c.diagTipo = (c.diagTipo===t.dataset.k?null:t.dataset.k); saveNow(); rerender(`[data-act="diag"][data-k="${t.dataset.k}"]`); break;
+    case "sema": c.sema = (c.sema===t.dataset.k?null:t.dataset.k); saveNow(); rerender(`[data-act="sema"][data-k="${t.dataset.k}"]`); break;
+    case "cierre": c.cierre = (c.cierre===t.dataset.k?null:t.dataset.k); saveNow(); rerender(`[data-act="cierre"][data-k="${t.dataset.k}"]`); break;
     case "chip": toggleIn(t.dataset.kind, t.dataset.val); break;
     case "more": { const k=t.dataset.kind; ui.expand[k]=!ui.expand[k];
       rerender(document.querySelector(`[data-act="more"][data-kind="${k}"]`) ? `[data-act="more"][data-kind="${k}"]` : `[data-act="other"][data-kind="${k}"]`);
@@ -1600,8 +1657,8 @@ $("main").addEventListener("input", e=>{
   const t=e.target, c=cur();
   if(!c || view!=="case") return;
   if(t.tagName==="TEXTAREA") autosize(t);
-  if(t.dataset.f){ c[t.dataset.f]=t.value; save(); renderIndex(); }
-  else if(t.dataset.hip!==undefined){ c.hip[+t.dataset.hip]=t.value; save(); renderIndex(); }
+  if(t.dataset.f){ c[t.dataset.f]=t.value; scheduleSave(); renderIndex(); }
+  else if(t.dataset.hip!==undefined){ c.hip[+t.dataset.hip]=t.value; scheduleSave(); renderIndex(); }
 });
 $("main").addEventListener("keydown", e=>{
   const t=e.target;
@@ -1632,6 +1689,10 @@ window.addEventListener("resize", ()=>{
   }
   $("btnTimerHdr").setAttribute("aria-expanded", String(window.matchMedia("(min-width:1024px)").matches ? !document.body.classList.contains("timer-hidden") : document.body.classList.contains("timer-open")));
 });
+
+/* Si la página deja de estar activa, materializar el guardado pendiente */
+window.addEventListener("pagehide", flushSave);
+document.addEventListener("visibilitychange", ()=>{ if(document.hidden) flushSave(); });
 
 /* ── Inicio ── */
 try{ if(localStorage.getItem(KEY_TIMER_OCULTO)==="1") document.body.classList.add("timer-hidden"); }catch(e){}
