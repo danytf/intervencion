@@ -771,6 +771,8 @@ function normCase(c){
   return n;
 }
 
+/* Máximo de casos: única fuente de verdad para crear, cargar del banco e importar */
+const MAX_CASES = 12;
 let cases = [];
 let current = 0;
 let view = "case";   // "case" | "map"
@@ -837,10 +839,10 @@ function loadBanco(){
   nuevo._bancoIdx = next;
   if(cases.length===1 && !isFilled(cases[0]) && !cases[0]._resolucion){
     cases[0] = nuevo; current = 0;
-  } else if(cases.length < 16){
+  } else if(cases.length < MAX_CASES){
     cases.push(nuevo); current = cases.length - 1;
   } else {
-    toast("Has llegado al máximo de 16 casos"); return;
+    toast("Has llegado al máximo de "+MAX_CASES+" casos"); return;
   }
   view="case"; save(); render(); scrollTop();
   toast("Añadido del banco: caso "+(cargados.size+1)+" de "+BANCO_COMPLETO.length);
@@ -894,6 +896,10 @@ function loadFile(ev){
       const d = JSON.parse(e.target.result);
       const loaded = Array.isArray(d) ? d : d.cases;
       if(!Array.isArray(loaded) || !loaded.length) throw new Error("formato");
+      if(loaded.length > MAX_CASES){
+        toast("El archivo tiene "+loaded.length+" casos y el máximo es "+MAX_CASES+". No se ha cargado.");
+        input.value=""; return;
+      }
       norm = loaded.map(normCase).map(c=>{
         delete c._resolucion;
         const i = c._bancoIdx;
@@ -936,14 +942,14 @@ function updateMenu(){
   const del = document.querySelector("[data-act='delete']");
   del.hidden = one || view!=="case";
   document.querySelector("[data-act='clear']").hidden = view!=="case";
-  document.querySelector("[data-act='add']").hidden = cases.length>=12;
+  document.querySelector("[data-act='add']").hidden = cases.length>=MAX_CASES;
 }
 
 function caseStrip(){
   return `<div class="case-strip" role="list" aria-label="Casos">
     ${cases.map((c,i)=>`<span role="listitem"><button type="button" class="case-chip ${isFilled(c)?'filled':''}" data-act="go" data-i="${i}"
       ${i===current?'aria-current="true"':''} title="${esc(c.nombre||('Caso '+(i+1)))}"><span class="dot"></span>Caso ${i+1}<span class="sr-only">${isFilled(c)?', con datos':', vacío'}</span></button></span>`).join("")}
-    ${cases.length<12?`<span role="listitem"><button type="button" class="case-chip add" data-act="add">${ic("plus","ic-sm")}Nuevo caso</button></span>`:""}
+    ${cases.length<MAX_CASES?`<span role="listitem"><button type="button" class="case-chip add" data-act="add">${ic("plus","ic-sm")}Nuevo caso</button></span>`:""}
   </div>`;
 }
 
@@ -1272,7 +1278,7 @@ function addOther(kind){
 function goCase(i){ if(i<0||i>=cases.length) return; view="case"; current=i; ui.other={vars:false,indics:false}; save(); render(); scrollTop(); }
 function goView(v){ view=v; save(); render(); scrollTop(); $("main").focus({preventScroll:true}); }
 function addCase(){
-  if(cases.length>=12){ toast("Has llegado al máximo de 12 casos"); return; }
+  if(cases.length>=MAX_CASES){ toast("Has llegado al máximo de "+MAX_CASES+" casos"); return; }
   view="case"; cases.push(blankCase()); current=cases.length-1; save(); render(); scrollTop();
   toast("Caso "+cases.length+" añadido");
   setTimeout(()=>{const f=$("f_nombre"); if(f) f.focus({preventScroll:true});},50);
