@@ -238,6 +238,9 @@ main:focus{outline:none;}
   transition:border-color .15s var(--ease),box-shadow .15s var(--ease);}
 textarea.input{resize:vertical;min-height:96px;line-height:1.55;overflow:hidden;}
 textarea.input.input-short{min-height:48px;resize:none;line-height:1.45;}
+/* Una racha de 200+ caracteres sin espacios (base64, texto basura) no se parte: partirla costaba
+   hasta 1,8 s de maquetación por campo. Se desplaza dentro del campo; el texto normal no cambia. */
+textarea.input.long-run,.rx-in.long-run{overflow-wrap:normal;word-break:normal;overflow-x:auto;}
 .input:focus{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft);}
 .input::placeholder{color:var(--ink-3);opacity:1;}
 .field-grid{display:grid;grid-template-columns:1fr;gap:var(--s-4);}
@@ -868,13 +871,15 @@ function markSaveFailed(){
   if(!saveFailed){ saveFailed = true; setSub(); toast("No se ha podido guardar en este navegador. Usa Guardar en archivo.","error"); }
 }
 /* Guardado inmediato: cancela el pendiente y escribe el estado actual completo */
+/* Copia de los casos sin la solución modelo: la usan el autosave y la exportación */
+function casesSinSolucion(){ return cases.map(c=>{ const o=Object.assign({}, c); delete o._resolucion; return o; }); }
 function saveNow(){
   clearTimeout(saveTimer); saveTimer = null;
   if(writesBlocked){ saveFailed = true; setSub(); return false; }
   let data;
   try{
     data = JSON.stringify({storageVersion:STORAGE_VERSION, current,
-      cases: cases.map(c=>{ const o=Object.assign({}, c); delete o._resolucion; return o; })});
+      cases: casesSinSolucion()});
   }catch(e){ markSaveFailed(); return false; }
   try{ localStorage.setItem(KEY, data); localStorage.setItem(KEY_VIEW, view); }
   catch(e){ markSaveFailed(); return false; }
@@ -941,8 +946,7 @@ function resolverCase(i){
 function saveFile(){
   try{
     /* La copia nunca incluye la solución modelo del banco (_resolucion); se reconstruye al cargar desde _bancoIdx */
-    const exportCases = cases.map(c=>{ const o=Object.assign({}, c); delete o._resolucion; return o; });
-    const data = JSON.stringify({app:"clinica_rp", version:1, fecha:new Date().toISOString(), cases:exportCases, current}, null, 1);
+    const data = JSON.stringify({app:"clinica_rp", version:1, fecha:new Date().toISOString(), cases:casesSinSolucion(), current}, null, 1);
     const blob = new Blob([data], {type:"application/json"});
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -1246,12 +1250,16 @@ function renderCase(){
       ${current<cases.length-1 ? `<button type="button" class="btn btn-quiet" data-act="go" data-i="${current+1}">Ir al caso ${current+2}</button>` : ""}
     </div>
   </div>`;
-  $("main").querySelectorAll("[data-f],[data-hip],[data-other]").forEach(el=>{ el.maxLength = MAX_TEXT; });
+  $("main").querySelectorAll("[data-f],[data-hip],[data-other]").forEach(el=>{ el.maxLength = MAX_TEXT; if(el.tagName==="TEXTAREA") markLongRun(el); });
   autosizeAll();
   renderIndex();
 }
 
-function autosize(el){ el.style.height="auto"; el.style.height=(el.scrollHeight+2)+"px"; }
+/* Recorrido lineal (un regex \S{200} retrocedía casi 200 pasos por carácter con rachas de 199) */
+function hasLongRun(s){ let n=0; for(let i=0;i<s.length;i++){ const ch=s.charCodeAt(i); if(ch===32||ch===10||ch===9||ch===13){ n=0; } else if(++n>=200) return true; } return false; }
+function markLongRun(el){ el.classList.toggle("long-run", hasLongRun(el.value)); }
+/* Alto = contenido + bordes y, si la hay, barra horizontal (offsetHeight−clientHeight; normalmente 2 px) */
+function autosize(el){ el.style.height="auto"; el.style.height=(el.scrollHeight+el.offsetHeight-el.clientHeight)+"px"; }
 function autosizeAll(){ document.querySelectorAll("#main textarea").forEach(autosize); }
 function renderIndex(){
   if(view!=="case") return;
@@ -1373,9 +1381,8 @@ function renderMap(){
 }
 
 /* ══════════ ACCIONES ══════════ */
-let pendingFocus = null;
-function rerender(focusSel){ pendingFocus = focusSel||null; render();
-  if(pendingFocus){ const el=document.querySelector(pendingFocus); if(el) el.focus({preventScroll:true}); pendingFocus=null; } }
+function rerender(focusSel){ render();
+  if(focusSel){ const el=document.querySelector(focusSel); if(el) el.focus({preventScroll:true}); } }
 /* Desplazamiento: suave salvo que el sistema pida reducir movimiento */
 function scrollBehavior(){ return window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"; }
 function scrollTop(){ window.scrollTo({top:0,behavior:scrollBehavior()}); }
@@ -1467,7 +1474,6 @@ function toggleProj(){
 }
 
 /* ── Menú ── */
-let menuOpener=null;
 function openMenu(){ const d=$("hdrDropdown"); d.classList.add("open"); $("btnMenu").setAttribute("aria-expanded","true");
   const first=d.querySelector(".drop-item:not([hidden])"); if(first) first.focus(); }
 function closeMenu(focusBack){ const d=$("hdrDropdown"); if(!d.classList.contains("open")) return; d.classList.remove("open"); $("btnMenu").setAttribute("aria-expanded","false"); if(focusBack) $("btnMenu").focus(); }
@@ -1723,7 +1729,7 @@ document.addEventListener("click", e=>{
 $("main").addEventListener("input", e=>{
   const t=e.target, c=cur();
   if(!c || view!=="case") return;
-  if(t.tagName==="TEXTAREA") autosize(t);
+  if(t.tagName==="TEXTAREA"){ markLongRun(t); autosize(t); }
   if(t.dataset.f && TEXT_FIELDS.includes(t.dataset.f)){ c[t.dataset.f]=t.value; scheduleSave(); renderIndex(); }
   else if(["0","1","2"].includes(t.dataset.hip)){ c.hip[+t.dataset.hip]=t.value; scheduleSave(); renderIndex(); }
 });
