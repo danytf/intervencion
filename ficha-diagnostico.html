@@ -782,8 +782,13 @@ const ui = {expand:{vars:false, indics:false}, other:{vars:false, indics:false}}
 function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");}
 function ic(nombre, clase){return '<svg class="ic'+(clase?' '+clase:'')+'" aria-hidden="true"><use href="#i-'+nombre+'"/></svg>';}
 function cur(){return cases[current];}
+/* «Tiene algún dato del usuario» (no «está completo»): cualquier texto no vacío, cualquier
+   elemento con texto en hip/vars/indics o cualquier opción elegida. No mira _bancoIdx ni _resolucion. */
 function isFilled(c){
-  return !!(c.nombre || c.sintomas || c.diagTipo || c.objetivo || c.n1 || c.rx1 || c.sema || c.cierre);
+  const txt = v => typeof v==="string" && v.trim()!=="";
+  return TEXT_FIELDS.some(k=>txt(c[k]))
+    || ["hip","vars","indics"].some(k=>Array.isArray(c[k]) && c[k].some(txt))
+    || ["diagTipo","sema","cierre"].some(k=>c[k]!=null && c[k]!=="");
 }
 function $(id){return document.getElementById(id);}
 
