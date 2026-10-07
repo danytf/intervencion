@@ -885,30 +885,76 @@ function saveFile(){
     toast("Archivo descargado");
   }catch(e){ toast("No se ha podido crear el archivo"); }
 }
+/* ── Validación de la importación ──
+   Solo se aceptan estados que la propia ficha puede producir. Cualquier dato inválido
+   rechaza el archivo completo (no se corrige en silencio). normCase() no se toca porque
+   también la usa la carga desde este navegador. */
+const FILE_VERSION = 1;
+const TEXT_FIELDS = ["nombre","sintomas","objetivo","n1","n2","n3","dosis","responsable","duracion","seguimiento","rx1","rxCon","rx2","rx3","aprendizaje"];
+function ImportError(msg){ this.userMsg = msg; }
+function isPlainObject(v){ return typeof v==="object" && v!==null && !Array.isArray(v); }
+function importCase(raw, n){
+  if(!isPlainObject(raw)) throw new ImportError("el caso "+n+" no tiene un formato válido.");
+  const bad = campo => new ImportError("el caso "+n+" contiene datos con formato no válido («"+campo+"»).");
+  const has = k => Object.prototype.hasOwnProperty.call(raw, k);
+  const c = blankCase();   // objeto nuevo: solo se copian las propiedades del modelo de datos
+  TEXT_FIELDS.forEach(k=>{ if(has(k)){ if(typeof raw[k]!=="string") throw bad(k); c[k]=raw[k]; } });
+  if(has("hip")){
+    if(!Array.isArray(raw.hip) || raw.hip.length>3 || !raw.hip.every(h=>typeof h==="string")) throw bad("hip");
+    c.hip = raw.hip.slice(); while(c.hip.length<3) c.hip.push("");
+  }
+  ["vars","indics"].forEach(k=>{ if(has(k)){
+    if(!Array.isArray(raw[k]) || !raw[k].every(v=>typeof v==="string")) throw bad(k);
+    c[k] = raw[k].slice();
+  }});
+  [["diagTipo",DTYPES],["sema",SEMAS],["cierre",CIERRES]].forEach(([k,lista])=>{ if(has(k)){
+    if(raw[k]!==null && !lista.some(o=>o.k===raw[k])) throw new ImportError("el caso "+n+" tiene un valor no válido en «"+k+"».");
+    c[k] = raw[k];
+  }});
+  /* _resolucion del archivo nunca se usa: se reconstruye desde el banco */
+  if(has("_bancoIdx")){
+    const i = raw._bancoIdx;
+    if(!Number.isInteger(i) || i<0 || i>=BANCO_COMPLETO.length || !isPlainObject(BANCO_COMPLETO[i]))
+      throw new ImportError("el caso "+n+" hace referencia a un caso del banco que no existe.");
+    c._bancoIdx = i;
+    c._resolucion = JSON.parse(JSON.stringify(BANCO_COMPLETO[i]));
+  }
+  return c;
+}
+/* Devuelve {cases, current} ya validados o lanza ImportError. Formatos aceptados:
+   archivo de esta ficha ({app,version,fecha,cases,current}) y archivo antiguo (array de casos o {cases,current} sin app/version). */
+function parseImport(d){
+  let loaded, cur = 0;
+  if(Array.isArray(d)) loaded = d;
+  else if(isPlainObject(d)){
+    if("app" in d && d.app!=="clinica_rp") throw new ImportError("el archivo no es de esta aplicación.");
+    if("version" in d){
+      if(!Number.isInteger(d.version) || d.version<1) throw new ImportError("la versión del archivo no es válida.");
+      if(d.version>FILE_VERSION) throw new ImportError("la versión del archivo no es compatible con esta ficha.");
+    }
+    loaded = d.cases;
+    if("current" in d) cur = d.current;
+  }
+  if(!Array.isArray(loaded) || !loaded.length) throw new ImportError("no contiene casos.");
+  if(loaded.length > MAX_CASES) throw new ImportError("tiene "+loaded.length+" casos y el máximo es "+MAX_CASES+".");
+  /* current inválido se rechaza, no se corrige a 0: indicaría un archivo manipulado o dañado */
+  if(!Number.isInteger(cur) || cur<0 || cur>=loaded.length) throw new ImportError("el caso seleccionado («current») no es válido.");
+  return {cases: loaded.map((c,i)=>importCase(c, i+1)), current: cur};
+}
+
 function loadFile(ev){
   const input = ev.target;
   const file = input.files && input.files[0];
   if(!file) return;
   const reader = new FileReader();
   reader.onload = function(e){
-    let norm;
+    let norm, normCurrent;
     try{
-      const d = JSON.parse(e.target.result);
-      const loaded = Array.isArray(d) ? d : d.cases;
-      if(!Array.isArray(loaded) || !loaded.length) throw new Error("formato");
-      if(loaded.length > MAX_CASES){
-        toast("El archivo tiene "+loaded.length+" casos y el máximo es "+MAX_CASES+". No se ha cargado.");
-        input.value=""; return;
-      }
-      norm = loaded.map(normCase).map(c=>{
-        delete c._resolucion;
-        const i = c._bancoIdx;
-        const b = (Number.isInteger(i) && i>=0 && i<BANCO_COMPLETO.length) ? BANCO_COMPLETO[i] : null;
-        if(b && typeof b==="object") c._resolucion = JSON.parse(JSON.stringify(b));
-        return c;
-      });
+      const r = parseImport(JSON.parse(e.target.result));
+      norm = r.cases; normCurrent = r.current;
     }catch(err){
-      toast("No se ha podido leer el archivo. Elige un .json guardado con esta ficha.");
+      toast(err instanceof ImportError ? "No se ha podido cargar el archivo: "+err.userMsg
+                                       : "No se ha podido leer el archivo. Elige un .json guardado con esta ficha.");
       input.value=""; return;
     }
     const tieneDatos = cases.some(isFilled);
@@ -917,7 +963,7 @@ function loadFile(ev){
       msg: tieneDatos ? "Sustituye a los casos que tienes ahora. Si quieres conservarlos, cancela y usa antes Guardar en archivo." : "Se abrirán en esta ficha.",
       okText:"Cargar casos", icon:"upload", tone:"neutral",
       onOk:()=>{
-        cases = norm; current = 0; view="case"; save(); render(); scrollTop();
+        cases = norm; current = normCurrent; view="case"; save(); render(); scrollTop();
         toast(norm.length+(norm.length===1?" caso cargado":" casos cargados")+" del archivo");
       },
       onClose:()=>{ input.value=""; }
