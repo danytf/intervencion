@@ -1399,7 +1399,9 @@ const TIMER_PRESETS=[
   {label:"7 · Tratamiento",secs:240},
   {label:"8 · Validación",secs:120},
 ];
-let timer={total:900,remaining:900,running:false,interval:null,label:"Caso completo"};
+/* El reloj es performance.now(): left = segundos exactos que quedaban en startedAt.
+   remaining (entero) es solo lo que se muestra. El intervalo únicamente refresca la pantalla. */
+let timer={total:900,remaining:900,running:false,interval:null,label:"Caso completo",left:900,startedAt:0,alerted:false};
 function fmt(s){const m=Math.floor(Math.abs(s)/60),ss=Math.abs(s)%60;return (s<0?"-":"")+m+":"+String(ss).padStart(2,"0");}
 function renderTimerPresets(){
   $("timerPresets").innerHTML=TIMER_PRESETS.map((p,i)=>`<button type="button" class="chip" data-act="timer-set" data-i="${i}" aria-pressed="${timer.label===p.label}">${esc(p.label)} · ${fmt(p.secs)}</button>`).join("");
@@ -1417,20 +1419,31 @@ function renderTimer(){
   b.innerHTML = timer.running ? ic("pause")+"<span>Pausar</span>" : ic("play","ic-fill")+"<span>"+(timer.remaining<timer.total?"Seguir":"Iniciar")+"</span>";
   document.body.classList.toggle("timer-running", timer.running);
 }
-function timerTick(){
-  timer.remaining--;
-  if(timer.remaining===0){toast("Tiempo cumplido: "+timer.label);try{beep();}catch(e){}}
+function timerExact(){ return timer.running ? timer.left-(performance.now()-timer.startedAt)/1000 : timer.left; }
+function timerRefresh(){
+  timer.remaining = Math.ceil(timerExact()-1e-6) || 0;   /* tolerancia para el error de coma flotante */
+  /* Aviso una sola vez al cruzar a 0 o menos, aunque un refresco tardío salte de 3 a -2 */
+  if(timer.remaining<=0 && !timer.alerted){timer.alerted=true;toast("Tiempo cumplido: "+timer.label);try{beep();}catch(e){}}
   renderTimer();
 }
+function timerStop(){clearInterval(timer.interval);timer.interval=null;timer.running=false;}
 function timerStartPause(){
-  if(timer.running){clearInterval(timer.interval);timer.running=false;}
-  else{timer.running=true;timer.interval=setInterval(timerTick,1000);}
-  renderTimer();
+  if(timer.running){timer.left=timerExact();timerStop();}
+  else{clearInterval(timer.interval);timer.startedAt=performance.now();timer.running=true;timer.interval=setInterval(timerRefresh,250);}
+  timerRefresh();
 }
-function timerReset(){clearInterval(timer.interval);timer.running=false;timer.remaining=timer.total;renderTimer();}
-function timerSet(i){const p=TIMER_PRESETS[i]; if(!p) return; clearInterval(timer.interval);timer.running=false;
-  timer.label=p.label;timer.total=p.secs;timer.remaining=p.secs;renderTimerPresets();renderTimer();}
-function timerAdd(s){timer.remaining+=s;timer.total+=s;renderTimer();}
+function timerReset(){timerStop();timer.left=timer.total;timer.remaining=timer.total;timer.alerted=false;renderTimer();}
+function timerSet(i){const p=TIMER_PRESETS[i]; if(!p) return; timerStop();
+  timer.label=p.label;timer.total=p.secs;timer.left=p.secs;timer.remaining=p.secs;timer.alerted=false;renderTimerPresets();renderTimer();}
+function timerAdd(s){
+  if(timer.running){const n=performance.now();timer.left=timer.left-(n-timer.startedAt)/1000+s;timer.startedAt=n;}
+  else timer.left+=s;
+  timer.total+=s;
+  if(timer.left>0) timer.alerted=false;
+  timerRefresh();
+}
+/* Al volver a la pestaña, recalcular en el acto desde el reloj real */
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden && timer.running) timerRefresh(); });
 let timerOpener=null;
 const KEY_TIMER_OCULTO = "clinica_rp_temporizador_oculto";
 function setTimerHidden(hidden){
