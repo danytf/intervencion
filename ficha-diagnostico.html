@@ -245,6 +245,7 @@ textarea.input.long-run,.rx-in.long-run{overflow-wrap:normal;word-break:normal;o
 .input:focus{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft);}
 .input::placeholder{color:var(--ink-3);opacity:1;}
 .field-grid{display:grid;grid-template-columns:1fr;gap:var(--s-4);}
+.case-title-input.input{min-height:56px;padding-top:13px;padding-bottom:13px;}
 .case-title-input{font-family:var(--font-brand);font-size:var(--t-xl);font-weight:700;letter-spacing:-.01em;min-height:56px;}
 .case-title-input::placeholder{font-family:var(--font-body);font-weight:500;font-size:var(--t-base);}
 
@@ -423,11 +424,8 @@ textarea.input.long-run,.rx-in.long-run{overflow-wrap:normal;word-break:normal;o
   .toast{bottom:calc(24px + var(--safe-b));}
   #btnTimerHdr{display:inline-flex;}
 }
-@media (min-width:1024px){
-  /* Escritorio (taller): la ficha usa todo el ancho y la columna derecha es estrecha */
-  :root{--box:1680px;--aside-w:240px;}
-  :root.proj{--box:1880px;--aside-w:270px;}
-  main{max-width:none;}
+/* Columnas de hipótesis, tratamiento, datos y cierre: solo con ancho de ficha suficiente */
+@media (min-width:1280px){
   .num-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s-3);}
   .num-row textarea.input{min-height:96px;}
   .group{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));}
@@ -435,6 +433,12 @@ textarea.input.long-run,.rx-in.long-run{overflow-wrap:normal;word-break:normal;o
   .group-row:last-child{border-right:none;}
   .field-grid{grid-template-columns:repeat(4,minmax(0,1fr));}
   .opt-grid.cierre-grid{grid-template-columns:repeat(4,minmax(0,1fr));}
+}
+@media (min-width:1024px){
+  /* Escritorio (taller): la ficha usa todo el ancho y la columna derecha es estrecha */
+  :root{--box:1680px;--aside-w:240px;}
+  :root.proj{--box:1880px;--aside-w:270px;}
+  main{max-width:none;}
   /* Columna derecha compacta */
   #aside .card{padding:var(--s-4);border-radius:var(--r-md);}
   #aside .card-title{font-size:var(--t-md);}
@@ -500,7 +504,7 @@ textarea.input.long-run,.rx-in.long-run{overflow-wrap:normal;word-break:normal;o
 
 /* ══════════ IMPRESIÓN ══════════ */
 @media print{
-  @page{size:A4;margin:12mm;}
+  @page{size:A4;margin:10mm;}
   :root{--bg:#fff;}
   body{background:#fff;color:#1C1F21;}
   #site-header,.bottom-nav,#aside,.toast,.dialog-back,.skip-link,.no-print{display:none !important;}
@@ -512,20 +516,20 @@ textarea.input.long-run,.rx-in.long-run{overflow-wrap:normal;word-break:normal;o
   *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;}
 }
 /* Hoja de impresión de un caso */
-.ps{font-family:var(--font-body);color:#1C1F21;font-size:11pt;line-height:1.45;}
+.ps{font-family:var(--font-body);color:#1C1F21;font-size:9.5pt;line-height:1.35;}
 .ps + .ps{page-break-before:always;}
-.ps-head{display:flex;align-items:center;gap:12px;padding-bottom:10px;border-bottom:2px solid #CC2E34;margin-bottom:14px;}
+.ps-head{display:flex;align-items:center;gap:12px;padding-bottom:8px;border-bottom:2px solid #CC2E34;margin-bottom:10px;}
 .ps-head img{height:28px;width:auto;}
 .ps-kicker{font-family:var(--font-brand);font-size:8pt;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#646C69;}
 .ps-title{font-family:var(--font-brand);font-size:18pt;font-weight:800;letter-spacing:-.02em;line-height:1.15;}
-.ps-sec{break-inside:avoid;page-break-inside:avoid;margin-bottom:12px;}
+.ps-sec{break-inside:avoid;page-break-inside:avoid;margin-bottom:8px;}
 .ps-label{font-family:var(--font-brand);font-size:8pt;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#4A5250;margin-bottom:3px;}
 .ps-text{white-space:pre-wrap;}
 .ps-empty{color:#8A918E;}
-.ps-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.ps-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
 .ps-cols.two{grid-template-columns:repeat(4,1fr);}
-.ps-box{border:1px solid #CDD3D2;border-radius:8px;padding:7px 9px;}
-.ps-rx{background:#F6F7F7;border:1px solid #CDD3D2;border-left:4px solid #CC2E34;border-radius:8px;padding:10px 12px;font-size:12.5pt;font-weight:600;line-height:1.55;}
+.ps-box{border:1px solid #CDD3D2;border-radius:8px;padding:5px 8px;}
+.ps-rx{background:#F6F7F7;border:1px solid #CDD3D2;border-left:4px solid #CC2E34;border-radius:8px;padding:8px 10px;font-size:10.5pt;font-weight:600;line-height:1.55;}
 .ps-rx b{border-bottom:1.5px solid #1C1F21;}
 </style>
 </head>
@@ -1141,7 +1145,7 @@ function renderCase(){
     <span class="tile tile-xl" data-tone="brand"><span class="cifra cifra-xl" style="color:var(--brand-ink)" aria-hidden="true">${n}</span></span>
     <div class="page-head-text">
       <label class="label" for="f_nombre">Caso ${n} · nombre o título breve</label>
-      <input class="input case-title-input" id="f_nombre" data-f="nombre" value="${esc(c.nombre)}" placeholder="Por ejemplo: Los tres que ya no tiran" autocomplete="off">
+      <textarea class="input input-short case-title-input" id="f_nombre" data-f="nombre" rows="1" placeholder="Por ejemplo: Los tres que ya no tiran">${esc(c.nombre)}</textarea>
     </div>
   </div>
   <div class="stack">
