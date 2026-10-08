@@ -608,6 +608,8 @@ input[type=date]{scroll-margin-top:96px;}
 .btn-arriba[hidden]{display:none;}
 .btn-arriba .ic{width:16px;height:16px;transform:rotate(-90deg);}
 @media (max-width:600px){ .btn-arriba{bottom:calc(84px + var(--safe-b, 0px));} }   /* encima de la barra inferior */
+.lmi-notas{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:2px;font-size:var(--t-xs);color:var(--ink-3);}
+.lmi-notas li::before{content:"· ";}
 .decision-ref{display:flex;flex-direction:column;gap:var(--s-2);}
 .decision-ref-fila{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--s-2);}
 .decision-ref-txt{font-size:var(--t-sm);color:var(--ink);}
@@ -1159,17 +1161,22 @@ span.estado-item{border-style:dashed;}
       <div class="registro-campos">
         <div class="field"><label for="reg_observe">Qué observé</label>
           <textarea id="reg_observe" class="input" placeholder="Hechos observados en campo…" oninput="autoguardar()"></textarea></div>
+        <div class="field"><label for="reg_foco">Foco <span class="meta">(opcional)</span></label>
+          <select id="reg_foco" class="field-select" aria-describedby="reg_foco_ayuda" onchange="autoguardar()"></select>
+          <p class="meta" id="reg_foco_ayuda">Variable de la evaluación en la que se centra la intervención. En la próxima sesión se comparará su puntuación.</p></div>
         <div class="field">
           <div class="eyebrow-row"><label for="reg_lectura">Mi lectura</label><button type="button" class="btn btn-tinted btn-sm" onclick="usarLecturaSugerida()"><svg class="ic" aria-hidden="true"><use href="#i-bulb"/></svg>Usar lectura sugerida</button></div>
           <textarea id="reg_lectura" class="input" placeholder="Qué creo que está pasando (hipótesis, no conclusión)…" aria-describedby="reg_lectura_ayuda" oninput="autoguardar()"></textarea>
           <p class="meta" id="reg_lectura_ayuda">Tu interpretación de lo observado. La lectura de la herramienta es una propuesta: úsala como punto de partida si te sirve.</p></div>
         <div class="field">
-          <div class="eyebrow-row"><label for="reg_trabajo">Qué trabajamos</label><button type="button" class="btn btn-tinted btn-sm" onclick="abrirPlantillasFase(faseSelected, this)"><svg class="ic" aria-hidden="true"><use href="#i-clipboard"/></svg>Plantillas</button></div>
-          <textarea id="reg_trabajo" class="input" placeholder="Qué se trabajó en la sesión…" oninput="autoguardar()"></textarea></div>
-        <div class="field"><label for="reg_acuerdo">Qué acordamos</label>
-          <textarea id="reg_acuerdo" class="input" placeholder="Compromisos concretos…" oninput="autoguardar()"></textarea></div>
-        <div class="field"><label for="reg_siguiente">Siguiente paso</label>
-          <textarea id="reg_siguiente" class="input" placeholder="Qué se revisará y cuándo…" oninput="autoguardar()"></textarea></div>
+          <div class="eyebrow-row"><label for="reg_trabajo">Qué trabajamos / objetivo</label><button type="button" class="btn btn-tinted btn-sm" onclick="abrirPlantillasFase(faseSelected, this)"><svg class="ic" aria-hidden="true"><use href="#i-clipboard"/></svg>Plantillas</button></div>
+          <textarea id="reg_trabajo" class="input" placeholder="Qué se trabajó en la sesión y qué se quiere conseguir…" oninput="autoguardar()"></textarea></div>
+        <div class="field"><label for="reg_acuerdo">Acción del captador</label>
+          <textarea id="reg_acuerdo" class="input" placeholder="Qué hará el captador: qué, cuántas veces o en qué situación…" oninput="autoguardar()"></textarea></div>
+        <div class="field"><label for="reg_siguiente">Cómo y cuándo lo comprobaremos</label>
+          <textarea id="reg_siguiente" class="input" placeholder="Qué observaremos en la próxima sesión para saber si ha funcionado…" oninput="autoguardar()"></textarea>
+          <div class="field" style="margin-top:8px"><label for="reg_fecha_revision" class="meta">Fecha de comprobación <span>(opcional)</span></label>
+            <input type="date" id="reg_fecha_revision" class="input" oninput="autoguardar()"></div></div>
       </div>
       <div id="registroAnterior" class="registro-anterior" hidden></div>
     </section>
@@ -1939,7 +1946,7 @@ const AYUDA_TABS = [
       { titulo: 'Cabecera de la fase', texto: 'Muestra los días en el proceso, el nombre de la fase y lo que es frecuente que viva el captador en ese momento. El color cambia según la fase: azul (F1–F2), naranja (F3), verde (F4–F5), gris (F6).' },
       { titulo: 'Garantizar ahora', texto: 'Los 3 puntos más importantes a trabajar en esta fase según la metodología Wesser. Referencia rápida antes de salir al campo.' },
       { titulo: 'Señales de alarma', texto: 'Dos conductas observables de esta fase. Si aparecen, conviene intervenir en menos de 48 h.' },
-      { titulo: 'Registro de la sesión', texto: 'El único lugar donde se escribe la sesión: qué observé, qué trabajamos, qué acordamos y siguiente paso. Se guarda con la fecha de intervención y aparece en el historial. En fichas antiguas se muestran aquí, como solo lectura, las notas guardadas con el formato anterior.' },
+      { titulo: 'Registro de la sesión', texto: 'El único lugar donde se escribe la sesión, como una intervención verificable: qué observé (y, si quieres, el foco: la variable que se trabaja), mi lectura, qué trabajamos / objetivo, acción del captador y cómo y cuándo lo comprobaremos (con fecha opcional). En la sesión siguiente se muestran la acción, la comprobación y el foco con su puntuación de entonces y de hoy. Se guarda con la fecha de intervención y aparece en el historial. En fichas antiguas se muestran aquí, como solo lectura, las notas guardadas con el formato anterior.' },
       { titulo: 'Plantillas por fase', texto: 'El botón Plantillas de «Qué trabajamos» abre Recursos con las plantillas de la fase actual (Días 1–5, Días 6–12, hasta +90 días). «Usar plantilla» la inserta en el campo.' },
     ],
     siguiente: 'Decisión — tus 4 criterios y el cierre de la sesión.',
@@ -2303,9 +2310,9 @@ function abrirPlantillasFase(faseId, opener) {
 const REGISTRO_CAMPOS = [
   { k:'reg_observe',   label:'Qué observé' },
   { k:'reg_lectura',   label:'Mi lectura' },
-  { k:'reg_trabajo',   label:'Qué trabajamos' },
-  { k:'reg_acuerdo',   label:'Qué acordamos' },
-  { k:'reg_siguiente', label:'Siguiente paso' },
+  { k:'reg_trabajo',   label:'Qué trabajamos / objetivo' },
+  { k:'reg_acuerdo',   label:'Acción del captador' },
+  { k:'reg_siguiente', label:'Cómo y cuándo lo comprobaremos' },
 ];
 const NOTAS_ANTERIORES = [
   { k:'nota_sesion', label:'Nota de la sesión' },
@@ -2364,10 +2371,18 @@ function renderRevisionAnterior() {
   if (!prev) { ctx.innerHTML = ''; return; }
   const pendiente = ['reg_acuerdo', 'reg_siguiente'].map(k => REGISTRO_CAMPOS.find(c => c.k === k))
     .map(({k, label}) => ({ label, texto: (prev[k] || '').trim() })).filter(x => x.texto);
+  if (fechaISOValida(prev.reg_fecha_revision)) pendiente.push({ label: 'Fecha de comprobación', texto: formatFecha(prev.reg_fecha_revision) });
+  // Foco anterior: su puntuación entonces y hoy (no evaluada hoy = «sin puntuar todavía»)
+  if (ALL_VARS_LABELS[prev.reg_foco]) {
+    const a = scoreDe(prev, prev.reg_foco), b = scoreDe(data, prev.reg_foco);
+    pendiente.unshift({ label: 'Foco anterior', texto: varNombre(prev.reg_foco) + ' · ' + (a !== null ? a + '/5' : 'no observado') + ' → hoy: ' + (b !== null ? b + '/5' : 'sin puntuar todavía') });
+  }
+  const rev = prev.lecturaSugerida && prev.lecturaSugerida.revision;
+  if (rev) pendiente.push({ label: 'Revisar (lo que propuso la herramienta)', texto: rev });
   const fecha = formatFecha(aISO(getFechaIntervencion(prev)));
   ctx.innerHTML = pendiente.length
     ? '<p class="meta">Sesión del ' + esc(fecha) + '</p>' + registroHtml(pendiente)
-    : '<p class="meta" style="margin:8px 0 12px">La sesión del ' + esc(fecha) + ' no dejó registrado un acuerdo ni un siguiente paso.</p>';
+    : '<p class="meta" style="margin:8px 0 12px">La sesión del ' + esc(fecha) + ' no dejó registrada una acción ni cómo comprobarla.</p>';
 }
 // Copia en «Mi lectura» la lectura que sugieren las reglas con los datos actuales, para editarla
 function usarLecturaSugerida() {
@@ -2398,6 +2413,7 @@ function lecturaSugeridaDe(data) {
   if (!diag) return null;
   const ls = { regla: diag.regla, tipo: diag.tipo, texto: diag.diagnostico.texto, evidencia: (diag.evidencia || []).slice(),
     nivel: diag.nivelEvidencia, accion: diag.recomendacion.texto, contexto: diag.contexto || null };
+  if (diag.revision && diag.revision.texto) ls.revision = diag.revision.texto;
   if (diag.motivoParcial) ls.motivo = diag.motivoParcial;
   return ls;
 }
@@ -2427,6 +2443,7 @@ function firmaEvidencia(d) {
 }
 // Registro completo de una sesión para el historial y el PDF: revisión de la anterior, evidencia,
 // lectura sugerida (congelada), mi lectura e intervención, cada una por separado
+function varNombre(k) { const i = +k.split('_')[1]; return (k[0] === 't' ? TECNICA_VARS : HABITOS_VARS)[i] || ALL_VARS_LABELS[k] || k; }
 function registroConContexto(d, sinSugerida) {
   const items = registroDe(d);
   const ls = d && d.lecturaSugerida;
@@ -2434,6 +2451,15 @@ function registroConContexto(d, sinSugerida) {
     const tras = items.findIndex(x => x.label === 'Qué observé');
     const ev = evidenciaTxt(ls);
     items.splice(tras + 1, 0, { label: 'Lectura sugerida por la herramienta · ' + ls.tipo, texto: (ev ? ev + '\n' : '') + ls.texto, sugerida: true });
+  }
+  if (d && ALL_VARS_LABELS[d.reg_foco]) {
+    const tras = items.findIndex(x => x.label === 'Qué observé');
+    items.splice(tras + 1, 0, { label: 'Foco', texto: varNombre(d.reg_foco) });
+  }
+  if (d && fechaISOValida(d.reg_fecha_revision)) {
+    const i = items.findIndex(x => x.label === 'Cómo y cuándo lo comprobaremos');
+    const it = { label: 'Fecha de comprobación', texto: formatFecha(d.reg_fecha_revision) };
+    if (i >= 0) items.splice(i + 1, 0, it); else items.push(it);
   }
   if (d && REVISION_OPCIONES[d.revisionAnterior]) items.unshift({ label: 'Revisión de la sesión anterior', texto: REVISION_OPCIONES[d.revisionAnterior] });
   return items;
@@ -2529,6 +2555,9 @@ function recopilarDatos() {
   REGISTRO_CAMPOS.forEach(({k}) => d[k] = document.getElementById(k)?.value||'');
   Object.assign(d, AppState.notasAnteriores);
   d.revisionAnterior = AppState.revisionAnterior || '';
+  // Intervención verificable: variable foco y fecha de comprobación (opcionales)
+  d.reg_foco = document.getElementById('reg_foco')?.value || '';
+  d.reg_fecha_revision = fechaISOValida(document.getElementById('reg_fecha_revision')?.value) ? document.getElementById('reg_fecha_revision').value : '';
   if (AppState.h6Historico !== null) d.h6Historico = AppState.h6Historico;
   // Matriz de decisión y checklist pre-despido de esta intervención
   d.decisionMatrix = copiaMatriz(matrizState);
@@ -2555,6 +2584,8 @@ function cargarDatos(data, opts) {
   if(faseValida(data.faseSelected)) selectFase(data.faseSelected, true); // silent=true: no autoguardar
   else { faseSelected=null; FASES.forEach(f=>{ const r=document.getElementById('radio_'+f.id); if(r)r.checked=false; document.getElementById('frow_'+f.id)?.classList.remove('selected-fase'); }); }
   REGISTRO_CAMPOS.forEach(({k}) => { const el=document.getElementById(k); if(el) el.value=data[k]||''; });
+  { const f=document.getElementById('reg_foco'); if(f) f.value = ALL_VARS_LABELS[data.reg_foco] ? data.reg_foco : '';
+    const fr=document.getElementById('reg_fecha_revision'); if(fr) fr.value = fechaISOValida(data.reg_fecha_revision) ? data.reg_fecha_revision : ''; }
   AppState.notasAnteriores = notasAnterioresDe(data);
   AppState.revisionAnterior = REVISION_OPCIONES[data.revisionAnterior] ? data.revisionAnterior : '';
   AppState.h6Historico = esH6Historico(data) ? (scoreDe(Object.assign({}, data, { h6Historico: false }), 'h_6') !== null ? true : null)
@@ -2998,6 +3029,7 @@ function limpiarFormulario() {
   AppState.revisionAnterior = '';
   AppState.h6Historico = null;
   try{ pintarAvisoH6(); }catch(e){}
+  { const f=document.getElementById('reg_foco'); if (f) f.value=''; }
   _hasUnsavedChanges = false;
   borrarBorrador();
   document.querySelectorAll('main input[type=text],main input[type=date],main textarea').forEach(el=>el.value='');
@@ -5395,11 +5427,14 @@ function modeloFicha() {
 // 1 (o sin versión): copias anteriores al 08/10/2026. Entre el 30/09 y el 08/10 el formato cambió seis veces
 // sin cambiar el número, pero todos los cambios fueron aditivos (nunca se renombró, movió ni cambió de tipo un campo).
 // 2: formato actual. Cada cambio de formato futuro sube el número y añade aquí su migración.
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 const MIGRACIONES = {
   // 1 → 2: identidad. Lo que una copia antigua no tenía queda ausente (no se inventa historia); las notas del
   // formato anterior se conservan tal cual y el significado antiguo de h_6 se detecta por fecha (esH6Historico).
   1: f => f,
+  // 2 → 3: identidad. Se añaden, opcionales, reg_foco (variable foco), reg_fecha_revision (fecha de comprobación) y
+  // lecturaSugerida.revision; una copia de la versión 2 no los tiene y quedan ausentes.
+  2: f => f,
 };
 function migrarFicha(f, desde) {
   for (let v = desde; v < SCHEMA_VERSION; v++) f = MIGRACIONES[v](f);
@@ -5409,7 +5444,7 @@ const MAX_TEXTO_IMPORT = 10000;               // caracteres por campo de texto
 const MAX_ARCHIVO_IMPORT = 5 * 1024 * 1024;    // 5 MB
 // Campos del modelo que no son textos ni puntuaciones: el resto de claves de una ficha se ignoran (y se avisa)
 const CAMPOS_FICHA_FIJOS = ['captador', '_id', 'nip', '_savedAt', '_editedAt', 'fecha', 'fechainicio', 'estado', 'faseSelected',
-  'decisionMatrix', 'decisionResult', 'checklistDespido', 'revisionAnterior', 'lecturaSugerida', 'h6Historico'];
+  'decisionMatrix', 'decisionResult', 'checklistDespido', 'revisionAnterior', 'lecturaSugerida', 'h6Historico', 'reg_foco', 'reg_fecha_revision'];
 const RE_FECHA_HORA = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})?$/;
 const esObjeto = v => v !== null && typeof v === 'object' && !Array.isArray(v);
 // Devuelve { ficha } con solo los campos del modelo, ya validados, o { error } con el motivo de rechazo
@@ -5480,6 +5515,14 @@ function validarFichaImportada(f) {
     out.decisionResult = { regla: r.regla, cls: r.cls };
     if (r.sinBaseSalida) out.decisionResult.sinBaseSalida = true;
   }
+  if (!ausente(f.reg_foco)) {
+    if (f.reg_foco !== '' && !Object.prototype.hasOwnProperty.call(ALL_VARS_LABELS, f.reg_foco)) return { error: 'foco no válido' };
+    out.reg_foco = f.reg_foco;
+  }
+  if (!ausente(f.reg_fecha_revision)) {
+    if (f.reg_fecha_revision !== '' && (typeof f.reg_fecha_revision !== 'string' || !fechaISOValida(f.reg_fecha_revision))) return { error: 'fecha de comprobación no válida' };
+    out.reg_fecha_revision = f.reg_fecha_revision;
+  }
   if (!ausente(f.h6Historico)) {
     if (typeof f.h6Historico !== 'boolean') return { error: 'marca de significado de «Aplica el feedback» no válida' };
     out.h6Historico = f.h6Historico;
@@ -5492,13 +5535,13 @@ function validarFichaImportada(f) {
   if (!ausente(f.lecturaSugerida)) {
     const l = f.lecturaSugerida;
     const textoOk = (v, max) => typeof v === 'string' && v.length <= max;
-    if (!esObjeto(l) || Object.keys(l).some(k => !['regla', 'tipo', 'texto', 'evidencia', 'nivel', 'motivo', 'accion', 'contexto'].includes(k)) ||
+    if (!esObjeto(l) || Object.keys(l).some(k => !['regla', 'tipo', 'texto', 'evidencia', 'nivel', 'motivo', 'accion', 'contexto', 'revision'].includes(k)) ||
         typeof l.regla !== 'string' || !REGLAS_LECTURA.has(l.regla) || !textoOk(l.tipo, 200) || !textoOk(l.texto, 3000) ||
         !(ausente(l.evidencia) || (Array.isArray(l.evidencia) && l.evidencia.length <= 20 && l.evidencia.every(x => textoOk(x, 300)))) ||
         !(ausente(l.nivel) || Object.prototype.hasOwnProperty.call(NIVEL_EVIDENCIA_TXT, l.nivel)) ||
-        !(ausente(l.motivo) || (textoOk(l.motivo, 300) && l.nivel === 'medio')) || !(l.contexto === undefined || l.contexto === null || textoOk(l.contexto, 300)) || !(ausente(l.accion) || textoOk(l.accion, 3000))) return { error: 'lectura sugerida no válida' };
+        !(ausente(l.motivo) || (textoOk(l.motivo, 300) && l.nivel === 'medio')) || !(l.contexto === undefined || l.contexto === null || textoOk(l.contexto, 300)) || !(ausente(l.accion) || textoOk(l.accion, 3000)) || !(ausente(l.revision) || textoOk(l.revision, 3000))) return { error: 'lectura sugerida no válida' };
     out.lecturaSugerida = { regla: l.regla, tipo: l.tipo, texto: l.texto };
-    ['evidencia', 'nivel', 'motivo', 'accion'].forEach(k => { if (!ausente(l[k])) out.lecturaSugerida[k] = Array.isArray(l[k]) ? l[k].slice() : l[k]; });
+    ['evidencia', 'nivel', 'motivo', 'accion', 'revision'].forEach(k => { if (!ausente(l[k])) out.lecturaSugerida[k] = Array.isArray(l[k]) ? l[k].slice() : l[k]; });
     if (l.contexto !== undefined) out.lecturaSugerida.contexto = l.contexto;
   }
   if (!ausente(f.checklistDespido)) {
@@ -6833,6 +6876,39 @@ const GRUPO_REGLA = { R1:'fase', R1b:'seguimiento', R2:'feedback', R3:'creencias
 // las prioridades de otros ámbitos. Una por grupo, por urgencia, máximo 3.
 // Prioridades que no se derivan de las puntuaciones de esta sesión: se mantienen aunque los datos sean insuficientes
 const PRIORIDADES_OPERATIVAS = new Set(['contacto', 'fase_inicial', 'fase_media', 'sin_fase', 'registro', 'indice']);
+// ── INTENSIDAD DE LAS PRIORIDADES (M24) ──
+// Modula, no decide: cada factor mueve como mucho un nivel (A trabajar · Esta semana · Urgente), en este orden:
+// persistencia (≤2 aquí y en la sesión anterior comparable: +1) → tendencia (mejora ≥0,5: −1; caída ≤−0,5: +1, salvo
+// que la evolución ya sea la lectura) → confianza (con evidencia parcial, como máximo «Esta semana»).
+// Las prioridades operativas (contacto, fase, registro, índice) no se tocan.
+const NIVELES_URG = ['normal', 'media', 'alta'];
+function modularIntensidad(it, d, diag, nombre) {
+  if (PRIORIDADES_OPERATIVAS.has(it.id) || it.id === 'futuro' || it.id === 'potenciar') return it;   // operativas o positivas
+  let n = NIVELES_URG.indexOf(it.urgencia);
+  if (n < 0) return it;
+  const previas = nombre ? ordenarSesiones(sesionesAnterioresA(nombre, d)) : [];
+  const prev = previas[previas.length - 1] || null;
+  const notas = [];
+  let desc = it.desc;
+  // 1. Persistencia: variables de esta prioridad bajas en las dos sesiones
+  const vars = Object.keys(GRUPO_VARIABLE).filter(k => GRUPO_VARIABLE[k] === it.grupo)
+    .concat(it.grupo === 'tecnica' ? Object.keys(ALL_VARS_LABELS).filter(k => k[0] === 't') : it.grupo === 'habitos' ? Object.keys(ALL_VARS_LABELS).filter(k => k[0] === 'h') : []);
+  const persist = prev ? vars.filter(k => { const a = scoreDe(prev, k), b = scoreDe(d, k); return a !== null && b !== null && a <= 2 && b <= 2; }) : [];
+  if (persist.length) { n = Math.min(2, n + 1); notas.push('Señal persistente: ' + persist.map(k => ALL_VARS_LABELS[k] + ' ' + scoreDe(prev, k) + ' → ' + scoreDe(d, k)).join(' · ')); }
+  // 2. Tendencia de la sesión respecto a la anterior
+  const evo = prev ? compararEvolucion(prev, d) : null;
+  if (evo && it.grupo !== 'evolucion' && diag.regla !== 'R10' && diag.regla !== 'R13') {
+    const fmtD = x => (x >= 0 ? '+' : '−') + Math.abs(x).toFixed(1).replace('.', ',');
+    if (evo.delta >= 0.5) {
+      if (n > 0) { n--; notas.push('Mejora ' + fmtD(evo.delta) + ' respecto a la sesión anterior: intensidad moderada'); }
+      if (it.id === 'lectura' && desc) desc = 'Mantener lo que está funcionando y ' + desc.charAt(0).toLowerCase() + desc.slice(1);
+    } else if (evo.delta <= -0.5 && n < 2) { n++; notas.push('Caída ' + fmtD(evo.delta) + ' respecto a la sesión anterior'); }
+  }
+  // 3. Confianza: una señal con evidencia parcial no llega por sí sola a la intensidad máxima
+  if (diag.nivelEvidencia !== 'alto' && n === 2) { n = 1; notas.push('Evidencia parcial: como máximo «Esta semana»'); }
+  return Object.assign({}, it, { urgencia: NIVELES_URG[n], desc, notas });
+}
+
 function prioridadesSesion() {
   const d = recopilarDatos();
   const nombre = (d.captador || '').trim();
@@ -6864,11 +6940,15 @@ function prioridadesSesion() {
     icono: diag.diagnostico.icon, titulo: diag.tipo, desc: diag.recomendacion.texto, revision: diag.revision && diag.revision.texto };
   const peso = { alta:3, media:2, normal:1 };
   return [lectura].concat(items.filter(x => x.grupo !== grupo))
+    .map(x => modularIntensidad(x, d, diag, nombre))
     .map((x, i) => Object.assign({ _i: i }, x))
     .sort((a, b) => (peso[b.urgencia] || 0) - (peso[a.urgencia] || 0) || a._i - b._i)
     .slice(0, 3);
 }
 
+function notasLMI(it) {
+  return it.notas && it.notas.length ? '<ul class="lmi-notas">' + it.notas.map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' : '';
+}
 function renderLMI() {
   const card = document.getElementById('lmiCard');
   if (!card) return;
@@ -6892,7 +6972,7 @@ function renderLMI() {
         '<div class="lmi-top"><span class="tile" data-tone="' + u1.tone + '">' + ic(iconoDeEmoji(p1.icono, 'target')) + '</span>' +
           '<span class="eyebrow" style="flex:1">Prioridad 1</span>' + urgencia(p1.urgencia) + '</div>' +
         '<h3 class="lmi-titulo">' + esc(p1.titulo) + '</h3>' +
-        '<p class="lmi-desc">' + esc(p1.desc) + '</p>' +
+        '<p class="lmi-desc">' + esc(p1.desc) + '</p>' + notasLMI(p1) +
         (p1.revision ? '<p class="lmi-revision">' + ic('check-circle', 'ic-sm') + '<span><strong>Revisar la próxima vez:</strong> ' + esc(p1.revision) + '</span></p>' : '') +
       '</div>' +
       (resto.length ? '<ol class="lmi-rest" start="2">' + resto.map((item, i) =>
@@ -6900,7 +6980,7 @@ function renderLMI() {
           '<span class="lmi-num" aria-hidden="true">' + (i + 2) + '</span>' +
           '<div class="lmi-content">' +
             '<h3 class="lmi-titulo">' + esc(item.titulo) + '</h3>' +
-            '<p class="lmi-desc">' + esc(item.desc) + '</p>' +
+            '<p class="lmi-desc">' + esc(item.desc) + '</p>' + notasLMI(item) +
             (item.revision ? '<p class="lmi-revision">' + ic('check-circle', 'ic-sm') + '<span><strong>Revisar la próxima vez:</strong> ' + esc(item.revision) + '</span></p>' : '') +
             '<div style="margin-top:8px">' + urgencia(item.urgencia) + '</div>' +
           '</div>' +
@@ -7089,7 +7169,11 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   buildScoreRow(document.getElementById('tbody-tecnica'), TECNICA_VARS, 't');
   buildScoreRow(document.getElementById('tbody-habitos'), HABITOS_VARS, 'h');
-  try { updateGroupAvg('t'); updateGroupAvg('h'); } catch (e) {}   // recuento «0 de N evaluadas» desde el principio
+  try { updateGroupAvg('t'); updateGroupAvg('h'); } catch (e) {}
+  { const f = document.getElementById('reg_foco');
+    if (f) f.innerHTML = '<option value="">Sin foco concreto</option>' +
+      '<optgroup label="Técnica">' + TECNICA_VARS.map((v, i) => '<option value="t_' + i + '">' + esc(v) + '</option>').join('') + '</optgroup>' +
+      '<optgroup label="Hábitos">' + HABITOS_VARS.map((v, i) => '<option value="h_' + i + '">' + esc(v) + '</option>').join('') + '</optgroup>'; }   // recuento «0 de N evaluadas» desde el principio
   buildFases();
   actualizarContador();
   try {
