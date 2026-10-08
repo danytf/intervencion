@@ -1211,7 +1211,7 @@ textarea.input,.field textarea,.intervencion-row textarea{overflow-y:hidden;}
     <div id="faseGuiaWrap"></div>
   </section>
 
-  <!-- ══ TAB 3: DIAGNÓSTICO ══ -->
+  <!-- ══ TAB 3: LECTURA ══ -->
   <section class="section-card" id="tab3" aria-labelledby="h-tab3">
     <div class="page-head">
       <span class="tile tile-lg" data-tone="brand"><svg class="ic" aria-hidden="true"><use href="#i-pulse"/></svg></span>
@@ -1825,7 +1825,6 @@ function leerListaGuardada(clave) {
   let a;
   try { a = JSON.parse(txt); } catch(e) { a = undefined; }
   if (Array.isArray(a)) return a;
-  if (a === null) return [];
   try { if (localStorage.getItem(clave + '_danado') === null) localStorage.setItem(clave + '_danado', txt); } catch(e) {}
   const err = new Error('Datos guardados dañados: ' + clave);
   err.danado = true;
@@ -2524,7 +2523,7 @@ function goTab(i) {
   try{ contarCampos(); }catch(e){}
   try{ actualizarDots(); }catch(e){}
   if(i===4){ try{ renderDashboard(); }catch(e){} try{ populateEvoSelect(); }catch(e){} try{ renderHistorialTab(); }catch(e){} }
-  // La decisión está al final de Diagnóstico: los criterios solo se proponen con «Sugerir desde la evaluación»,
+  // Decisión (pestaña propia): los criterios solo se proponen con «Sugerir desde la evaluación»,
   // para que ninguna decisión se guarde sin que el responsable la haya visto
   if(i===3){ try{ renderDiagnostico(); }catch(e){} }
   if(i===5){ try{ calcMatriz(); renderDecisionRef(); }catch(e){} }
@@ -2551,7 +2550,7 @@ function actualizarDots(){
   const tieneRegistro = REGISTRO_CAMPOS.some(({k}) => (document.getElementById(k)?.value||'').trim().length > 0);
   setDot(2, (faseSelected?1:0) + (tieneRegistro?1:0), 2);
 
-  // Tab 3: Diagnóstico — hay datos de evaluación · Tab 5: Decisión — criterios marcados
+  // Tab 3: Lectura — hay datos de evaluación · Tab 5: Decisión — criterios marcados
   const hayEval = (sT + sH) > 0;
   const nMatriz = Object.values(matrizState).filter(v=>v!==null).length;
   setDot(3, hayEval?1:0, 1);
@@ -2656,9 +2655,45 @@ function cargarDatos(data, opts) {
 // Copia de lo que hay en el formulario sin guardar. Vive en el almacenamiento del navegador (no en el de la pestaña):
 // en iPhone, Safari no avisa al cerrar y borra el de la pestaña, y el trabajo se perdía. Sigue siendo un borrador:
 // al abrir se ofrece restaurarlo o descartarlo, y se elimina al guardar, al descartar o al cargar otra sesión.
+// Textos libres: el mismo límite al escribir, al guardar y al importar, para que una copia hecha
+// por la propia app siempre se pueda volver a importar. Nunca se recorta en silencio.
+const MAX_TEXTO = 10000;
+// Campos de texto de una sesión con su nombre visible (para los avisos)
+function nombreCampo(k) {
+  const el = document.getElementById(k) || document.getElementById('d_' + k);
+  const lb = el && (document.querySelector('label[for="' + el.id + '"]')?.textContent || el.getAttribute('aria-label'));
+  return (lb || k).replace(/\s*\(opcional\)\s*$/i, '').trim();
+}
+function textosDemasiadoLargos(d, soloEditables) {
+  const legado = new Set(NOTAS_ANTERIORES.map(x => x.k));
+  return modeloFicha().textos.filter(k => (!soloEditables || !legado.has(k)) && typeof d[k] === 'string' && d[k].length > MAX_TEXTO);
+}
+function aplicarLimiteTexto() {
+  document.querySelectorAll('main textarea, main input[type=text]').forEach(el => {
+    if (el.id !== 'd_captador' && el.id !== 'd_nip') el.maxLength = MAX_TEXTO;
+  });
+}
+// Al llegar al límite (escribiendo o pegando) se avisa: lo que pasa de ahí no entra
+const _avisoLimite = new WeakSet();
+document.addEventListener('input', e => {
+  const el = e.target;
+  if (!el || el.maxLength !== MAX_TEXTO) return;
+  if (el.value.length >= MAX_TEXTO) {
+    if (!_avisoLimite.has(el)) { _avisoLimite.add(el); toast('«' + nombreCampo(el.id) + '» admite como máximo ' + MAX_TEXTO.toLocaleString('es-ES') + ' caracteres: lo que pase de ahí no se añade.', {tono:'warn', ms:6000}); }
+  } else _avisoLimite.delete(el);
+});
+
 const BORRADOR_KEY = 'wesser_borrador';
+// En iPhone el borrador sustituye al aviso al cerrar la página: si no se puede escribir, se dice (una vez por fallo)
+let _borradorFallido = false;
 function guardarBorrador() {
-  try { localStorage.setItem(BORRADOR_KEY, JSON.stringify({ datos: recopilarDatos(), id: AppState.lastLoadedId || '', at: new Date().toISOString() })); } catch(e) {}
+  try {
+    localStorage.setItem(BORRADOR_KEY, JSON.stringify({ datos: recopilarDatos(), id: AppState.lastLoadedId || '', at: new Date().toISOString() }));
+    _borradorFallido = false;
+  } catch(e) {
+    if (!_borradorFallido) toast('No se ha podido guardar el borrador en este dispositivo. Guarda la sesión antes de cerrar la página.', {tono:'error', ms:8000});
+    _borradorFallido = true;
+  }
 }
 function leerBorrador() {
   try {
@@ -2972,6 +3007,14 @@ function guardarFicha() {
     return;
   }
   data.nip = (data.nip||'').trim().slice(0,30);
+  const largos = textosDemasiadoLargos(data, true);
+  if (largos.length) {
+    const k = largos[0], el = document.getElementById(k) || document.getElementById('d_' + k);
+    toast('No se ha guardado: «' + nombreCampo(k) + '» tiene ' + data[k].length.toLocaleString('es-ES') + ' caracteres y el máximo es ' +
+      MAX_TEXTO.toLocaleString('es-ES') + '. Acórtalo y vuelve a guardar.', {tono:'error', ms:7000});
+    if (el) irA(+el.closest('.section-card').id.replace('tab', ''), el.id);
+    return;
+  }
   const fichas=cargarFichas();
   const idx = AppState.lastLoadedId ? fichas.findIndex(f => f._id === AppState.lastLoadedId) : -1;
   let msg, avisoLectura = '';
@@ -3152,6 +3195,7 @@ function ajustarTextareas() {
 document.addEventListener('input', e => { if (e.target && e.target.tagName === 'TEXTAREA') ajustarAltura(e.target); });
 window.addEventListener('resize', ajustarTextareas);
 function contarCampos() {
+  aplicarLimiteTexto();
   ajustarTextareas();
   const all=document.querySelectorAll('main input[type=text],main input[type=date],main textarea');
   let total=all.length, filled=0;
@@ -3572,12 +3616,12 @@ function generarPDF(){
   y+=2; sec('DATOS GENERALES', NEG);
   const dgrid=[[{l:'Captador/a',v:d.captador},{l:'NIP',v:d.nip||'\u2014'}],
     [{l:'Responsable',v:d.responsable},{l:'Provincia',v:d.provincia}],
-    [{l:'Antig\u00fcedad',v:fechaISOValida(d.fecha)?calcAntiguedad(d.fechainicio,d.fecha):d.antiguedad},{l:'Fecha inicio',v:d.fechainicio?formatFecha(d.fechainicio):'\u2014'}],
-    [{l:'Fecha intervenci\u00f3n',v:d.fecha?formatFecha(d.fecha):'\u2014'},{l:'Estado',v:d.estado&&ESTADOS[d.estado]?ESTADOS[d.estado].label:'\u2014'}]];
+    [{l:'Antig\u00fcedad',v:fechaISOValida(d.fecha)?calcAntiguedad(d.fechainicio,d.fecha):d.antiguedad},{l:'Fecha de comienzo',v:d.fechainicio?formatFecha(d.fechainicio):'\u2014'}],
+    [{l:'Fecha de la sesi\u00f3n',v:d.fecha?formatFecha(d.fecha):'\u2014'},{l:'Estado',v:d.estado&&ESTADOS[d.estado]?ESTADOS[d.estado].label:'\u2014'}]];
   dgrid.forEach(rowItems=>{ chk(11); rowItems.forEach((item,ci)=>fld(item.l,item.v,M+ci*(cw/2),cw/2)); y+=10; });
   y+=2;
 
-  // Diagnóstico
+  // Lectura de la herramienta
   // La lectura de la sesión guardada (congelada) si sus datos no han cambiado; si han cambiado, la actual, indicándolo
   const diagVivo = (() => { try{ return diagnosticar(d, d.captador ? sesionesAnterioresA(d.captador.trim(), d) : null); }catch(e){return null;} })();
   const ls = d.lecturaSugerida;
@@ -3768,7 +3812,7 @@ function cargarYAbrir(id){if(cargarFichaEnFormulario(id))goTab(0);}
 
 
 // ══════════════════════════════════════════
-// DIAGNÓSTICO AUTOMÁTICO POR REGLAS
+// LECTURA AUTOMÁTICA POR REGLAS
 // ══════════════════════════════════════════
 
 const ALL_VARS_LABELS = {
@@ -3780,7 +3824,7 @@ const ALL_VARS_LABELS = {
   h_9:'Aprovechamiento de jornada', h_10:'Estabilidad semanal'
 };
 
-// Diagnóstico por reglas. Si no hay fase válida, las reglas que no dependen de ella siguen
+// Lectura por reglas. Si no hay fase válida, las reglas que no dependen de ella siguen
 // funcionando y el resultado lo indica (faseDesconocida); nunca se supone una fase.
 function diagnosticar(data, sesionesAnteriores) {
   const r = diagnosticarReglas(data, sesionesAnteriores);
@@ -5452,6 +5496,10 @@ function switchJsonTab(tab) {
 function exportarJSON() {
   const fichas = cargarFichas();
   if (!fichas.length) { toast('No hay sesiones guardadas para exportar. Guarda una sesión primero.', {tono:'warn', ms:4000}); return; }
+  const nLargas = fichas.filter(f => textosDemasiadoLargos(f).length).length;
+  if (nLargas && !confirm((nLargas === 1 ? '1 sesión tiene' : nLargas + ' sesiones tienen') + ' algún texto de más de ' + MAX_TEXTO.toLocaleString('es-ES') +
+      ' caracteres. La copia se descargará completa, pero ' + (nLargas === 1 ? 'esa sesión no se podrá importar' : 'esas sesiones no se podrán importar') +
+      ' hasta acortar el texto.\n\n¿Descargar la copia igualmente?')) return;
   const payload = { version: SCHEMA_VERSION, exportedAt: new Date().toISOString(), fichas };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -5501,7 +5549,6 @@ function migrarFicha(f, desde) {
   for (let v = desde; v < SCHEMA_VERSION; v++) f = MIGRACIONES[v](f);
   return f;
 }
-const MAX_TEXTO_IMPORT = 10000;               // caracteres por campo de texto
 const MAX_ARCHIVO_IMPORT = 5 * 1024 * 1024;    // 5 MB
 // Campos del modelo que no son textos ni puntuaciones: el resto de claves de una ficha se ignoran (y se avisa)
 const CAMPOS_FICHA_FIJOS = ['captador', '_id', 'nip', '_savedAt', '_editedAt', 'fecha', 'fechainicio', 'estado', 'faseSelected',
@@ -5534,7 +5581,7 @@ function validarFichaImportada(f) {
   for (const k of modeloFicha().textos) {
     if (ausente(f[k])) continue;
     if (typeof f[k] !== 'string') return { error: 'tipo incorrecto en un campo de texto' };
-    if (f[k].length > MAX_TEXTO_IMPORT) return { error: 'texto de más de ' + MAX_TEXTO_IMPORT.toLocaleString('es-ES') + ' caracteres' };
+    if (f[k].length > MAX_TEXTO) return { error: 'texto de más de ' + MAX_TEXTO.toLocaleString('es-ES') + ' caracteres' };
     out[k] = f[k];
   }
   // Fechas: vacías o AAAA-MM-DD reales (un campo ausente sigue ausente)
@@ -7344,7 +7391,7 @@ document.addEventListener('keydown', function(e) {
     if (el) el.setAttribute('href', manifestUrl);
   } catch(e) {}
 
-  // Service Worker (cache offline básico)
+  // Service Worker: los navegadores no aceptan registrarlo desde un Blob, así que en la práctica no queda activo (ver PRODUCT.md)
   if ('serviceWorker' in navigator) {
     const swCode = "const CACHE='wesser-v1';\nself.addEventListener('install',e=>self.skipWaiting());\nself.addEventListener('activate',e=>e.waitUntil(clients.claim()));\nself.addEventListener('fetch',e=>e.respondWith(fetch(e.request).catch(()=>new Response('Offline',{status:503}))));"
     try {
