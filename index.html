@@ -5819,7 +5819,7 @@ function actualizarChecklist() {
   if (checked === 0) { result.className = 'checklist-result notice'; result.innerHTML = ''; return; }
   let tone, icono, texto;
   if (checked === total) { tone='ok'; icono='check-circle'; texto='<strong>Todos los puntos revisados.</strong> Se han revisado los criterios previos; la decisión sigue siendo del responsable, contrastada con el RP/RE.'; }
-  else if (checked >= 7) { tone='warn'; icono='warn'; texto=`<strong>Faltan ${total-checked} punto${total-checked>1?'s':''}.</strong> Complétalos antes de tomar la decisión.`; }
+  else if (checked >= 7) { tone='warn'; icono='warn'; const n=total-checked; texto=n===1 ? '<strong>Falta 1 punto.</strong> Complétalo antes de tomar la decisión.' : `<strong>Faltan ${n} puntos.</strong> Complétalos antes de tomar la decisión.`; }
   else if (checked >= 4) { tone='warn'; icono='warn'; texto=`<strong>Has completado ${checked} de ${total} puntos.</strong> Sigue revisando antes de decidir.`; }
   else { tone='bad'; icono='alert'; texto=`<strong>Solo ${checked} de ${total} puntos completados.</strong> Hay trabajo de acompañamiento que hacer antes de ejecutar esta decisión.`; }
   result.className = 'checklist-result notice show';
