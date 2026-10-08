@@ -2218,7 +2218,7 @@ function lecturaSugeridaDe(data) {
   const diag = diagnosticar(data, previas);
   if (!diag) return null;
   const ls = { regla: diag.regla, tipo: diag.tipo, texto: diag.diagnostico.texto, evidencia: (diag.evidencia || []).slice(),
-    nivel: diag.nivelEvidencia, accion: diag.recomendacion.texto };
+    nivel: diag.nivelEvidencia, accion: diag.recomendacion.texto, contexto: diag.contexto || null };
   if (diag.motivoParcial) ls.motivo = diag.motivoParcial;
   return ls;
 }
@@ -2227,7 +2227,8 @@ const NIVEL_EVIDENCIA_TXT = { alto:'Datos suficientes para esta lectura', medio:
 function evidenciaTxt(ls) {
   const nivel = NIVEL_EVIDENCIA_TXT[ls.nivel] ? NIVEL_EVIDENCIA_TXT[ls.nivel] + (ls.motivo ? ' · ' + ls.motivo : '') : '';
   const datos = (ls.evidencia || []).join(' · ');
-  return nivel && datos ? nivel + ': ' + datos : nivel || datos;
+  const ev = nivel && datos ? nivel + ': ' + datos : nivel || datos;
+  return ls.contexto ? (ev ? ev + '\n' : '') + 'Contexto: ' + ls.contexto : ev;
 }
 // Lectura sugerida de lo que hay en el formulario: la congelada de la sesión cargada si su evidencia no ha cambiado;
 // si ha cambiado, la actual marcada como recalculada (la congelada corresponde a otros datos)
@@ -3067,6 +3068,7 @@ function generarPDF(){
   const vivo = k => diagVivo ? diagVivo[k] : undefined;
   const diagResult = ls ? { tipo: ls.tipo, nivelEvidencia: ls.nivel || vivo('nivelEvidencia'), motivoParcial: ls.nivel ? ls.motivo : vivo('motivoParcial'),
       evidencia: ls.evidencia || vivo('evidencia'), diagnostico: { texto: ls.texto },
+      contexto: 'contexto' in ls ? ls.contexto : vivo('contexto'),
       recomendacion: ls.accion ? { texto: ls.accion } : vivo('recomendacion'), palanca: vivo('palanca') } : diagVivo;
   if(diagResult){ sec('LECTURA ORIENTATIVA (GENERADA POR REGLAS)', AZUL);
     chk(8); doc.setFillColor(232,234,246); doc.rect(M-2,y-4,cw+4,7,'F');
@@ -3084,6 +3086,9 @@ function generarPDF(){
     const evidLns=doc.splitTextToSize('EVIDENCIA ('+nivelTxt.toUpperCase()+'): '+((diagResult.evidencia||[]).join(' \u00b7 ')||'sin datos'),cw-4);
     doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.setTextColor(...MID);
     chk(evidLns.length*4.4+2); doc.text(evidLns,M,y); y+=evidLns.length*4.4+3;
+    if(diagResult.contexto){ const ctxLns=doc.splitTextToSize('CONTEXTO: '+diagResult.contexto,cw-4);
+      doc.setFontSize(7.5);doc.setFont('helvetica','bold');doc.setTextColor(...(diagResult.contexto.startsWith('Mejora')?VERDE:NARANJA));
+      chk(ctxLns.length*4.4+2); doc.text(ctxLns,M,y); y+=ctxLns.length*4.4+3; }
     const dlns=doc.splitTextToSize(diagResult.diagnostico.texto,cw-4);
     doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(...NEG);
     chk(dlns.length*4.8+2); doc.text(dlns,M,y); y+=dlns.length*4.8+3;
@@ -3367,8 +3372,13 @@ function diagnosticarReglas(data, sesionesAnteriores) {
   const faltanTec = () => { const f = TECNICA_VARS.filter((_, i) => !hasScore(data, 't_' + i)); return f.length ? 'Faltan ' + listaTxt(f) : null; };
   const minimos = arr => arr.filter(([, n, min]) => n < min).map(([g, n, min, total]) => g + ': ' + n + ' de ' + total + ' evaluadas (mínimo ' + min + ')').join(' · ') || null;
   const unaComparacion = 'Una sola comparación con la sesión anterior';
+  // Contexto de evolución: si gana otra regla, la mejora o caída respecto a la sesión anterior (umbral ±0,5, el de R10)
+  // no se descarta; se muestra aparte, sin cambiar la lectura ni la recomendación
+  const contextoEvolucion = regla => (tendencia === null || Math.abs(tendencia) < 0.5 || regla === 'R10' || regla === 'R13') ? null :
+    (tendencia > 0 ? 'Mejora de +' : 'Caída de −') + fmt(Math.abs(tendencia)) + ' de media respecto a la sesión del ' +
+    formatFecha(aISO(getFechaIntervencion(sesionPrevia))) + ' (' + comparables + ' variables comparables)';
   const res = o => ({
-    regla: o.regla, tipo: o.tipo, nivelEvidencia: o.nivel,
+    regla: o.regla, tipo: o.tipo, nivelEvidencia: o.nivel, contexto: contextoEvolucion(o.regla),
     motivoParcial: o.nivel === 'medio' ? (o.motivo || (nEval < 4 ? pocas(4) : null)) : null,
     evidencia: (o.evidencia || []).filter(Boolean),
     diagnostico: { icon: o.icono || '🔍', color: o.color || 'blue', titulo: o.tituloLectura || 'Lectura', texto: o.lectura },
@@ -3596,6 +3606,7 @@ function renderDiagnostico() {
     '<div><span class="score-pill ' + nv.cls + '">' + nv.txt + '</span>' +
       (diag.motivoParcial ? '<span class="meta diag-motivo"> · ' + esc(diag.motivoParcial) + '</span>' : '') + '</div>' +
     bloque('chart', 'slate', 'Evidencia', evidencia) +
+    (diag.contexto ? bloque(diag.contexto.startsWith('Mejora') ? 'trend' : 'trend-down', diag.contexto.startsWith('Mejora') ? 'ok' : 'warn', 'Contexto', texto(diag.contexto)) : '') +
     bloque(iconoDeEmoji(diag.diagnostico.icon, 'search'), toneDe(diag.diagnostico.color), esc(diag.diagnostico.titulo), texto(diag.diagnostico.texto)) +
     // La intervención y la revisión de esta lectura se muestran en «Qué haría ahora»: un solo lugar para el qué hacer
     (faltaFase ? '<button type="button" class="btn btn-secondary" onclick="irAFechaInicio()">' + ic('calendar') + 'Poner la fecha de comienzo</button>' : '');
@@ -5045,13 +5056,14 @@ function validarFichaImportada(f) {
   if (!ausente(f.lecturaSugerida)) {
     const l = f.lecturaSugerida;
     const textoOk = (v, max) => typeof v === 'string' && v.length <= max;
-    if (!esObjeto(l) || Object.keys(l).some(k => !['regla', 'tipo', 'texto', 'evidencia', 'nivel', 'motivo', 'accion'].includes(k)) ||
+    if (!esObjeto(l) || Object.keys(l).some(k => !['regla', 'tipo', 'texto', 'evidencia', 'nivel', 'motivo', 'accion', 'contexto'].includes(k)) ||
         typeof l.regla !== 'string' || !/^R\d{1,2}b?$/.test(l.regla) || !textoOk(l.tipo, 200) || !textoOk(l.texto, 3000) ||
         !(ausente(l.evidencia) || (Array.isArray(l.evidencia) && l.evidencia.length <= 20 && l.evidencia.every(x => textoOk(x, 300)))) ||
         !(ausente(l.nivel) || Object.prototype.hasOwnProperty.call(NIVEL_EVIDENCIA_TXT, l.nivel)) ||
-        !(ausente(l.motivo) || textoOk(l.motivo, 300)) || !(ausente(l.accion) || textoOk(l.accion, 3000))) return { error: 'lectura sugerida no válida' };
+        !(ausente(l.motivo) || textoOk(l.motivo, 300)) || !(l.contexto === undefined || l.contexto === null || textoOk(l.contexto, 300)) || !(ausente(l.accion) || textoOk(l.accion, 3000))) return { error: 'lectura sugerida no válida' };
     out.lecturaSugerida = { regla: l.regla, tipo: l.tipo, texto: l.texto };
     ['evidencia', 'nivel', 'motivo', 'accion'].forEach(k => { if (!ausente(l[k])) out.lecturaSugerida[k] = Array.isArray(l[k]) ? l[k].slice() : l[k]; });
+    if (l.contexto !== undefined) out.lecturaSugerida.contexto = l.contexto;
   }
   if (!ausente(f.checklistDespido)) {
     const c = f.checklistDespido;
