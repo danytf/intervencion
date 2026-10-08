@@ -3045,7 +3045,33 @@ function generarPDF(){
   const GRIS=[90,90,90], CLARO=[237,234,228], NEG=[26,26,26], MID=[90,90,90];
 
   // En cada página nueva se empieza bajo la cabecera (como en la primera): con y=20 el texto quedaba dentro de la banda
-  function chk(n){ if(y+n>278){ doc.addPage(); y=Y0; hdr(); } }
+  // Salto de página: la cabecera usa sus propios colores y tamaños; el contenido que sigue recupera su estilo
+  function chk(n){ if(y+n>278){
+    const fs=doc.getFontSize(), f=doc.getFont(), tc=doc.getTextColor(), fc=doc.getFillColor();
+    doc.addPage(); y=Y0; hdr();
+    doc.setFontSize(fs); doc.setFont(f.fontName,f.fontStyle); doc.setTextColor(tc); doc.setFillColor(fc);
+  } }
+  function estilo(size, style, color){ doc.setFontSize(size); doc.setFont('helvetica',style); doc.setTextColor(...color); }
+  // Párrafo: se parte con su propio estilo (no con el del texto anterior) y se escribe línea a línea, de modo que
+  // puede continuar en la página siguiente sin salirse del margen ni heredar el estilo de la cabecera
+  function parrafo(texto, size, style, color, lh, x, w){
+    estilo(size,style,color);
+    const lns = doc.splitTextToSize(String(texto), w);
+    lns.forEach(l => { chk(lh); estilo(size,style,color); doc.text(l, x, y); y += lh; });
+    return lns.length;
+  }
+  // Etiqueta + párrafo: la etiqueta nunca queda sola al final de una página (se reserva al menos la primera línea)
+  function etiquetado(etq, texto, size, lh){
+    chk(4.5 + lh + 1);
+    estilo(7,'bold',GRIS); doc.text(etq,M,y); y+=4.5;
+    parrafo(texto, size||8, 'normal', NEG, lh||4.8, M, cw-4);
+  }
+  // Ajusta un texto al ancho real disponible (solo recorta si de verdad no cabe)
+  function ajustar(t, w){
+    t=String(t); if(doc.getTextWidth(t)<=w) return t;
+    while(t.length>1 && doc.getTextWidth(t+'\u2026')>w) t=t.slice(0,-1);
+    return t+'\u2026';
+  }
 
   function hdr(){
     doc.setFillColor(...AZUL); doc.rect(0,0,W,22,'F');
@@ -3054,12 +3080,17 @@ function generarPDF(){
       doc.setTextColor(212,52,42); doc.setFontSize(12); doc.setFont('helvetica','bold');
       doc.text('WESSER',M,14);
     }
-    doc.setTextColor(255,255,255); doc.setFontSize(8); doc.setFont('helvetica','normal');
-    doc.text('Herramienta de Intervenci\u00f3n del Captador/a',M+22,14);
-    if(d.captador){
-      doc.setFontSize(7); doc.setTextColor(205,210,209);
-      doc.text(d.captador+(d.nip?' \u00b7 NIP: '+d.nip:''),W-M,14,{align:'right'});
-    }
+    // Título junto al logo (38 mm de ancho), sin pisarlo
+    doc.setTextColor(255,255,255); doc.setFontSize(9.5); doc.setFont('helvetica','bold');
+    doc.text('INFORME DE LA SESI\u00d3N',M+42,11);
+    doc.setTextColor(205,210,209); doc.setFontSize(7); doc.setFont('helvetica','normal');
+    doc.text('Herramienta de Intervenci\u00f3n del Captador/a',M+42,15.5);
+    // Captador/a y sesión a la derecha: si no caben, en varias líneas (nunca recortados)
+    const der = doc.splitTextToSize(d.captador || 'Sin nombre', 62).concat('sesi\u00f3n del '+formatFecha(d.fecha));
+    doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
+    const y0 = 11 - (der.length-2)*3.6;
+    der.forEach((l,i)=>{ if(i===der.length-1){ doc.setFont('helvetica','normal'); doc.setTextColor(205,210,209); }
+      doc.text(l, W-M, y0 + i*3.8 + (der.length===1?2:0), {align:'right'}); });
     if(esBorrador){
       doc.setFillColor(253,236,234); doc.rect(0,23.5,W,7,'F');
       doc.setTextColor(...ROJO); doc.setFontSize(8); doc.setFont('helvetica','bold');
@@ -3079,7 +3110,7 @@ function generarPDF(){
     doc.setFontSize(6.5); doc.setTextColor(...MID); doc.setFont('helvetica','bold');
     doc.text(label.toUpperCase(),x,y);
     doc.setFontSize(8.5); doc.setTextColor(...NEG); doc.setFont('helvetica','normal');
-    const v = String(val||'\u2014'); doc.text(v.length>28?v.slice(0,27)+'\u2026':v, x, y+4.5);
+    doc.text(ajustar(val||'\u2014', w-3), x, y+4.5);
   }
 
   function row(label, val, barMax){
@@ -3103,11 +3134,8 @@ function generarPDF(){
   function blk(items){
     items.forEach((t,i)=>{
       if(!t)return; chk(8);
-      doc.setFontSize(7); doc.setTextColor(...MID); doc.setFont('helvetica','bold');
-      doc.text((i+1)+'.',M,y);
-      doc.setFontSize(8); doc.setTextColor(...NEG); doc.setFont('helvetica','normal');
-      const lns=doc.splitTextToSize(t,cw-8); doc.text(lns,M+6,y);
-      y+=lns.length*4.8+2;
+      estilo(7,'bold',MID); doc.text((i+1)+'.',M,y);
+      parrafo(t, 8, 'normal', NEG, 4.8, M+6, cw-8); y+=2;
     });
   }
 
@@ -3117,14 +3145,20 @@ function generarPDF(){
   // Banner captador
   doc.setFillColor(245,243,240); doc.rect(M-2,y,cw+4,26,'F');
   doc.setFillColor(...AZUL); doc.rect(M-2,y,2,26,'F');
-  doc.setFontSize(16); doc.setFont('helvetica','bold'); doc.setTextColor(...NEG);
-  doc.text(d.captador||'Sin nombre',M+5,y+9);
+  // Nombre en el espacio que dejan las métricas (≈105 mm): en dos líneas y con letra algo menor si no cabe
+  doc.setFont('helvetica','bold'); doc.setTextColor(...NEG);
+  const anchoNombre = W-M-58-6-(M+5);
+  let tamNombre = 16; doc.setFontSize(tamNombre);
+  let lnsNombre = doc.splitTextToSize(d.captador||'Sin nombre', anchoNombre);
+  if (lnsNombre.length > 1) { tamNombre = 12.5; doc.setFontSize(tamNombre); lnsNombre = doc.splitTextToSize(d.captador||'Sin nombre', anchoNombre); }
+  if (lnsNombre.length > 2) lnsNombre = [lnsNombre[0], ajustar(lnsNombre.slice(1).join(' '), anchoNombre)];
+  lnsNombre.forEach((l,i)=>doc.text(l, M+5, y+9+i*5.6));
   if(d.estado&&ESTADOS[d.estado]){ doc.setFontSize(7.5); doc.setTextColor(...MID); doc.setFont('helvetica','normal'); doc.text(ESTADOS[d.estado].label,M+5,y+21); }
   // Métricas laterales
   const mets=[{l:'NIP',v:d.nip||'\u2014'},{l:'FASE',v:faseObj?faseObj.label:'\u2014'},{l:'D\u00cdA',v:diasProc?'D\u00eda '+diasProc:'\u2014'},{l:'SES.',v:histSessions.length||'0'}];
   mets.forEach((m,i)=>{ const mx=W-M-58+(i%2)*30,my=y+4+(Math.floor(i/2)*12);
     doc.setFontSize(6);doc.setTextColor(...MID);doc.setFont('helvetica','bold');doc.text(m.l,mx,my);
-    doc.setFontSize(9);doc.setTextColor(...NEG);doc.setFont('helvetica','normal');doc.text(String(m.v),mx,my+5); });
+    doc.setFontSize(9);doc.setTextColor(...NEG);doc.setFont('helvetica','normal');doc.text(ajustar(m.v,28),mx,my+5); });
   y+=30;
 
   // Riesgo banner
@@ -3163,46 +3197,29 @@ function generarPDF(){
     doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(...AZUL);
     doc.text(diagResult.tipo,M,y); y+=8;
     if(ls && (ls.congelada || ls.recalculada)){
-      const estLns=doc.splitTextToSize(ls.congelada ? 'Lectura registrada al guardar la sesi\u00f3n.' : 'Recalculada con los datos actuales: difieren de los de la sesi\u00f3n guardada, cuya lectura puede no coincidir con esta.',cw-4);
-      doc.setFontSize(7.5);doc.setFont('helvetica','bold');doc.setTextColor(...(ls.congelada?GRIS:NARANJA));
-      chk(estLns.length*4.4+2); doc.text(estLns,M,y); y+=estLns.length*4.4+2; }
+      parrafo(ls.congelada ? 'Lectura registrada al guardar la sesi\u00f3n.' : 'Recalculada con los datos actuales: difieren de los de la sesi\u00f3n guardada, cuya lectura puede no coincidir con esta.',
+        7.5, 'bold', ls.congelada?GRIS:NARANJA, 4.4, M, cw-4); y+=2; }
     // Como en pantalla: procede de reglas, orienta y depende de la evidencia disponible
-    const avisoLns=doc.splitTextToSize('Lectura generada por reglas a partir de la evaluaci\u00f3n y la fase: orienta, no sustituye la observaci\u00f3n en campo y depende de la evidencia disponible. No es un diagn\u00f3stico confirmado.',cw-4);
-    doc.setFontSize(7.5);doc.setFont('helvetica','italic');doc.setTextColor(...GRIS);
-    chk(avisoLns.length*4.4+2); doc.text(avisoLns,M,y); y+=avisoLns.length*4.4+2;
+    parrafo('Lectura generada por reglas a partir de la evaluaci\u00f3n y la fase: orienta, no sustituye la observaci\u00f3n en campo y depende de la evidencia disponible. No es un diagn\u00f3stico confirmado.',
+      7.5, 'italic', GRIS, 4.4, M, cw-4); y+=2;
     const nivelTxt=(NIVEL_EVIDENCIA_TXT[diagResult.nivelEvidencia]||'Datos parciales')+(diagResult.motivoParcial?' \u00b7 '+diagResult.motivoParcial:'');
-    const evidLns=doc.splitTextToSize('EVIDENCIA ('+nivelTxt.toUpperCase()+'): '+((diagResult.evidencia||[]).join(' \u00b7 ')||'sin datos'),cw-4);
-    doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.setTextColor(...MID);
-    chk(evidLns.length*4.4+2); doc.text(evidLns,M,y); y+=evidLns.length*4.4+3;
-    if(diagResult.contexto){ const ctxLns=doc.splitTextToSize('CONTEXTO: '+diagResult.contexto,cw-4);
-      doc.setFontSize(7.5);doc.setFont('helvetica','bold');doc.setTextColor(...(diagResult.contexto.startsWith('Mejora')?VERDE:NARANJA));
-      chk(ctxLns.length*4.4+2); doc.text(ctxLns,M,y); y+=ctxLns.length*4.4+3; }
-    const dlns=doc.splitTextToSize(diagResult.diagnostico.texto,cw-4);
-    doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(...NEG);
-    chk(dlns.length*4.8+2); doc.text(dlns,M,y); y+=dlns.length*4.8+3;
-    if(diagResult.recomendacion){
-      const rlns=doc.splitTextToSize(diagResult.recomendacion.texto,cw-4);
-      doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(...GRIS);
-      chk(5); doc.text('INTERVENCI\u00d3N:',M,y); y+=4.5;
-      doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(...NEG);
-      chk(rlns.length*4.8+2); doc.text(rlns,M,y); y+=rlns.length*4.8+3;
-    }
+    parrafo('EVIDENCIA ('+nivelTxt.toUpperCase()+'): '+((diagResult.evidencia||[]).join(' \u00b7 ')||'sin datos'), 7.5, 'normal', MID, 4.4, M, cw-4); y+=3;
+    if(diagResult.contexto){ parrafo('CONTEXTO: '+diagResult.contexto, 7.5, 'bold', diagResult.contexto.startsWith('Mejora')?VERDE:NARANJA, 4.4, M, cw-4); y+=3; }
+    parrafo(diagResult.diagnostico.texto, 8, 'normal', NEG, 4.8, M, cw-4); y+=3;
+    if(diagResult.recomendacion){ etiquetado('INTERVENCI\u00d3N:', diagResult.recomendacion.texto); y+=3; }
     if(diagResult.palanca){
-      const palLns=doc.splitTextToSize('VARIABLE PRIORITARIA POR PUNTUACIÓN: '+diagResult.palanca.label+' ('+diagResult.palanca.val+'/5). Es la prioridad por puntuación, no una causa demostrada.',cw-4);
-      chk(palLns.length*4.6+3);
-      doc.setFontSize(7.5);doc.setFont('helvetica','bold');doc.setTextColor(...NARANJA);
-      doc.text(palLns,M,y); y+=palLns.length*4.6+3; }
+      parrafo('VARIABLE PRIORITARIA POR PUNTUACI\u00d3N: '+diagResult.palanca.label+' ('+diagResult.palanca.val+'/5). Es la prioridad por puntuaci\u00f3n, no una causa demostrada.',
+        7.5, 'bold', NARANJA, 4.6, M, cw-4); y+=3; }
     y+=2; }
 
   // Creencias
   const creencias=[1,2,3,4,5].map(i=>d['c'+i]).filter(Boolean);
   if(creencias.length){ sec('1. MENTALIDAD \u2014 CREENCIAS',AZUL);
     creencias.forEach((c,i)=>{ chk(7);
-      doc.setFontSize(7.5);doc.setFont('helvetica','bold');doc.setTextColor(...ROJO); doc.text((i+1)+'.',M,y);
-      const lns=doc.splitTextToSize(c,cw-8);
-      doc.setFont('helvetica','italic');doc.setTextColor(...NEG); doc.text(lns,M+6,y); y+=lns.length*4.8+2; });
+      estilo(7.5,'bold',ROJO); doc.text((i+1)+'.',M,y);
+      parrafo(c, 7.5, 'italic', NEG, 4.8, M+6, cw-8); y+=2; });
     const ic=[1,2,3,4,5,6].map(i=>d['ic'+i]).filter(Boolean);
-    if(ic.length){ chk(7);doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(...GRIS);doc.text('INTERVENCIONES:',M,y);y+=5;blk(ic);} y+=2; }
+    if(ic.length){ chk(5+8);doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(...GRIS);doc.text('INTERVENCIONES:',M,y);y+=5;blk(ic);} y+=2; }
 
   // Técnica
   sec('2. T\u00c9CNICA \u2014 VALORACI\u00d3N',AZUL);
@@ -3210,7 +3227,7 @@ function generarPDF(){
   if(tAvgCur>0){ chk(7);doc.setFillColor(...CLARO);doc.rect(M-2,y-4,cw+4,7,'F');
     doc.setFontSize(7.5);doc.setFont('helvetica','bold');doc.setTextColor(...AZUL);doc.text('MEDIA: '+tAvgCur.toFixed(1)+'/5',M,y);y+=9; }
   const ip=[1,2,3,4,5,6,7,8,9].map(i=>d['ip'+i]).filter(Boolean);
-  if(ip.length){ chk(7);doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(...GRIS);doc.text('INTERVENCIONES:',M,y);y+=5;blk(ip); } y+=3;
+  if(ip.length){ chk(5+8);doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(...GRIS);doc.text('INTERVENCIONES:',M,y);y+=5;blk(ip); } y+=3;
 
   // Hábitos
   sec('3. H\u00c1BITOS \u2014 VALORACI\u00d3N',AZUL);
@@ -3218,7 +3235,7 @@ function generarPDF(){
   if(hAvgCur>0){ chk(7);doc.setFillColor(...CLARO);doc.rect(M-2,y-4,cw+4,7,'F');
     doc.setFontSize(7.5);doc.setFont('helvetica','bold');doc.setTextColor(...AZUL);doc.text('MEDIA: '+hAvgCur.toFixed(1)+'/5',M,y);y+=9; }
   const ih=[1,2,3,4,5,6].map(i=>d['ih'+i]).filter(Boolean);
-  if(ih.length){ chk(7);doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(...GRIS);doc.text('INTERVENCIONES:',M,y);y+=5;blk(ih); } y+=3;
+  if(ih.length){ chk(5+8);doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(...GRIS);doc.text('INTERVENCIONES:',M,y);y+=5;blk(ih); } y+=3;
 
   // Fase
   if(faseObj){ sec('4. FASE DE INTEGRACI\u00d3N',AZUL); chk(12);
@@ -3253,16 +3270,11 @@ function generarPDF(){
   // Registro de la sesión (y notas guardadas con el formato anterior, si las hay)
   const registro=registroConContexto(d, true);   // la lectura sugerida ya va en «Lectura orientativa»
   if(registro.length){ sec('REGISTRO DE LA SESI\u00d3N',ROJO);
-    registro.forEach(r=>{ chk(10);
-      doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(...GRIS);
-      doc.text((r.label+(r.anterior?' (formato anterior)':'')).toUpperCase(),M,y); y+=4.5;
-      const lns=doc.splitTextToSize(r.texto,cw-4);
-      doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(...NEG);
-      chk(lns.length*4.8+2); doc.text(lns,M,y); y+=lns.length*4.8+3; }); y+=2; }
+    registro.forEach(r=>{ etiquetado((r.label+(r.anterior?' (formato anterior)':'')).toUpperCase(), r.texto); y+=3; }); y+=2; }
 
   // Historial
-  if(histSessions.length>1){ chk(20); sec('HISTORIAL ('+histSessions.length+' sesiones)',AZUL);
-    const cw2=[20,22,22,22,50,14];
+  if(histSessions.length>1){ chk(20); sec(histSessions.length>8 ? 'HISTORIAL (\u00faltimas 8 de '+histSessions.length+' sesiones)' : 'HISTORIAL ('+histSessions.length+' sesiones)',AZUL);
+    const cw2=[24,19,19,17,40,36];
     doc.setFillColor(...CLARO);doc.rect(M-2,y-4,cw+4,7,'F');
     doc.setFontSize(6.5);doc.setFont('helvetica','bold');doc.setTextColor(...MID);
     ['Fecha','T\u00e9cnica','H\u00e1bitos','Media','Fase','Estado'].forEach((h,i)=>{
@@ -3277,7 +3289,7 @@ function generarPDF(){
       doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.setTextColor(...NEG);
       [formatFecha(s.fecha),tA,hA,gA,fl,es].forEach((v,j)=>{
         let x=M;for(let k=0;k<j;k++)x+=cw2[k];
-        const vt=String(v);doc.text(vt.length>Math.floor(cw2[j]/2.2)?vt.slice(0,Math.floor(cw2[j]/2.2))+'…':vt,x,y);});
+        doc.text(ajustar(v, cw2[j]-2),x,y);});
       y+=6; }); y+=4; }
 
   // Pie de página en todas las páginas
@@ -3286,8 +3298,7 @@ function generarPDF(){
     doc.setPage(p);
     doc.setFillColor(...AZUL);doc.rect(0,285,W,12,'F');
     doc.setFontSize(7);doc.setTextColor(160,160,160);doc.setFont('helvetica','normal');
-    const cap=d.captador?(d.captador+(d.nip?' \u00b7 NIP: '+d.nip:''))+' \u00b7 ':'';
-    doc.text('Wesser \u00b7 '+cap+'P\u00e1g '+p+' de '+pages+' \u00b7 '+new Date().toLocaleDateString('es-ES'),W/2,292,{align:'center'});
+    doc.text('USO INTERNO \u00b7 Contiene datos personales y valoraciones \u00b7 P\u00e1g '+p+' de '+pages+' \u00b7 Generado el '+formatFecha(aISO(new Date())),W/2,292,{align:'center'});
   }
 
   try{ doc.save('informe_'+captadorNombre.replace(/\s+/g,'_')+'_'+(fechaISOValida(d.fecha)?d.fecha:aISO(new Date()))+(esBorrador?'_BORRADOR':'')+'.pdf'); _finalizarPDF(true); }
