@@ -2217,13 +2217,26 @@ function lecturaSugeridaDe(data) {
   const previas = data.captador.trim() ? sesionesAnterioresA(data.captador.trim(), data) : [];
   const diag = diagnosticar(data, previas);
   if (!diag) return null;
-  return { regla: diag.regla, tipo: diag.tipo, texto: diag.diagnostico.texto };
+  const ls = { regla: diag.regla, tipo: diag.tipo, texto: diag.diagnostico.texto, evidencia: (diag.evidencia || []).slice(),
+    nivel: diag.nivelEvidencia, accion: diag.recomendacion.texto };
+  if (diag.motivoParcial) ls.motivo = diag.motivoParcial;
+  return ls;
 }
-// Lectura sugerida de lo que hay en el formulario: la congelada de la sesión cargada si su evidencia no ha cambiado
+const NIVEL_EVIDENCIA_TXT = { alto:'Datos suficientes para esta lectura', medio:'Datos parciales', bajo:'Datos insuficientes' };
+// «Datos parciales · Faltan Rebatidas y Cierre: Parada 4/5 · Speech 4/5»
+function evidenciaTxt(ls) {
+  const nivel = NIVEL_EVIDENCIA_TXT[ls.nivel] ? NIVEL_EVIDENCIA_TXT[ls.nivel] + (ls.motivo ? ' · ' + ls.motivo : '') : '';
+  const datos = (ls.evidencia || []).join(' · ');
+  return nivel && datos ? nivel + ': ' + datos : nivel || datos;
+}
+// Lectura sugerida de lo que hay en el formulario: la congelada de la sesión cargada si su evidencia no ha cambiado;
+// si ha cambiado, la actual marcada como recalculada (la congelada corresponde a otros datos)
 function lecturaSugeridaFormulario(d) {
   const orig = AppState.lastLoadedId ? cargarFichas().find(f => f._id === AppState.lastLoadedId) : null;
-  if (orig && orig.lecturaSugerida && firmaEvidencia(orig) === firmaEvidencia(d)) return orig.lecturaSugerida;
-  return lecturaSugeridaDe(d);
+  if (orig && orig.lecturaSugerida && firmaEvidencia(orig) === firmaEvidencia(d)) return Object.assign({ congelada: true }, orig.lecturaSugerida);
+  const ls = lecturaSugeridaDe(d);
+  if (ls && orig && firmaEvidencia(orig) !== firmaEvidencia(d)) ls.recalculada = true;
+  return ls;
 }
 // Lo que alimenta las reglas: si no cambia, una edición de la sesión conserva la lectura sugerida original
 function firmaEvidencia(d) {
@@ -2234,12 +2247,13 @@ function firmaEvidencia(d) {
 }
 // Registro completo de una sesión para el historial y el PDF: revisión de la anterior, evidencia,
 // lectura sugerida (congelada), mi lectura e intervención, cada una por separado
-function registroConContexto(d) {
+function registroConContexto(d, sinSugerida) {
   const items = registroDe(d);
   const ls = d && d.lecturaSugerida;
-  if (ls && ls.texto) {
+  if (ls && ls.texto && !sinSugerida) {
     const tras = items.findIndex(x => x.label === 'Qué observé');
-    items.splice(tras + 1, 0, { label: 'Lectura sugerida por la herramienta · ' + ls.tipo, texto: ls.texto, sugerida: true });
+    const ev = evidenciaTxt(ls);
+    items.splice(tras + 1, 0, { label: 'Lectura sugerida por la herramienta · ' + ls.tipo, texto: (ev ? ev + '\n' : '') + ls.texto, sugerida: true });
   }
   if (d && REVISION_OPCIONES[d.revisionAnterior]) items.unshift({ label: 'Revisión de la sesión anterior', texto: REVISION_OPCIONES[d.revisionAnterior] });
   return items;
@@ -3046,16 +3060,27 @@ function generarPDF(){
   y+=2;
 
   // Diagnóstico
-  const diagResult = (() => { try{ return diagnosticar(d, d.captador ? sesionesAnterioresA(d.captador.trim(), d) : null); }catch(e){return null;} })();
+  // La lectura de la sesión guardada (congelada) si sus datos no han cambiado; si han cambiado, la actual, indicándolo
+  const diagVivo = (() => { try{ return diagnosticar(d, d.captador ? sesionesAnterioresA(d.captador.trim(), d) : null); }catch(e){return null;} })();
+  const ls = d.lecturaSugerida;
+  // (las guardadas antes de registrar evidencia y nivel los toman del cálculo actual, con los mismos datos)
+  const vivo = k => diagVivo ? diagVivo[k] : undefined;
+  const diagResult = ls ? { tipo: ls.tipo, nivelEvidencia: ls.nivel || vivo('nivelEvidencia'), motivoParcial: ls.nivel ? ls.motivo : vivo('motivoParcial'),
+      evidencia: ls.evidencia || vivo('evidencia'), diagnostico: { texto: ls.texto },
+      recomendacion: ls.accion ? { texto: ls.accion } : vivo('recomendacion'), palanca: vivo('palanca') } : diagVivo;
   if(diagResult){ sec('LECTURA ORIENTATIVA (GENERADA POR REGLAS)', AZUL);
     chk(8); doc.setFillColor(232,234,246); doc.rect(M-2,y-4,cw+4,7,'F');
     doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(...AZUL);
     doc.text(diagResult.tipo,M,y); y+=8;
+    if(ls && (ls.congelada || ls.recalculada)){
+      const estLns=doc.splitTextToSize(ls.congelada ? 'Lectura registrada al guardar la sesi\u00f3n.' : 'Recalculada con los datos actuales: difieren de los de la sesi\u00f3n guardada, cuya lectura puede no coincidir con esta.',cw-4);
+      doc.setFontSize(7.5);doc.setFont('helvetica','bold');doc.setTextColor(...(ls.congelada?GRIS:NARANJA));
+      chk(estLns.length*4.4+2); doc.text(estLns,M,y); y+=estLns.length*4.4+2; }
     // Como en pantalla: procede de reglas, orienta y depende de la evidencia disponible
     const avisoLns=doc.splitTextToSize('Lectura generada por reglas a partir de la evaluaci\u00f3n y la fase: orienta, no sustituye la observaci\u00f3n en campo y depende de la evidencia disponible. No es un diagn\u00f3stico confirmado.',cw-4);
     doc.setFontSize(7.5);doc.setFont('helvetica','italic');doc.setTextColor(...GRIS);
     chk(avisoLns.length*4.4+2); doc.text(avisoLns,M,y); y+=avisoLns.length*4.4+2;
-    const nivelTxt={alto:'Datos suficientes para esta lectura',medio:'Datos parciales',bajo:'Datos insuficientes'}[diagResult.nivelEvidencia]||'Datos parciales';
+    const nivelTxt=(NIVEL_EVIDENCIA_TXT[diagResult.nivelEvidencia]||'Datos parciales')+(diagResult.motivoParcial?' \u00b7 '+diagResult.motivoParcial:'');
     const evidLns=doc.splitTextToSize('EVIDENCIA ('+nivelTxt.toUpperCase()+'): '+((diagResult.evidencia||[]).join(' \u00b7 ')||'sin datos'),cw-4);
     doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.setTextColor(...MID);
     chk(evidLns.length*4.4+2); doc.text(evidLns,M,y); y+=evidLns.length*4.4+3;
@@ -3133,7 +3158,7 @@ function generarPDF(){
   y+=4;
 
   // Registro de la sesión (y notas guardadas con el formato anterior, si las hay)
-  const registro=registroConContexto(d);
+  const registro=registroConContexto(d, true);   // la lectura sugerida ya va en «Lectura orientativa»
   if(registro.length){ sec('REGISTRO DE LA SESI\u00d3N',ROJO);
     registro.forEach(r=>{ chk(10);
       doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(...GRIS);
@@ -3337,8 +3362,14 @@ function diagnosticarReglas(data, sesionesAnteriores) {
     .slice(0, 3).map(c => ALL_VARS_LABELS[c.k] + ' ' + c.a + '→' + c.b);
   const comparacion = () => sesionPrevia ? (tendencia >= 0 ? '+' : '−') + fmt(Math.abs(tendencia)) + ' de media en las ' + comparables +
     ' variables evaluadas en esta sesión y en la del ' + formatFecha(aISO(getFechaIntervencion(sesionPrevia))) : null;
+  // Por qué una lectura es parcial: qué falta para que los datos la sostengan del todo (una línea)
+  const pocas = min => 'Solo ' + nEval + (nEval === 1 ? ' variable evaluada' : ' variables evaluadas') + ' (mínimo ' + min + ')';
+  const faltanTec = () => { const f = TECNICA_VARS.filter((_, i) => !hasScore(data, 't_' + i)); return f.length ? 'Faltan ' + listaTxt(f) : null; };
+  const minimos = arr => arr.filter(([, n, min]) => n < min).map(([g, n, min, total]) => g + ': ' + n + ' de ' + total + ' evaluadas (mínimo ' + min + ')').join(' · ') || null;
+  const unaComparacion = 'Una sola comparación con la sesión anterior';
   const res = o => ({
     regla: o.regla, tipo: o.tipo, nivelEvidencia: o.nivel,
+    motivoParcial: o.nivel === 'medio' ? (o.motivo || (nEval < 4 ? pocas(4) : null)) : null,
     evidencia: (o.evidencia || []).filter(Boolean),
     diagnostico: { icon: o.icono || '🔍', color: o.color || 'blue', titulo: o.tituloLectura || 'Lectura', texto: o.lectura },
     recomendacion: { icon: '🎯', color: o.colorAccion || o.color || 'blue', titulo: o.tituloAccion || 'Intervención', texto: o.accion },
@@ -3394,6 +3425,7 @@ function diagnosticarReglas(data, sesionesAnteriores) {
     const hb = bajas('h', HABITOS_VARS).map(x => x.l);
     const foco = listaTxt(hb.slice(0, 2)) || 'los hábitos con menor puntuación';
     return res({ regla:'R4', tipo:'Técnica alta / hábitos bajos', nivel: (tFilled.length >= 3 && hFilled.length >= 6) ? 'alto' : 'medio', icono:'⚡', color:'orange',
+      motivo: minimos([['Técnica', tFilled.length, 3, TECNICA_VARS.length], ['Hábitos', hFilled.length, 6, HABITOS_VARS.length]]),
       evidencia: [mediaT(), mediaH(), hb.length ? hb.length + (hb.length === 1 ? ' hábito' : ' hábitos') + ' por debajo de 3' : null],
       lectura: 'Existe una diferencia entre la valoración técnica y la de hábitos. Conviene comprobar si la ejecución autónoma, sin acompañamiento, explica esa diferencia.',
       accion: 'Observar un tramo de trabajo sin acompañamiento directo y anotar qué hábitos concretos no se cumplen. Empezar por ' + foco + '.',
@@ -3405,6 +3437,7 @@ function diagnosticarReglas(data, sesionesAnteriores) {
     const tb = bajas('t', TECNICA_VARS).map(x => x.l);
     const foco = listaTxt(tb.slice(0, 2)) || 'el proceso';
     return res({ regla:'R5', tipo:'Hábitos altos / técnica baja', nivel: (tFilled.length >= 3 && hFilled.length >= 6) ? 'alto' : 'medio', icono:'💪', color:'blue',
+      motivo: minimos([['Técnica', tFilled.length, 3, TECNICA_VARS.length], ['Hábitos', hFilled.length, 6, HABITOS_VARS.length]]),
       evidencia: [mediaH(), mediaT(), ...bajas('t', TECNICA_VARS).map(x => x.l + ': ' + x.v + '/5')],
       lectura: 'Los hábitos están mejor valorados que la técnica' + (tb.length ? '; en técnica, lo más bajo es ' + foco : '') + '.',
       accion: 'Practicar ' + foco + ' con role-play antes de salir a campo y observarlo después en situaciones reales. No añadir pasos nuevos del proceso hasta que ese tramo salga con soltura.',
@@ -3413,7 +3446,7 @@ function diagnosticarReglas(data, sesionesAnteriores) {
 
   // R6: Cierre bajo + resto de la técnica aceptable
   if (bajo('t_3') && tAvg >= 2.8 && tFilled.length >= 3) {
-    return res({ regla:'R6', tipo:'Cierre por debajo del resto', nivel: tFilled.length === TECNICA_VARS.length ? 'alto' : 'medio', icono:'🔒', color:'orange',
+    return res({ regla:'R6', tipo:'Cierre por debajo del resto', nivel: tFilled.length === TECNICA_VARS.length ? 'alto' : 'medio', icono:'🔒', color:'orange', motivo: faltanTec(),
       evidencia: [ev('t_0'), ev('t_1'), ev('t_2'), ev('t_3')],
       lectura: 'El dato diferencial de esta evaluación está en el cierre (' + scoreDe(data, 't_3') + '/5) frente al resto del proceso. La hipótesis de trabajo es una dificultad específica en esa fase; conviene comprobar si está en la técnica, en el momento de pedir o en otro factor.',
       accion: 'Observar varios cierres completos en campo, identificar en qué punto se interrumpe la conversación y practicar ese tramo con role-play.',
@@ -3452,7 +3485,7 @@ function diagnosticarReglas(data, sesionesAnteriores) {
   // R10: Caída respecto a la sesión anterior
   if (tendencia !== null && tendencia < -0.5) {
     const bajan = cambiosTxt(-1);
-    return res({ regla:'R10', tipo:'Caída respecto a la sesión anterior', nivel:'medio', icono:'📉', color:'orange',
+    return res({ regla:'R10', tipo:'Caída respecto a la sesión anterior', nivel:'medio', icono:'📉', color:'orange', motivo: unaComparacion,
       evidencia: [comparacion(), bajan.length ? 'Bajan: ' + bajan.join(' · ') : null],
       lectura: 'Se observa una caída respecto a la intervención anterior. Una sola comparación no permite saber si es un cambio puntual o una tendencia sostenida.',
       accion: 'Preguntar al captador qué ha cambiado desde la última sesión y revisar juntos las variables que más han bajado.',
@@ -3462,7 +3495,7 @@ function diagnosticarReglas(data, sesionesAnteriores) {
   // R11: Fase avanzada + puntuaciones bajas
   if (hayFase && faseNum >= 4 && globalAvg < 2.5 && totalSuf) {
     const masBajas = allScored.slice(0, 2).map(x => x.label + ' ' + x.val + '/5');
-    return res({ regla:'R11', tipo:'Puntuaciones bajas para la fase', nivel: nEval >= 8 ? 'alto' : 'medio', icono:'⚠️', color:'red',
+    return res({ regla:'R11', tipo:'Puntuaciones bajas para la fase', nivel: nEval >= 8 ? 'alto' : 'medio', icono:'⚠️', color:'red', motivo: pocas(8),
       evidencia: ['Fase: ' + nombreFase, 'Media ' + fmt(globalAvg) + '/5 (' + nEval + ' variables evaluadas)', masBajas.length ? 'Más bajas: ' + masBajas.join(' · ') : null],
       lectura: 'Hay una diferencia entre el tiempo en el proceso y las puntuaciones actuales. Los datos no indican la causa; conviene revisar qué competencia concreta está impidiendo la consolidación.',
       accion: 'Revisar con el captador las variables más bajas, acordar un objetivo concreto para la siguiente sesión y hablar abiertamente de las expectativas de ambas partes. Si el acompañamiento actual no da resultado, plantear un enfoque distinto.',
@@ -3472,6 +3505,7 @@ function diagnosticarReglas(data, sesionesAnteriores) {
   // R12: Puntuaciones altas
   if (tecSuf && habSuf && tAvg >= 4 && hAvg >= 4) {
     return res({ regla:'R12', tipo:'Puntuaciones altas', nivel: (tFilled.length === TECNICA_VARS.length && hFilled.length >= 8) ? 'alto' : 'medio', icono:'🏆', color:'green',
+      motivo: [faltanTec(), hFilled.length < 8 ? 'Hábitos: ' + hFilled.length + ' de ' + HABITOS_VARS.length + ' evaluadas (mínimo 8)' : null].filter(Boolean).join(' · ') || null,
       evidencia: [mediaT(), mediaH()],
       lectura: 'Las puntuaciones registradas son altas en técnica y en hábitos. Con este nivel, el siguiente paso puede centrarse en consolidar, ganar autonomía o asumir nuevos retos.',
       accion: 'Acordar con el captador un reto nuevo (calidad, campañas, apoyo a compañeros) y, si procede, valorar responsabilidades adicionales.',
@@ -3483,7 +3517,7 @@ function diagnosticarReglas(data, sesionesAnteriores) {
   if (tendencia !== null && tendencia >= 0 && totalSuf && globalAvg >= 2.5) {
     const mejora = tendencia >= 0.05;
     const suben = cambiosTxt(1);
-    return res({ regla:'R13', tipo: mejora ? 'Mejora respecto a la sesión anterior' : 'Puntuaciones estables', nivel:'medio', icono:'📈', color:'green',
+    return res({ regla:'R13', tipo: mejora ? 'Mejora respecto a la sesión anterior' : 'Puntuaciones estables', nivel:'medio', icono:'📈', color:'green', motivo: unaComparacion,
       evidencia: [comparacion(), suben.length ? 'Suben: ' + suben.join(' · ') : null],
       lectura: (mejora ? 'Las puntuaciones mejoran respecto a la sesión anterior.' : 'Las puntuaciones se mantienen respecto a la sesión anterior.') +
         ' Una sola comparación no basta para afirmar que ' + (mejora ? 'la mejora' : 'el nivel') + ' se mantendrá.',
@@ -3510,7 +3544,7 @@ function diagnosticarReglas(data, sesionesAnteriores) {
   }
 
   // Sin patrón destacado: se propone la variable prioritaria por puntuación (no se le atribuye causalidad)
-  return res({ regla:'R14', tipo:'Sin patrón destacado', nivel: nEval >= 8 ? 'alto' : 'medio', icono:'🔍', color:'blue',
+  return res({ regla:'R14', tipo:'Sin patrón destacado', nivel: nEval >= 8 ? 'alto' : 'medio', icono:'🔍', color:'blue', motivo: pocas(8),
     evidencia: [mediaT(), mediaH(), palanca ? 'Variable más baja: ' + palanca.label + ' ' + palanca.val + '/5' : null],
     lectura: 'No aparece ninguno de los patrones que revisa la herramienta. Las puntuaciones no muestran una diferencia marcada entre áreas.',
     accion: palanca && palanca.val < 4
@@ -3559,7 +3593,8 @@ function renderDiagnostico() {
     ? '<div class="notice" data-tone="warn">' + ic('calendar') + '<div><strong>Sin fase.</strong> Esta lectura no tiene en cuenta en qué fase está el captador; puede cambiar al poner la fecha de comienzo.</div></div>' : '';
   const faltaFase = diag.sinFase || diag.faseDesconocida;
   body.innerHTML = avisoFase +
-    '<div><span class="score-pill ' + nv.cls + '">' + nv.txt + '</span></div>' +
+    '<div><span class="score-pill ' + nv.cls + '">' + nv.txt + '</span>' +
+      (diag.motivoParcial ? '<span class="meta diag-motivo"> · ' + esc(diag.motivoParcial) + '</span>' : '') + '</div>' +
     bloque('chart', 'slate', 'Evidencia', evidencia) +
     bloque(iconoDeEmoji(diag.diagnostico.icon, 'search'), toneDe(diag.diagnostico.color), esc(diag.diagnostico.titulo), texto(diag.diagnostico.texto)) +
     // La intervención y la revisión de esta lectura se muestran en «Qué haría ahora»: un solo lugar para el qué hacer
@@ -5009,10 +5044,14 @@ function validarFichaImportada(f) {
   }
   if (!ausente(f.lecturaSugerida)) {
     const l = f.lecturaSugerida;
-    if (!esObjeto(l) || Object.keys(l).some(k => !['regla', 'tipo', 'texto'].includes(k)) ||
-        typeof l.regla !== 'string' || !/^R\d{1,2}b?$/.test(l.regla) ||
-        typeof l.tipo !== 'string' || l.tipo.length > 200 || typeof l.texto !== 'string' || l.texto.length > 3000) return { error: 'lectura sugerida no válida' };
+    const textoOk = (v, max) => typeof v === 'string' && v.length <= max;
+    if (!esObjeto(l) || Object.keys(l).some(k => !['regla', 'tipo', 'texto', 'evidencia', 'nivel', 'motivo', 'accion'].includes(k)) ||
+        typeof l.regla !== 'string' || !/^R\d{1,2}b?$/.test(l.regla) || !textoOk(l.tipo, 200) || !textoOk(l.texto, 3000) ||
+        !(ausente(l.evidencia) || (Array.isArray(l.evidencia) && l.evidencia.length <= 20 && l.evidencia.every(x => textoOk(x, 300)))) ||
+        !(ausente(l.nivel) || Object.prototype.hasOwnProperty.call(NIVEL_EVIDENCIA_TXT, l.nivel)) ||
+        !(ausente(l.motivo) || textoOk(l.motivo, 300)) || !(ausente(l.accion) || textoOk(l.accion, 3000))) return { error: 'lectura sugerida no válida' };
     out.lecturaSugerida = { regla: l.regla, tipo: l.tipo, texto: l.texto };
+    ['evidencia', 'nivel', 'motivo', 'accion'].forEach(k => { if (!ausente(l[k])) out.lecturaSugerida[k] = Array.isArray(l[k]) ? l[k].slice() : l[k]; });
   }
   if (!ausente(f.checklistDespido)) {
     const c = f.checklistDespido;
