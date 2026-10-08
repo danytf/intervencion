@@ -160,6 +160,10 @@ p,li,.desc{text-wrap:pretty;}
 .hdr-status{display:flex;align-items:center;gap:6px;margin-top:2px;font-size:var(--t-xs);font-weight:500;color:var(--ink-3);white-space:nowrap;}
 #statusText.unsaved{color:var(--warn);font-weight:600;}
 #statusText.saved{color:var(--ok);font-weight:600;}
+.hdr-estado{display:none;align-items:center;gap:5px;margin-right:2px;font-family:var(--font-brand);font-size:12px;font-weight:700;white-space:nowrap;color:var(--ink-3);}
+.hdr-estado::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;}
+.hdr-estado[data-estado="pendiente"]{color:var(--warn);}
+.hdr-estado[data-estado="guardado"]{color:var(--ok);}
 .hdr-actions{display:flex;align-items:center;gap:var(--s-1);flex-shrink:0;position:relative;}
 .icon-btn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;
   border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);
@@ -168,6 +172,8 @@ p,li,.desc{text-wrap:pretty;}
 .btn-save{display:inline-flex;align-items:center;gap:var(--s-2);height:44px;padding:0 var(--s-4);border-radius:12px;
   background:var(--brand-solid);color:#fff;font-family:var(--font-brand);font-weight:700;font-size:var(--t-sm);position:relative;
   transition:background-color .15s var(--ease),transform .12s var(--ease);}
+.btn.btn-destructivo,.icon-btn.btn-destructivo{color:var(--bad);}   /* acción irreversible: texto rojo, sin relleno */
+.btn-destructivo .ic{color:currentColor;}
 .btn-save .ic{width:19px;height:19px;}
 .save-dot{position:absolute;top:-4px;right:-4px;width:12px;height:12px;border-radius:50%;background:var(--warn);
   border:2px solid var(--surface);display:none;}
@@ -349,11 +355,17 @@ input[type=date]{scroll-margin-top:96px;}
 
 /* ---------- Aviso breve ---------- */
 .toast{position:fixed;left:50%;bottom:calc(24px + var(--safe-b));z-index:3000;transform:translate(-50%,12px);opacity:0;pointer-events:none;
-  display:flex;align-items:center;gap:var(--s-3);max-width:calc(100vw - 32px);min-height:44px;padding:10px 18px;border-radius:var(--r-pill);
+  display:flex;align-items:center;gap:var(--s-3);width:max-content;max-width:min(calc(100vw - 32px),480px);min-height:44px;padding:10px 18px;border-radius:22px;
   background:#292C2F;color:#F2F4F4;font-size:var(--t-sm);font-weight:600;box-shadow:var(--sh-3);
   transition:opacity .2s var(--ease),transform .2s var(--ease-out);}
 .toast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto;}
-.toast .ic{color:#9FD8C1;}
+.toast .ic{color:#9FD8C1;flex-shrink:0;}
+/* Éxito ✓ verde · información neutra · advertencia ⚠ naranja · error × rojo (un error no debe parecer un éxito) */
+.toast[data-tono="info"] .ic{color:#CBD5D3;}
+.toast[data-tono="warn"]{box-shadow:inset 3px 0 0 #F0B45A, 0 8px 24px rgba(0,0,0,.18);}
+.toast[data-tono="warn"] .ic{color:#F0CB85;}
+.toast[data-tono="error"]{box-shadow:inset 3px 0 0 #F87171, 0 8px 24px rgba(0,0,0,.18);}
+.toast[data-tono="error"] .ic{color:#FCA5A5;}
 .toast-action{min-height:36px;padding:0 12px;margin-right:-8px;border-radius:var(--r-pill);background:rgba(255,255,255,.14);color:#fff;
   font-family:var(--font-brand);font-size:var(--t-xs);font-weight:700;}
 .toast-action:hover{background:rgba(255,255,255,.24);}
@@ -735,8 +747,10 @@ span.estado-item{border-style:dashed;}
   .hdr-row{gap:var(--s-2);padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));}
   .hdr-logo{height:30px;}
   .hdr-names{display:none;}
-  .btn-save{width:44px;padding:0;justify-content:center;}
-  .btn-save .lb{display:none;}
+  /* Estado (texto) y acción (Guardar/Actualizar) visibles y separados también en el móvil */
+  .hdr-estado:not(:empty){display:inline-flex;}
+  .btn-save{padding:0 12px;gap:6px;font-size:14px;}
+  .icon-btn{width:40px;}
   .nav{position:fixed;left:0;right:0;bottom:0;z-index:150;border-top:1px solid var(--line);box-shadow:0 -4px 16px rgba(28,31,33,.06);
     padding:6px 4px calc(6px + var(--safe-b));display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:2px;}
   .nav-btn{flex-direction:column;justify-content:center;gap:3px;min-height:56px;padding:6px 1px;border-radius:12px;
@@ -768,15 +782,24 @@ span.estado-item{border-style:dashed;}
   .evo-summary{grid-template-columns:1fr 1fr;}
   .evo-summary .evo-pill:first-child{grid-column:1 / -1;}
 }
+@media (max-width:420px){
+  /* Cabecera compacta: estado + Guardar/Actualizar + ayuda + menú caben sin pisar el logo */
+  .hdr-row{gap:6px;padding-left:max(10px,env(safe-area-inset-left,0px));padding-right:max(10px,env(safe-area-inset-right,0px));}
+  .hdr-logo{height:24px;}
+  .hdr-actions{gap:2px;}
+  .hdr-estado{font-size:11.5px;gap:4px;}
+  .btn-save{padding:0 10px;font-size:13.5px;}
+  .icon-btn{width:38px;}
+}
+@media (max-width:374px){ .btn-save .ic{display:none;} }   /* la palabra basta: sigue siendo el botón principal */
+@media (max-width:340px){ .hdr-logo{height:20px;} .icon-btn{width:34px;} .hdr-estado{font-size:11px;} }
 @media (max-width:440px){
   .nav-btn{font-size:10.5px;letter-spacing:-.03em;}   /* 6 pestañas: «Diagnóstico» y «Evaluación» completas */
 }
 @media (max-width:379px){
   .nav-btn{font-size:9.5px;letter-spacing:-.03em;}
 }
-@media (max-width:359px){
-  .hdr-logo{height:28px;}
-}
+
 
 /* Tablet: pestañas con icono en la cabecera */
 @media (min-width:601px) and (max-width:959px){
@@ -900,6 +923,7 @@ span.estado-item{border-style:dashed;}
       </div>
     </div>
     <div class="hdr-actions">
+      <span class="hdr-estado" id="hdrEstado"></span>
       <button type="button" class="btn-save" id="btnGuardar" onclick="guardarFicha()" aria-label="Guardar sesión nueva"><svg class="ic" aria-hidden="true"><use href="#i-save"/></svg><span class="lb" id="btnGuardarLb">Guardar</span><span class="save-dot" id="unsavedDot"></span></button>
       <button type="button" class="icon-btn" onclick="abrirAyuda(this)" aria-label="Abrir ayuda de esta sección"><svg class="ic" aria-hidden="true"><use href="#i-help"/></svg></button>
       <button type="button" class="icon-btn" id="hdrMenuBtn" onclick="toggleHdrMenu()" aria-label="Más acciones" aria-haspopup="true" aria-expanded="false" aria-controls="hdrDropdown"><svg class="ic" aria-hidden="true"><use href="#i-menu"/></svg></button>
@@ -1463,7 +1487,7 @@ span.estado-item{border-style:dashed;}
 </div>
 
 <!-- Aviso breve -->
-<div class="toast" id="toast"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-check-circle"/></svg><span id="toastMsg"></span></div>
+<div class="toast" id="toast" data-tono="ok"><svg class="ic ic-sm" aria-hidden="true"><use id="toastIc" href="#i-check-circle"/></svg><span id="toastMsg"></span></div>
 
 <script>
 // ══════════════════════════════════════════
@@ -1700,6 +1724,9 @@ function toast(msg, opts) {
   const t = document.getElementById('toast'), m = document.getElementById('toastMsg');
   if (!t || !m) return;
   m.textContent = msg;
+  const tono = ['ok','info','warn','error'].includes(opts.tono) ? opts.tono : 'ok';
+  t.dataset.tono = tono;
+  document.getElementById('toastIc')?.setAttribute('href', '#' + { ok:'i-check-circle', info:'i-info', warn:'i-warn', error:'i-x-circle' }[tono]);
   const prev = t.querySelector('.toast-action'); if (prev) prev.remove();
   if (opts.accion) {
     const b = document.createElement('button');
@@ -1730,7 +1757,7 @@ function avisoAlmacen(tipo, alLeer) {
   _ultimoAvisoAlmacen = tipo;
   if (tipo === 'lectura') { if (_lecturaAvisada) return; _lecturaAvisada = true; }
   if (alLeer && (tipo === 'danadoFichas' || tipo === 'danadoPlantillas')) { if (_danadoAvisado.has(tipo)) return; _danadoAvisado.add(tipo); }
-  toast(AVISOS_ALMACEN[tipo], {ms:9000});
+  toast(AVISOS_ALMACEN[tipo], {tono:'error', ms:9000});
 }
 // Lee una lista guardada. Si el almacenamiento no está disponible, lanza (como getItem). Si lo guardado no es una
 // lista válida, también lanza (err.danado): un contenido dañado nunca se toma por «lista vacía», porque el siguiente
@@ -2287,7 +2314,7 @@ function usarLecturaSugerida() {
   if (!diag || diag.datosInsuficientes) {
     toast(diag && diag.sinFase
       ? 'Aún no hay lectura sugerida: falta la fecha de comienzo para calcular la fase.'
-      : 'Aún no hay lectura sugerida: puntúa en Evaluación al menos 4 variables que hayas observado.', {ms:4500});
+      : 'Aún no hay lectura sugerida: puntúa en Evaluación al menos 4 variables que hayas observado.', {tono:'warn', ms:4500});
     return;
   }
   const texto = diag.diagnostico.texto;
@@ -2516,7 +2543,7 @@ function borrarBorrador() {
 }
 // Descartar a propósito lo que no se ha guardado: vuelve a la sesión guardada (o a un formulario vacío si no lo estaba)
 function descartarCambios() {
-  if (!_hasUnsavedChanges) { toast('No hay cambios sin guardar.'); return; }
+  if (!_hasUnsavedChanges) { toast('No hay cambios sin guardar.', {tono:'info'}); return; }
   if (!confirm('¿Descartar los cambios sin guardar? Se perderán y no se podrán recuperar.')) return;
   borrarBorrador();
   _hasUnsavedChanges = false;
@@ -2618,8 +2645,8 @@ window.addEventListener('storage', function(e) {
   const fichas = cargarFichas();
   if (id && antes) {
     const ahora = fichas.find(f => f._id === id);
-    if (!ahora) toast('Esta sesión se ha eliminado en otra pestaña. Si la guardas aquí, se guardará como sesión nueva.', {ms:6000});
-    else if (JSON.stringify(ahora) !== antes) toast('Esta sesión se ha modificado en otra pestaña. Si la guardas aquí, prevalecerán los cambios de esta pestaña.', {ms:6000});
+    if (!ahora) toast('Esta sesión se ha eliminado en otra pestaña. Si la guardas aquí, se guardará como sesión nueva.', {tono:'warn', ms:6000});
+    else if (JSON.stringify(ahora) !== antes) toast('Esta sesión se ha modificado en otra pestaña. Si la guardas aquí, prevalecerán los cambios de esta pestaña.', {tono:'warn', ms:6000});
   }
   try{ actualizarContador(); actualizarModoSesion(); }catch(err){}
   try{ renderHistorialTab(); renderDashboard(); populateEvoSelect(); }catch(err){}
@@ -2758,6 +2785,13 @@ function renderFlujo() {
       '<span class="estado-item"' + (e.pendiente ? ' data-pend="1"' : e.guardada ? ' data-ok="1"' : '') + '>' +
         (e.pendiente ? (e.guardada ? 'Cambios sin guardar' : 'Sin guardar') : e.guardada ? ic('check') + 'Guardada' : 'Sin guardar') + '</span>';
   }
+  // Estado en la cabecera del móvil: un estado (texto), no una acción; vacío si la sesión está vacía
+  const he = document.getElementById('hdrEstado');
+  if (he) {
+    const est = e.vacia ? '' : (e.pendiente || !e.guardada) ? 'pendiente' : 'guardado';
+    he.dataset.estado = est;
+    he.textContent = est === 'pendiente' ? 'Sin guardar' : est === 'guardado' ? 'Guardado' : '';
+  }
   // Sesión completamente vacía: crear otra sesión u otro captador no aporta nada
   const acc = document.querySelector('#sesionCtx .sesion-ctx-acciones');
   if (acc) acc.hidden = e.vacia;
@@ -2799,7 +2833,7 @@ function guardarFicha() {
   data.captador = (data.captador||'').trim().slice(0,100);
   if(!data.captador) {
     goTab(0);
-    toast('Falta el nombre del captador/a. Escríbelo para poder guardar la sesión.', {ms:4500});
+    toast('Falta el nombre del captador/a. Escríbelo para poder guardar la sesión.', {tono:'warn', ms:4500});
     setTimeout(() => document.getElementById('d_captador')?.focus(), 60);
     return;
   }
@@ -2841,7 +2875,7 @@ function guardarFicha() {
   AppState.lastLoadedId = data._id;
   actualizarContador();
   marcarGuardado(msg);
-  if (avisoLectura) toast(avisoLectura, {ms:6000});
+  if (avisoLectura) toast(avisoLectura, {tono:'warn', ms:6000});
   actualizarModoSesion();
   renderDiagnostico();
   try{ renderHistorialTab(); }catch(e){} populateEvoSelect(); renderDashboard();
@@ -2940,7 +2974,7 @@ function nuevaSesion(sinConfirmar) {
   const nombre = (document.getElementById('d_captador')?.value || '').trim();
   if (!nombre) {
     goTab(0);
-    toast('Escribe el nombre del captador/a o carga una sesión desde Equipo › Historial.', {ms:4500});
+    toast('Escribe el nombre del captador/a o carga una sesión desde Equipo › Historial.', {tono:'warn', ms:4500});
     setTimeout(() => document.getElementById('d_captador')?.focus(), 60);
     return;
   }
@@ -3196,9 +3230,9 @@ function generarPDF(){
   cerrarPdfModal();
 
   // Toast de progreso
-  toast('Generando PDF…', {ms:8000});
+  toast('Generando PDF…', {tono:'info', ms:8000});
   const _finalizarPDF = (ok) => {
-    toast(ok ? 'PDF descargado' : 'No se ha podido generar el PDF. Vuelve a intentarlo.', {ms: ok ? 3000 : 5000});
+    toast(ok ? 'PDF descargado' : 'No se ha podido generar el PDF. Vuelve a intentarlo.', {tono: ok ? 'ok' : 'error', ms: ok ? 3000 : 5000});
   };
 
   // Detectar jsPDF
@@ -3214,7 +3248,7 @@ function generarPDF(){
     const sc = document.createElement('script');
     sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
     sc.onload = () => { window._cargandoJsPDF = false; generarPDF(); };
-    sc.onerror = () => { window._cargandoJsPDF = false; toast('No se ha podido cargar el generador de PDF. Conéctate a internet y vuelve a intentarlo.', {ms:5000}); };
+    sc.onerror = () => { window._cargandoJsPDF = false; toast('No se ha podido cargar el generador de PDF. Conéctate a internet y vuelve a intentarlo.', {tono:'error', ms:5000}); };
     document.head.appendChild(sc);
     return;
   }
@@ -4477,7 +4511,7 @@ function filtrarPlantillas() {
     const usar = isPropia ? "insertarPlantillaPropia('" + pid + "')" : 'insertarPlantilla(' + globalIdx + ')';
     const editBtns = isPropia
       ? '<button type="button" class="icon-btn icon-btn-sm" aria-label="Editar plantilla" onclick="editarPlantillaPropia(\'' + pid + '\', this)">' + ic('pencil') + '</button>'
-      + '<button type="button" class="icon-btn icon-btn-sm" aria-label="Eliminar plantilla" onclick="eliminarPlantillaPropia(\'' + pid + '\')">' + ic('trash') + '</button>'
+      + '<button type="button" class="icon-btn icon-btn-sm btn-destructivo" aria-label="Eliminar plantilla" onclick="eliminarPlantillaPropia(\'' + pid + '\')">' + ic('trash') + '</button>'
       : '';
     return '<article class="plantilla-item">'
       + '<div class="plantilla-top"><span class="plantilla-cat"><i class="dot" data-tone="' + tono(p.color) + '"></i>' + esc(p.label) + '</span></div>'
@@ -5215,7 +5249,7 @@ function usarCreencia(idx, conIntervencion) {
     }
   }
   cerrarRecursos(true);
-  if (!targetCreencia) toast('Las 5 creencias ya están ocupadas. Borra una para insertar otra.', {ms:4500});
+  if (!targetCreencia) toast('Las 5 creencias ya están ocupadas. Borra una para insertar otra.', {tono:'warn', ms:4500});
   else toast(conIntervencion ? 'Insertadas: adáptalas a lo que dice el captador y a lo que habéis trabajado; así quedarán en el historial y en el PDF.' : 'Creencia insertada: adáptala a lo que dice el captador; así quedará en el historial y en el PDF.', {ms:5000});
   goTab(1);
   setTimeout(() => { if (targetCreencia) try { targetCreencia.focus({preventScroll:true}); targetCreencia.scrollIntoView({block:'center'}); } catch(e){} }, 60);
@@ -5259,7 +5293,7 @@ function switchJsonTab(tab) {
 
 function exportarJSON() {
   const fichas = cargarFichas();
-  if (!fichas.length) { toast('No hay fichas guardadas para exportar. Guarda una ficha primero.', {ms:4000}); return; }
+  if (!fichas.length) { toast('No hay fichas guardadas para exportar. Guarda una ficha primero.', {tono:'warn', ms:4000}); return; }
   const payload = { version: SCHEMA_VERSION, exportedAt: new Date().toISOString(), fichas };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -6877,7 +6911,7 @@ function renderHistorialTab() {
         ${registro.length ? `<div class="hist-nota">${registroHtml(registro)}</div>` : ''}
         <div class="hist-entry-actions">
           <button type="button" class="btn btn-secondary btn-sm" onclick="cargarFichaEnFormulario('${idAttr(f._id)}')">${ic('upload')}Cargar</button>
-          <button type="button" class="btn btn-quiet btn-sm" onclick="eliminarFicha('${idAttr(f._id)}')">${ic('trash')}Eliminar</button>
+          <button type="button" class="btn btn-quiet btn-sm btn-destructivo" onclick="eliminarFicha('${idAttr(f._id)}')">${ic('trash')}Eliminar</button>
         </div>
       </div>`;
     }).join('');
