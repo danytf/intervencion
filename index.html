@@ -1037,6 +1037,7 @@ input[type=date]{scroll-margin-top:96px;}
           <div class="score-group-avg" id="group-avg-h" aria-label="Media de hábitos"><span>—</span></div>
         </div>
         <div class="score-group-bar"><div class="score-group-bar-fill" id="group-bar-h" style="width:0%"></div></div>
+        <div class="notice" data-tone="warn" id="h6HistoricoAviso" hidden style="margin-bottom:12px"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><div><strong>«Aplica el feedback acordado» tiene una puntuación antigua.</strong> En esta sesión se puntuó «Disposición para recibir/aplicar feedback/formación», que mide otra cosa: se conserva, pero no se usa en lecturas, prioridades ni comparaciones. Si la puntúas ahora, la nueva sustituye a la antigua.</div></div>
         <div class="score-group-body" id="tbody-habitos"></div>
         <div class="score-scale" aria-hidden="true"><span>1 Muy bajo</span><span>3 Aceptable</span><span>5 Excelente</span></div>
       </div>
@@ -1427,7 +1428,19 @@ function esc(s) { return htmlEsc(s); }
 function numeroFase(id) { const i = FASES.findIndex(f => f.id === id); return i >= 0 ? i + 1 : NaN; }
 function faseValida(id) { return FASES.some(f => f.id === id); }
 // Puntuación real de la escala 1–5; null si la variable no está evaluada (vacía, 0 o no numérica)
+// h_6 cambió de significado el 06/10/2026 (2ec6dbf): antes «Disposición para recibir/aplicar feedback/formación»,
+// ahora «Aplica el feedback acordado». Una puntuación antigua no se reinterpreta: se conserva y se muestra con su
+// nombre, pero cuenta como no evaluada en lecturas, prioridades, índices, comparaciones y «Sugerir».
+const CORTE_H6 = Date.parse('2026-10-06T18:44:30Z');
+const H6_ANTIGUO = 'Disposición para recibir/aplicar feedback/formación';
+function esH6Historico(d) {
+  if (!d || d.h6Historico === false) return false;   // false: se volvió a puntuar con el significado actual
+  if (d.h6Historico === true) return true;
+  const t = typeof d._savedAt === 'string' ? Date.parse(d._savedAt) : NaN;
+  return !isNaN(t) && t < CORTE_H6;
+}
 function scoreDe(data, key) {
+  if (key === 'h_6' && esH6Historico(data)) return null;
   const raw = data ? data[key] : null;
   if (raw === null || raw === undefined || raw === '') return null;
   const v = Number(raw);
@@ -2006,7 +2019,7 @@ function updateGroupAvg(prefix) {
   const vars = isTecnica ? TECNICA_VARS : HABITOS_VARS;
   let sum = 0, count = 0;
   vars.forEach((_, i) => {
-    const v = scores[prefix + '_' + i] || 0;
+    const v = (prefix === 'h' && i === 6 && AppState.h6Historico === true) ? 0 : (scores[prefix + '_' + i] || 0);
     if (v > 0) { sum += v; count++; }
   });
   const avg = count > 0 ? (sum / count).toFixed(1) : null;
@@ -2022,8 +2035,13 @@ function setScore(key, val) {
   const v = parseInt(val, 10);
   if (isNaN(v) || v < 0 || v > 5) return;  // Validar rango 0-5
   scores[key] = v;
+  if (key === 'h_6' && AppState.h6Historico === true) { AppState.h6Historico = false; pintarAvisoH6(); updateGroupAvg('h'); }
   renderStars(key);
   autoguardar();
+}
+function pintarAvisoH6() {
+  const el = document.getElementById('h6HistoricoAviso');
+  if (el) el.hidden = AppState.h6Historico !== true;
 }
 function hoverScore(key, val) {
   [1,2,3,4,5].forEach(n => {
@@ -2349,6 +2367,7 @@ function recopilarDatos() {
   REGISTRO_CAMPOS.forEach(({k}) => d[k] = document.getElementById(k)?.value||'');
   Object.assign(d, AppState.notasAnteriores);
   d.revisionAnterior = AppState.revisionAnterior || '';
+  if (AppState.h6Historico !== null) d.h6Historico = AppState.h6Historico;
   // Matriz de decisión y checklist pre-despido de esta intervención
   d.decisionMatrix = copiaMatriz(matrizState);
   d.decisionResult = resultadoMatriz(d.decisionMatrix);
@@ -2376,6 +2395,9 @@ function cargarDatos(data, opts) {
   REGISTRO_CAMPOS.forEach(({k}) => { const el=document.getElementById(k); if(el) el.value=data[k]||''; });
   AppState.notasAnteriores = notasAnterioresDe(data);
   AppState.revisionAnterior = REVISION_OPCIONES[data.revisionAnterior] ? data.revisionAnterior : '';
+  AppState.h6Historico = esH6Historico(data) ? (scoreDe(Object.assign({}, data, { h6Historico: false }), 'h_6') !== null ? true : null)
+    : (data.h6Historico === false ? false : null);
+  try{ pintarAvisoH6(); updateGroupAvg('h'); }catch(e){}
   try{ renderRegistroAnterior(); }catch(e){}
   try{ renderRevisionAnterior(); }catch(e){}
   // Sincronizar tras carga
@@ -2666,6 +2688,8 @@ function limpiarFormulario() {
   AppState.faseCongelada = false;
   AppState.notasAnteriores = {};
   AppState.revisionAnterior = '';
+  AppState.h6Historico = null;
+  try{ pintarAvisoH6(); }catch(e){}
   _hasUnsavedChanges = false;
   borrarBorrador();
   document.querySelectorAll('main input[type=text],main input[type=date],main textarea').forEach(el=>el.value='');
@@ -2744,7 +2768,7 @@ function avgScores(data, prefix, count) {
   if (!data) return null;
   let s=0, n=0;
   for(let i=0; i<count; i++) {
-    const v = parseFloat(data[`${prefix}_${i}`]);
+    const v = scoreDe(data, `${prefix}_${i}`);
     if (!isNaN(v) && v > 0) { s+=v; n++; }
   }
   return n ? (s/n).toFixed(1) : null;
@@ -2821,7 +2845,7 @@ function renderEvolucion() {
   const dT=delta('t',TECNICA_VARS.length,2), dH=delta('h',HABITOS_VARS.length,3);
 
   function varRow(label, prefix, idx) {
-    const vals=sessions.map(f=>{ const v=f[`${prefix}_${idx}`]; return v>0?parseFloat(v).toFixed(1):null; });
+    const vals=sessions.map(f=>{ const v=scoreDe(f, `${prefix}_${idx}`); return v!==null?v.toFixed(1):null; });
     const cells=vals.map((v,i)=>{
       const val=v?`<strong>${v}</strong>`:'<span class="evo-cell-empty">—</span>';
       const d=i>0?deltaCell(vals[i-1],v):'';
@@ -3164,7 +3188,7 @@ function generarPDF(){
 
   // Hábitos
   sec('3. H\u00c1BITOS \u2014 VALORACI\u00d3N',AZUL);
-  HABITOS_VARS.forEach((v,i)=>row(v, d['h_'+i]));
+  HABITOS_VARS.forEach((v,i)=>row(i===6 && esH6Historico(d) ? H6_ANTIGUO+' (significado anterior; no se usa en las lecturas)' : v, d['h_'+i]));
   if(hAvgCur>0){ chk(7);doc.setFillColor(...CLARO);doc.rect(M-2,y-4,cw+4,7,'F');
     doc.setFontSize(7.5);doc.setFont('helvetica','bold');doc.setTextColor(...AZUL);doc.text('MEDIA: '+hAvgCur.toFixed(1)+'/5',M,y);y+=9; }
   const ih=[1,2,3,4,5,6].map(i=>d['ih'+i]).filter(Boolean);
@@ -4987,7 +5011,7 @@ function switchJsonTab(tab) {
 function exportarJSON() {
   const fichas = cargarFichas();
   if (!fichas.length) { toast('No hay fichas guardadas para exportar. Guarda una ficha primero.', {ms:4000}); return; }
-  const payload = { version: 1, exportedAt: new Date().toISOString(), fichas };
+  const payload = { version: SCHEMA_VERSION, exportedAt: new Date().toISOString(), fichas };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -5019,11 +5043,25 @@ function modeloFicha() {
     clsMatriz: new Set(MATRIZ_REGLAS.map(r => r.cls)),
   };
 }
+// ── Versión del esquema de las copias JSON ──
+// 1 (o sin versión): copias anteriores al 08/10/2026. Entre el 30/09 y el 08/10 el formato cambió seis veces
+// sin cambiar el número, pero todos los cambios fueron aditivos (nunca se renombró, movió ni cambió de tipo un campo).
+// 2: formato actual. Cada cambio de formato futuro sube el número y añade aquí su migración.
+const SCHEMA_VERSION = 2;
+const MIGRACIONES = {
+  // 1 → 2: identidad. Lo que una copia antigua no tenía queda ausente (no se inventa historia); las notas del
+  // formato anterior se conservan tal cual y el significado antiguo de h_6 se detecta por fecha (esH6Historico).
+  1: f => f,
+};
+function migrarFicha(f, desde) {
+  for (let v = desde; v < SCHEMA_VERSION; v++) f = MIGRACIONES[v](f);
+  return f;
+}
 const MAX_TEXTO_IMPORT = 10000;               // caracteres por campo de texto
 const MAX_ARCHIVO_IMPORT = 5 * 1024 * 1024;    // 5 MB
 // Campos del modelo que no son textos ni puntuaciones: el resto de claves de una ficha se ignoran (y se avisa)
 const CAMPOS_FICHA_FIJOS = ['captador', '_id', 'nip', '_savedAt', '_editedAt', 'fecha', 'fechainicio', 'estado', 'faseSelected',
-  'decisionMatrix', 'decisionResult', 'checklistDespido', 'revisionAnterior', 'lecturaSugerida'];
+  'decisionMatrix', 'decisionResult', 'checklistDespido', 'revisionAnterior', 'lecturaSugerida', 'h6Historico'];
 const RE_FECHA_HORA = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})?$/;
 const esObjeto = v => v !== null && typeof v === 'object' && !Array.isArray(v);
 // Devuelve { ficha } con solo los campos del modelo, ya validados, o { error } con el motivo de rechazo
@@ -5094,6 +5132,10 @@ function validarFichaImportada(f) {
     out.decisionResult = { regla: r.regla, cls: r.cls };
     if (r.sinBaseSalida) out.decisionResult.sinBaseSalida = true;
   }
+  if (!ausente(f.h6Historico)) {
+    if (typeof f.h6Historico !== 'boolean') return { error: 'marca de significado de «Aplica el feedback» no válida' };
+    out.h6Historico = f.h6Historico;
+  }
   // Trazabilidad de la lectura: revisión de la sesión anterior y lectura sugerida congelada al guardar
   if (!ausente(f.revisionAnterior)) {
     if (f.revisionAnterior !== '' && !Object.prototype.hasOwnProperty.call(REVISION_OPCIONES, f.revisionAnterior)) return { error: 'revisión de la sesión anterior no válida' };
@@ -5134,14 +5176,26 @@ function importarJSON(input) {
   reader.onload = function(e) {
     try {
       const data = JSON.parse(e.target.result);
-      let nuevasFichas = [];
+      let nuevasFichas = [], version = 1;
       if (Array.isArray(data)) {
         nuevasFichas = data;
       } else if (esObjeto(data) && Array.isArray(data.fichas)) {
         nuevasFichas = data.fichas;
+        if (data.version !== undefined) version = data.version;
       } else {
         throw new Error('Formato no reconocido');
       }
+      // Una versión más nueva se rechaza entera: importarla perdería en silencio los datos que esta versión no conoce
+      if (!Number.isInteger(version) || version < 1 || version > SCHEMA_VERSION) {
+        resultEl.className = 'json-import-result err';
+        resultEl.textContent = (Number.isInteger(version) && version > SCHEMA_VERSION
+          ? 'No se ha importado nada: este archivo es de una versión más nueva de la app. Recarga la página para actualizarla e inténtalo de nuevo.'
+          : 'No se ha importado nada: la versión del archivo no es válida.') + ' Tus fichas no se han modificado.';
+        anunciar(resultEl.textContent);
+        input.value = '';
+        return;
+      }
+      const avisoVersion = version < SCHEMA_VERSION ? ' Copia de una versión anterior de la app: los datos que entonces no existían quedan vacíos.' : '';
       const merge = document.getElementById('jsonMerge')?.checked;
       let existentes = merge ? cargarFichas() : [];
       const existingIds = new Set(existentes.map(f => f._id));
@@ -5150,7 +5204,7 @@ function importarJSON(input) {
       const fichasTxt = n => n + (n === 1 ? ' ficha' : ' fichas');
       // Todo el archivo se valida en memoria; no se escribe nada hasta el final (y solo si se confirma)
       nuevasFichas.forEach(original => {
-        const v = validarFichaImportada(original);
+        const v = validarFichaImportada(esObjeto(original) ? migrarFicha(original, version) : original);
         if (v.error) { motivos[v.error] = (motivos[v.error] || 0) + 1; return; }
         v.ignorados.forEach(k => ignorados.add(k));
         const f = v.ficha;
@@ -5225,7 +5279,7 @@ function importarJSON(input) {
       try{ renderHistorialTab(); }catch(e){} populateEvoSelect(); renderDashboard();
       resultEl.className = 'json-import-result ok';
       resultEl.textContent = fichasTxt(added) + (added === 1 ? ' importada' : ' importadas') + (skipped ? ', ' + skipped + (skipped === 1 ? ' omitida (ya existía)' : ' omitidas (ya existían)') : '') +
-        (idsSustituidos ? ', ' + idsSustituidos + ' con identificador no válido (se ha sustituido)' : '') + motivosTxt + '.' + ignoradosTxt;
+        (idsSustituidos ? ', ' + idsSustituidos + ' con identificador no válido (se ha sustituido)' : '') + motivosTxt + '.' + ignoradosTxt + avisoVersion;
       anunciar(resultEl.textContent);
       input.value = '';
     } catch(err) {
@@ -6652,6 +6706,7 @@ const AppState = {
   lastLoadedId: null,
   notasAnteriores: {},     // notas del formato anterior de la ficha cargada (solo lectura, se conservan al guardar)
   revisionAnterior: '',    // qué se hace con lo trabajado en la sesión anterior: mantener / ajustar / cerrar
+  h6Historico: null,       // true: h_6 de esta sesión tiene el significado anterior · false: se volvió a puntuar · null: no aplica
   faseCongelada: false,   // ficha del historial cargada: su fase no se recalcula
   get hasUnsaved()  { return _hasUnsavedChanges; },
   get isLoading()   { return _isLoading; },
