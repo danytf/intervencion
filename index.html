@@ -1303,7 +1303,7 @@ input[type=date]{scroll-margin-top:96px;}
 
 <!-- ══ DIÁLOGO: PDF ══ -->
 <div class="dialog-back" id="pdfModal" onclick="if(event.target===this)cerrarPdfModal()">
-  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="t-pdf">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="t-pdf" aria-describedby="pdfModalSesion">
     <span class="tile" data-tone="slate"><svg class="ic" aria-hidden="true"><use href="#i-doc"/></svg></span>
     <h2 id="t-pdf">Informe de la sesión</h2>
     <p id="pdfModalSesion"></p>
@@ -1318,7 +1318,7 @@ input[type=date]{scroll-margin-top:96px;}
 </div>
 
 <!-- ══ PANTALLA: RECURSOS (biblioteca de creencias + plantillas) ══ -->
-<div class="screen" id="recursosModal" role="dialog" aria-modal="true" aria-labelledby="t-recursos" hidden>
+<div class="screen" id="recursosModal" role="dialog" aria-modal="true" aria-labelledby="t-recursos" aria-describedby="recursosSub" hidden>
   <div class="screen-head"><div class="screen-head-row">
     <span class="tile" data-tone="indigo" id="recursosIcon"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg></span>
     <div class="screen-title-wrap"><h2 class="screen-title" id="t-recursos">Recursos</h2><p class="screen-sub" id="recursosSub">Inserta una creencia en la ficha junto con su intervención</p></div>
@@ -1349,10 +1349,10 @@ input[type=date]{scroll-margin-top:96px;}
 </div>
 
 <!-- ══ PANTALLA: IMPORTAR / EXPORTAR ══ -->
-<div class="screen" id="jsonModal" role="dialog" aria-modal="true" aria-labelledby="t-json" hidden>
+<div class="screen" id="jsonModal" role="dialog" aria-modal="true" aria-labelledby="t-json" aria-describedby="t-json-sub" hidden>
   <div class="screen-head"><div class="screen-head-row">
     <span class="tile" data-tone="slate"><svg class="ic" aria-hidden="true"><use href="#i-swap"/></svg></span>
-    <div class="screen-title-wrap"><h2 class="screen-title" id="t-json">Copia de seguridad</h2><p class="screen-sub">Exportar o importar tus sesiones</p></div>
+    <div class="screen-title-wrap"><h2 class="screen-title" id="t-json">Copia de seguridad</h2><p class="screen-sub" id="t-json-sub">Exportar o importar tus sesiones</p></div>
     <button type="button" class="btn-close" onclick="cerrarJsonModal()"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg>Cerrar</button>
   </div></div>
   <div class="screen-body"><div class="screen-body-inner">
@@ -1386,10 +1386,10 @@ input[type=date]{scroll-margin-top:96px;}
 </div>
 
 <!-- ══ PANTALLA: NUEVA PLANTILLA PROPIA ══ -->
-<div class="screen" id="nuevaPlantillaModal" role="dialog" aria-modal="true" aria-labelledby="npModalTitle" hidden>
+<div class="screen" id="nuevaPlantillaModal" role="dialog" aria-modal="true" aria-labelledby="npModalTitle" aria-describedby="npModalDesc" hidden>
   <div class="screen-head"><div class="screen-head-row">
     <span class="tile" data-tone="brand"><svg class="ic" aria-hidden="true"><use href="#i-pencil"/></svg></span>
-    <div class="screen-title-wrap"><h2 class="screen-title" id="npModalTitle">Nueva plantilla propia</h2></div>
+    <div class="screen-title-wrap"><h2 class="screen-title" id="npModalTitle">Nueva plantilla propia</h2><p class="screen-sub" id="npModalDesc">Frase o texto reutilizable en el registro de las sesiones</p></div>
     <button type="button" class="btn-close" onclick="cerrarNuevaPlantilla()"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg>Cerrar</button>
   </div></div>
   <div class="screen-body"><div class="screen-body-inner">
@@ -1406,7 +1406,7 @@ input[type=date]{scroll-margin-top:96px;}
 </div>
 
 <!-- ══ PANTALLA: AYUDA ══ -->
-<div class="screen" id="ayudaPanel" role="dialog" aria-modal="true" aria-labelledby="ayudaTab" hidden>
+<div class="screen" id="ayudaPanel" role="dialog" aria-modal="true" aria-labelledby="ayudaTab" aria-describedby="ayudaDesc" hidden>
   <div class="screen-head"><div class="screen-head-row">
     <span class="tile" data-tone="brand" id="ayudaIcon"><svg class="ic" aria-hidden="true"><use href="#i-help"/></svg></span>
     <div class="screen-title-wrap"><h2 class="screen-title" id="ayudaTab">Ayuda</h2><p class="screen-sub" id="ayudaDesc"></p></div>
@@ -1716,6 +1716,9 @@ function abrirPantalla(id, opener) {
   el.hidden = false;
   el.classList.add('open');
   const origen = (opener && opener.focus) ? opener : document.activeElement;
+  // Modal sobre modal: el de debajo queda inerte (fuera del árbol accesible y del foco) hasta que se cierre el de arriba
+  const debajo = _pantallas[_pantallas.length - 1];
+  if (debajo) debajo.el.inert = true;
   _pantallas.push({ el, opener: origen });
   document.body.classList.add('no-scroll');
   requestAnimationFrame(() => {
@@ -1731,6 +1734,9 @@ function cerrarPantalla(id, sinDevolverFoco) {
   const i = _pantallas.findIndex(p => p.el === el);
   if (i < 0) return;
   const { opener } = _pantallas.splice(i, 1)[0];
+  const arriba = _pantallas[_pantallas.length - 1];
+  if (arriba) arriba.el.inert = false;   // el que vuelve a quedar arriba recupera la interacción
+  el.inert = false;
   if (!_pantallas.length) document.body.classList.remove('no-scroll');
   if (!sinDevolverFoco && opener && document.contains(opener)) try { opener.focus({ preventScroll: true }); } catch (e) {}
 }
