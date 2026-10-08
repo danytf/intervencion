@@ -574,6 +574,16 @@ input[type=date]{scroll-margin-top:96px;}
 /* Registro de la sesión (Acompañamiento) */
 .registro-campos{display:flex;flex-direction:column;gap:var(--s-4);}
 /* Estado de la sesión (Captador) y «Siguiente paso» al final de cada sección del flujo */
+.bloque-indice{margin:calc(-1 * var(--s-2)) -4px var(--s-4);}
+.bloque-indice:empty{display:none;}
+.bloque-indice{flex-wrap:wrap;overflow:visible;gap:6px;}   /* todos los bloques a la vista: en dos líneas si no caben */
+.bloque-indice .chip{min-height:34px;padding:0 11px;font-size:13px;}
+.btn-arriba{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(24px + var(--safe-b, 0px));z-index:140;display:inline-flex;align-items:center;gap:6px;
+  min-height:44px;padding:0 14px;border-radius:999px;background:var(--surface);color:var(--ink);border:1px solid var(--line);
+  box-shadow:0 4px 14px rgba(28,31,33,.16);font-family:var(--font-brand);font-size:var(--t-sm);font-weight:700;}
+.btn-arriba[hidden]{display:none;}
+.btn-arriba .ic{width:16px;height:16px;transform:rotate(-90deg);}
+@media (max-width:600px){ .btn-arriba{bottom:calc(84px + var(--safe-b, 0px));} }   /* encima de la barra inferior */
 .decision-ref{display:flex;flex-direction:column;gap:var(--s-2);}
 .decision-ref-fila{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--s-2);}
 .decision-ref-txt{font-size:var(--t-sm);color:var(--ink);}
@@ -919,6 +929,7 @@ span.estado-item{border-style:dashed;}
     </div>
   </nav>
 </header>
+<button type="button" class="btn-arriba" id="btnArriba" hidden onclick="volverArriba()" aria-label="Volver arriba"><svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg><span>Arriba</span></button>
 <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar"></div></div>
 
 <main id="contenido" tabindex="-1">
@@ -1124,8 +1135,9 @@ span.estado-item{border-style:dashed;}
   <section class="section-card" id="tab3" aria-labelledby="h-tab3">
     <div class="page-head">
       <span class="tile tile-lg" data-tone="brand"><svg class="ic" aria-hidden="true"><use href="#i-pulse"/></svg></span>
-      <div><h1 class="page-title" id="h-tab3">Diagnóstico</h1><p class="page-sub">Qué veo · Qué haría · Atención · Señales</p></div>
+      <div><h1 class="page-title" id="h-tab3" tabindex="-1">Diagnóstico</h1><p class="page-sub">Lo que indican los datos</p></div>
     </div>
+    <nav class="chip-row bloque-indice" id="indiceBloques3" aria-label="Ir a un bloque de Diagnóstico"></nav>
 
     <!-- 1. Qué veo · Qué significa (evidencia → lectura → intervención → revisión) -->
     <section class="card diag-card" id="diagCard" aria-labelledby="h-diag">
@@ -1139,7 +1151,7 @@ span.estado-item{border-style:dashed;}
     </section>
 
     <!-- 2. Qué haría ahora -->
-    <section class="card lmi-card" aria-labelledby="h-lmi">
+    <section class="card lmi-card" id="lmiSection" aria-labelledby="h-lmi">
       <div class="lmi-head">
         <span class="tile" data-tone="brand"><svg class="ic" aria-hidden="true"><use href="#i-target"/></svg></span>
         <div class="card-head-text"><p class="eyebrow">Qué haría ahora</p><h2 class="card-title" id="h-lmi">Lo más importante ahora mismo</h2><p class="card-sub">Prioridades sugeridas para esta intervención; orientan, no deciden</p></div>
@@ -1192,13 +1204,14 @@ span.estado-item{border-style:dashed;}
   <section class="section-card" id="tab5" aria-labelledby="h-tab5">
     <div class="page-head">
       <span class="tile tile-lg" data-tone="brand"><svg class="ic" aria-hidden="true"><use href="#i-scale"/></svg></span>
-      <div><h1 class="page-title" id="h-tab5">Decisión</h1><p class="page-sub">Tu criterio profesional · cierre de la sesión</p></div>
+      <div><h1 class="page-title" id="h-tab5" tabindex="-1">Decisión</h1><p class="page-sub">Tu criterio profesional · cierre de la sesión</p></div>
     </div>
+    <nav class="chip-row bloque-indice" id="indiceBloques5" aria-label="Ir a un bloque de Decisión"></nav>
 
     <!-- Lo que indican los datos (Diagnóstico) como referencia: la decisión no cambia sola si cambian -->
     <section class="card decision-ref" id="decisionRef" aria-label="Lo que indican los datos"></section>
 
-    <section class="card" aria-labelledby="h-criterios">
+    <section class="card" id="criteriosCard" aria-labelledby="h-criterios">
       <div class="card-head">
         <span class="tile tile-sm" data-tone="slate"><svg class="ic" aria-hidden="true"><use href="#i-scale"/></svg></span>
         <div class="card-head-text"><p class="eyebrow">Tus criterios</p><h2 class="card-title" id="h-criterios">Evalúa los 4 criterios</h2><p class="card-sub">El resultado es el último criterio, no el primero.</p></div>
@@ -2359,6 +2372,7 @@ function goTab(i) {
   // para que ninguna decisión se guarde sin que el responsable la haya visto
   if(i===3){ try{ renderDiagnostico(); }catch(e){} }
   if(i===5){ try{ calcMatriz(); renderDecisionRef(); }catch(e){} }
+  try{ renderIndiceBloques(i); }catch(e){}
   if(i===2){ try{ renderFaseDisplay(faseSelected); }catch(e){} try{ renderRevisionAnterior(); }catch(e){} }
   AppState.currentTab = i;
   if (cambia) { const lb = document.querySelector('#maintab' + i + ' .lb-long')?.textContent; if (lb) anunciar('Sección ' + lb); }
@@ -2651,6 +2665,50 @@ function irA(tab, id) {
   setTimeout(() => { const el = document.getElementById(id); if (!el) return;
     el.scrollIntoView({ block: 'center' }); if (el.matches('input,textarea,select,button')) el.focus({ preventScroll: true }); }, 60);
 }
+// ── NAVEGACIÓN DENTRO DE UNA PESTAÑA ──
+// Índice de bloques (solo los presentes en ese momento) y botón «Arriba». Sin desplazamiento animado.
+const INDICE_BLOQUES = {
+  3: [['diagCard','Lectura'], ['lmiSection','Qué haría'], ['riesgoCard','Atención'], ['semaforoCard','Semáforo'], ['senalesCard','Señales']],
+  5: [['criteriosCard','Criterios'], ['mzResultado','Resultado'], ['checklistSection','Checklist']],
+};
+function altoCabecera() {
+  const h = document.getElementById('site-header');
+  return h && getComputedStyle(h).position !== 'static' ? h.getBoundingClientRect().height : 0;
+}
+function renderIndiceBloques(tab) {
+  const nav = document.getElementById('indiceBloques' + tab);
+  if (!nav || !INDICE_BLOQUES[tab]) return;
+  const presentes = INDICE_BLOQUES[tab].filter(([id]) => { const el = document.getElementById(id); return el && el.getClientRects().length > 0; });
+  nav.innerHTML = presentes.length > 1 ? presentes.map(([id, txt]) => '<button type="button" class="chip" onclick="irABloque(\'' + id + '\')">' + esc(txt) + '</button>').join('') : '';
+}
+function irABloque(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - altoCabecera() - 12);
+  // El foco va al título del bloque, para el teclado y los lectores de pantalla
+  const t = el.querySelector('h2') || el;
+  if (!t.hasAttribute('tabindex')) t.setAttribute('tabindex', '-1');
+  try { t.focus({ preventScroll: true }); } catch (e) {}
+}
+function volverArriba() {
+  window.scrollTo(0, 0);
+  const h = document.querySelector('.section-card.active h1');
+  if (h) { if (!h.hasAttribute('tabindex')) h.setAttribute('tabindex', '-1'); try { h.focus({ preventScroll: true }); } catch (e) {} }
+}
+function actualizarBtnArriba() {
+  const b = document.getElementById('btnArriba');
+  if (!b) return;
+  const nav = document.getElementById('tabsBar');
+  const rn = nav && getComputedStyle(nav).position === 'fixed' ? nav.getBoundingClientRect() : null;
+  const navAbajo = rn && rn.top > window.innerHeight / 2 ? rn.height : 0;   // barra inferior del móvil (no la lateral de escritorio)
+  const pantalla = window.innerHeight - altoCabecera() - navAbajo;   // una pantalla útil
+  const ocultar = window.scrollY < pantalla;
+  if (b.hidden !== ocultar) b.hidden = ocultar;
+}
+let _arribaPend = false;
+window.addEventListener('scroll', () => { if (_arribaPend) return; _arribaPend = true; requestAnimationFrame(() => { _arribaPend = false; actualizarBtnArriba(); }); }, { passive: true });
+window.addEventListener('resize', actualizarBtnArriba);
+
 // Decisión: lo que indican los datos ahora, como referencia. La comparación es con la lectura congelada al guardar
 // la sesión (no con la decisión): si cambió, se avisa de que la decisión no cambia sola.
 function renderDecisionRef() {
@@ -2732,6 +2790,7 @@ function actualizarModoSesion() {
   if (btn) btn.setAttribute('aria-label', etiquetaGuardar() + (_hasUnsavedChanges ? ' (hay cambios sin guardar)' : ''));
   try { renderFlujo(); } catch (e) {}
   try { if (currentTab === 5) renderDecisionRef(); } catch (e) {}
+  try { renderIndiceBloques(currentTab); } catch (e) {}
 }
 
 // Guardar: actualiza la sesión que se está editando o añade una sesión nueva; nunca duplica sin avisar
