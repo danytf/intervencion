@@ -6112,7 +6112,7 @@ const GRUPO_FACTOR = { dias_sin_intervencion:'seguimiento', media_global:'rendim
       (seguimiento y variables evaluadas) y después el contexto de fase; si no, el orden de generación.
    3. Una sola prioridad por grupo, máximo 3.
    Las prioridades orientan la intervención; no explican la causa ni deciden por el responsable. */
-function calcLMI() {
+function calcLMI(limite = 3) {
   const d = recopilarDatos();
   const nombre = (d.captador||'').trim();
   const hayEval = Object.keys(ALL_VARS_LABELS).some(k => hasScore(d, k));
@@ -6288,7 +6288,7 @@ function calcLMI() {
     if (vistos.has(c.grupo)) continue;
     vistos.add(c.grupo);
     out.push({ id:c.id, grupo:c.grupo, urgencia:c.urgencia, scorePrioridad:c.scorePrioridad, icono:c.icono, titulo:c.titulo, desc:c.desc });
-    if (out.length === 3) break;
+    if (out.length === limite) break;
   }
   return out;
 }
@@ -6298,12 +6298,30 @@ const GRUPO_REGLA = { R1:'fase', R1b:'seguimiento', R2:'feedback', R3:'creencias
   R7:'speech', R8:'autonomia', R9:'estabilidad', R10:'evolucion', R11:'rendimiento', R12:'potenciar', R13:'evolucion' };
 // «Qué haría ahora»: primero la intervención que propone la lectura (con qué revisar después) y, a continuación,
 // las prioridades de otros ámbitos. Una por grupo, por urgencia, máximo 3.
+// Prioridades que no se derivan de las puntuaciones de esta sesión: se mantienen aunque los datos sean insuficientes
+const PRIORIDADES_OPERATIVAS = new Set(['contacto', 'fase_inicial', 'fase_media', 'sin_fase', 'registro', 'indice']);
 function prioridadesSesion() {
-  const items = calcLMI();
   const d = recopilarDatos();
   const nombre = (d.captador || '').trim();
   const diag = diagnosticar(d, nombre ? sesionesAnterioresA(nombre, d) : null);
+  const items = calcLMI(diag && diag.regla === 'R0' ? Infinity : 3);
   if (!diag) return items;
+  // Datos insuficientes (R0): no se propone intervenir sobre puntuaciones sueltas. Lo primero es completar los datos;
+  // las valoraciones bajas se muestran como señales a explorar y las prioridades operativas se mantienen
+  if (diag.regla === 'R0') {
+    const grupoR0 = diag.sinFase ? 'fase' : 'datos';
+    const peso = { alta:3, media:2, normal:1 };
+    const senales = Object.keys(ALL_VARS_LABELS).map(k => ({ l: ALL_VARS_LABELS[k], v: scoreDe(d, k) }))
+      .filter(x => x.v !== null && x.v <= 2).sort((a, b) => a.v - b.v);
+    const explorar = senales.length ? [{ id:'explorar', grupo:'explorar', urgencia:'normal', icono:'🔍',
+      titulo:'Señales a explorar antes de intervenir',
+      desc: senales.map(x => x.l + ' ' + x.v + '/5').join(' · ') + '. Una valoración aislada no basta para decidir una intervención. Obsérvalo en la próxima sesión y completa la evaluación.' }] : [];
+    const operativas = items.filter(x => PRIORIDADES_OPERATIVAS.has(x.id) && x.grupo !== grupoR0);
+    const resto = explorar.concat(operativas).map((x, i) => Object.assign({ _i: i }, x))
+      .sort((a, b) => (peso[b.urgencia] || 0) - (peso[a.urgencia] || 0) || a._i - b._i);
+    return [{ id:'lectura', grupo: grupoR0, urgencia:'media', icono: diag.diagnostico.icon, titulo: diag.tipo,
+      desc: diag.recomendacion.texto, revision: diag.revision && diag.revision.texto }].concat(resto).slice(0, 3);
+  }
   const grupo = diag.regla === 'R0' ? (diag.sinFase ? 'fase' : 'datos')
     : diag.regla === 'R14' ? (diag.palanca ? (GRUPO_VARIABLE[diag.palanca.k] || diag.palanca.k) : 'lectura')
     : (GRUPO_REGLA[diag.regla] || diag.regla);
