@@ -4981,6 +4981,11 @@ function modeloFicha() {
     clsMatriz: new Set(MATRIZ_REGLAS.map(r => r.cls)),
   };
 }
+const MAX_TEXTO_IMPORT = 10000;               // caracteres por campo de texto
+const MAX_ARCHIVO_IMPORT = 5 * 1024 * 1024;    // 5 MB
+// Campos del modelo que no son textos ni puntuaciones: el resto de claves de una ficha se ignoran (y se avisa)
+const CAMPOS_FICHA_FIJOS = ['captador', '_id', 'nip', '_savedAt', '_editedAt', 'fecha', 'fechainicio', 'estado', 'faseSelected',
+  'decisionMatrix', 'decisionResult', 'checklistDespido', 'revisionAnterior', 'lecturaSugerida'];
 const RE_FECHA_HORA = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})?$/;
 const esObjeto = v => v !== null && typeof v === 'object' && !Array.isArray(v);
 // Devuelve { ficha } con solo los campos del modelo, ya validados, o { error } con el motivo de rechazo
@@ -4988,6 +4993,8 @@ function validarFichaImportada(f) {
   if (!esObjeto(f)) return { error: 'no es una ficha' };
   const out = {};
   const ausente = v => v === undefined || v === null;
+  const conocidos = new Set(CAMPOS_FICHA_FIJOS.concat(modeloFicha().textos, modeloFicha().puntuaciones));
+  const ignorados = Object.keys(f).filter(k => !conocidos.has(k));
   // Identidad. El _id lo valida y, si hace falta, lo sustituye la importación (S1); aquí solo se conserva
   if (typeof f.captador !== 'string' || !f.captador.trim()) return { error: 'falta el nombre del captador/a' };
   if (f.captador.trim().length > 100) return { error: 'nombre del captador/a demasiado largo' };
@@ -5007,6 +5014,7 @@ function validarFichaImportada(f) {
   for (const k of modeloFicha().textos) {
     if (ausente(f[k])) continue;
     if (typeof f[k] !== 'string') return { error: 'tipo incorrecto en un campo de texto' };
+    if (f[k].length > MAX_TEXTO_IMPORT) return { error: 'texto de más de ' + MAX_TEXTO_IMPORT.toLocaleString('es-ES') + ' caracteres' };
     out[k] = f[k];
   }
   // Fechas: vacías o AAAA-MM-DD reales (un campo ausente sigue ausente)
@@ -5057,10 +5065,10 @@ function validarFichaImportada(f) {
     const l = f.lecturaSugerida;
     const textoOk = (v, max) => typeof v === 'string' && v.length <= max;
     if (!esObjeto(l) || Object.keys(l).some(k => !['regla', 'tipo', 'texto', 'evidencia', 'nivel', 'motivo', 'accion', 'contexto'].includes(k)) ||
-        typeof l.regla !== 'string' || !/^R\d{1,2}b?$/.test(l.regla) || !textoOk(l.tipo, 200) || !textoOk(l.texto, 3000) ||
+        typeof l.regla !== 'string' || !REGLAS_LECTURA.has(l.regla) || !textoOk(l.tipo, 200) || !textoOk(l.texto, 3000) ||
         !(ausente(l.evidencia) || (Array.isArray(l.evidencia) && l.evidencia.length <= 20 && l.evidencia.every(x => textoOk(x, 300)))) ||
         !(ausente(l.nivel) || Object.prototype.hasOwnProperty.call(NIVEL_EVIDENCIA_TXT, l.nivel)) ||
-        !(ausente(l.motivo) || textoOk(l.motivo, 300)) || !(l.contexto === undefined || l.contexto === null || textoOk(l.contexto, 300)) || !(ausente(l.accion) || textoOk(l.accion, 3000))) return { error: 'lectura sugerida no válida' };
+        !(ausente(l.motivo) || (textoOk(l.motivo, 300) && l.nivel === 'medio')) || !(l.contexto === undefined || l.contexto === null || textoOk(l.contexto, 300)) || !(ausente(l.accion) || textoOk(l.accion, 3000))) return { error: 'lectura sugerida no válida' };
     out.lecturaSugerida = { regla: l.regla, tipo: l.tipo, texto: l.texto };
     ['evidencia', 'nivel', 'motivo', 'accion'].forEach(k => { if (!ausente(l[k])) out.lecturaSugerida[k] = Array.isArray(l[k]) ? l[k].slice() : l[k]; });
     if (l.contexto !== undefined) out.lecturaSugerida.contexto = l.contexto;
@@ -5070,14 +5078,21 @@ function validarFichaImportada(f) {
     if (!Array.isArray(c) || c.length > casillasChecklist().length || c.some(x => typeof x !== 'boolean')) return { error: 'checklist no válido' };
     out.checklistDespido = c.slice();
   }
-  return { ficha: out };
+  return { ficha: out, ignorados };
 }
 
 function importarJSON(input) {
   const file = input.files[0];
   if (!file) return;
-  const reader = new FileReader();
   const resultEl = document.getElementById('jsonImportResult');
+  if (file.size > MAX_ARCHIVO_IMPORT) {
+    resultEl.className = 'json-import-result err';
+    resultEl.textContent = 'No se ha importado nada: el archivo ocupa más de 5 MB, más de lo que puede ser una copia de fichas. Tus fichas no se han modificado.';
+    anunciar(resultEl.textContent);
+    input.value = '';
+    return;
+  }
+  const reader = new FileReader();
   reader.onload = function(e) {
     try {
       const data = JSON.parse(e.target.result);
@@ -5093,10 +5108,13 @@ function importarJSON(input) {
       let existentes = merge ? cargarFichas() : [];
       const existingIds = new Set(existentes.map(f => f._id));
       let added = 0, skipped = 0, idsSustituidos = 0;
-      const motivos = {};
+      const motivos = {}, ignorados = new Set();
+      const fichasTxt = n => n + (n === 1 ? ' ficha' : ' fichas');
+      // Todo el archivo se valida en memoria; no se escribe nada hasta el final (y solo si se confirma)
       nuevasFichas.forEach(original => {
         const v = validarFichaImportada(original);
         if (v.error) { motivos[v.error] = (motivos[v.error] || 0) + 1; return; }
+        v.ignorados.forEach(k => ignorados.add(k));
         const f = v.ficha;
         const id = normalizarId(f._id);
         if (id === null) {
@@ -5110,12 +5128,33 @@ function importarJSON(input) {
         added++;
       });
       const rechazadas = Object.values(motivos).reduce((a, b) => a + b, 0);
-      const motivosTxt = rechazadas ? ', ' + rechazadas + (rechazadas === 1 ? ' rechazada' : ' rechazadas') + ' (' +
-        Object.entries(motivos).map(([m, n]) => m + (n > 1 ? ' ×' + n : '')).join('; ') + ')' : '';
-      // Sustituir todo por una importación sin ninguna ficha válida borraría los datos: no se toca nada
-      if (!merge && added === 0) {
+      const resumenMotivos = Object.entries(motivos).map(([m, n]) => m + (n > 1 ? ' ×' + n : '')).join('; ');
+      const motivosTxt = rechazadas ? ', ' + rechazadas + (rechazadas === 1 ? ' rechazada' : ' rechazadas') + ' (' + resumenMotivos + ')' : '';
+      const listaIgn = [...ignorados];
+      const ignoradosTxt = listaIgn.length ? ' Se ' + (listaIgn.length === 1 ? 'ha ignorado 1 campo no reconocido: ' : 'han ignorado ' + listaIgn.length + ' campos no reconocidos: ') +
+        listaIgn.slice(0, 10).join(', ') + (listaIgn.length > 10 ? '…' : '') + '.' : '';
+      const sinCambios = msg => {
         resultEl.className = 'json-import-result err';
-        resultEl.textContent = 'No se ha importado nada: el archivo no tiene ninguna ficha válida' + motivosTxt + '. Tus fichas no se han modificado.';
+        resultEl.textContent = msg + ' Tus fichas no se han modificado.';
+        anunciar(resultEl.textContent);
+        input.value = '';
+      };
+      // Sin ninguna ficha nueva que añadir no se escribe nada
+      if (added === 0) {
+        sinCambios(rechazadas ? 'No se ha importado nada: el archivo no tiene ninguna ficha válida' + motivosTxt + '.'
+          : skipped ? 'No se ha importado nada: ' + (skipped === 1 ? 'la ficha del archivo ya existía.' : 'las ' + skipped + ' fichas del archivo ya existían.')
+          : 'No se ha importado nada: el archivo no contiene fichas.');
+        return;
+      }
+      // Fichas válidas y no válidas: nada entra a medias sin que el responsable lo decida
+      if (rechazadas && !confirm(
+        fichasTxt(added + skipped) + (added + skipped === 1 ? ' válida' : ' válidas') + ' · ' + rechazadas + (rechazadas === 1 ? ' no válida' : ' no válidas') + '\n\n' +
+        (added === 1 ? 'Se importaría 1 ficha.' : 'Se importarían ' + fichasTxt(added) + '.') + (skipped ? ' ' + fichasTxt(skipped) + ' ya existían y se omitirían.' : '') + '\n' +
+        rechazadas + (rechazadas === 1 ? ' se rechazaría: ' : ' se rechazarían: ') + resumenMotivos + '.' +
+        (ignoradosTxt ? '\n' + ignoradosTxt.trim() : '') + '\n\n' +
+        '¿Importar ' + (added === 1 ? 'la ficha válida' : 'las ' + added + ' fichas válidas') + '? Si cancelas, no se modifica nada.')) {
+        resultEl.className = 'json-import-result';
+        resultEl.textContent = 'Importación cancelada: tus fichas no se han modificado.';
         anunciar(resultEl.textContent);
         input.value = '';
         return;
@@ -5147,8 +5186,8 @@ function importarJSON(input) {
       actualizarContador(); actualizarModoSesion();
       try{ renderHistorialTab(); }catch(e){} populateEvoSelect(); renderDashboard();
       resultEl.className = 'json-import-result ok';
-      resultEl.textContent = added + ' fichas importadas' + (skipped ? ', ' + skipped + ' omitidas (ya existían)' : '') +
-        (idsSustituidos ? ', ' + idsSustituidos + ' con identificador no válido (se ha sustituido)' : '') + motivosTxt + '.';
+      resultEl.textContent = fichasTxt(added) + (added === 1 ? ' importada' : ' importadas') + (skipped ? ', ' + skipped + (skipped === 1 ? ' omitida (ya existía)' : ' omitidas (ya existían)') : '') +
+        (idsSustituidos ? ', ' + idsSustituidos + ' con identificador no válido (se ha sustituido)' : '') + motivosTxt + '.' + ignoradosTxt;
       anunciar(resultEl.textContent);
       input.value = '';
     } catch(err) {
@@ -6345,6 +6384,9 @@ function calcLMI(limite = 3) {
 }
 
 // Grupo de cada lectura del diagnóstico, para no repetir en las prioridades lo que ya propone la lectura
+// Lecturas que puede producir el motor (las del objeto de grupos más R0, datos insuficientes, y R14, sin patrón)
+let _reglasLectura = null;
+const REGLAS_LECTURA = { has: r => (_reglasLectura || (_reglasLectura = new Set(Object.keys(GRUPO_REGLA).concat('R0', 'R14')))).has(r) };
 const GRUPO_REGLA = { R1:'fase', R1b:'seguimiento', R2:'feedback', R3:'creencias', R4:'habitos', R5:'tecnica', R6:'cierre',
   R7:'speech', R8:'autonomia', R9:'estabilidad', R10:'evolucion', R11:'rendimiento', R12:'potenciar', R13:'evolucion' };
 // «Qué haría ahora»: primero la intervención que propone la lectura (con qué revisar después) y, a continuación,
