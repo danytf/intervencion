@@ -573,6 +573,16 @@ input[type=date]{scroll-margin-top:96px;}
 .sesion-ctx-acciones{display:flex;gap:var(--s-2);flex-wrap:wrap;}
 /* Registro de la sesión (Acompañamiento) */
 .registro-campos{display:flex;flex-direction:column;gap:var(--s-4);}
+/* Estado de la sesión (Captador) y «Siguiente paso» al final de cada sección del flujo */
+.sesion-estado{display:flex;flex-wrap:wrap;gap:6px;margin-top:var(--s-4);padding-top:var(--s-3);border-top:1px solid var(--line);}
+.estado-item{display:inline-flex;align-items:center;gap:5px;min-height:32px;padding:0 11px;border-radius:999px;border:1px solid var(--line);background:var(--surface);
+  font-family:var(--font-brand);font-size:var(--t-xs);font-weight:600;color:var(--ink-2);}
+.estado-item .ic{width:14px;height:14px;}
+.estado-item[data-ok="1"]{color:var(--ok);}
+.estado-item[data-pend="1"]{color:var(--warn, #B45309);}
+span.estado-item{border-style:dashed;}
+.flujo-sig{margin-top:var(--s-5);display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:var(--s-3);}
+.flujo-sig .meta{flex:1;min-width:180px;}
 .registro-campos .eyebrow-row{margin:0;}
 .registro-campos .field > .meta{margin-top:6px;}
 .revision-anterior{margin-bottom:var(--s-5);padding-bottom:var(--s-4);border-bottom:1px solid var(--line);}
@@ -913,8 +923,8 @@ input[type=date]{scroll-margin-top:96px;}
     </div>
 
     <!-- Qué se está registrando: una sesión nueva o una sesión guardada -->
-    <section class="card sesion-ctx" id="sesionCtx" aria-labelledby="sesionCtxTitulo" aria-live="polite">
-      <div class="sesion-ctx-info">
+    <section class="card sesion-ctx" id="sesionCtx" aria-labelledby="sesionCtxTitulo">
+      <div class="sesion-ctx-info" aria-live="polite">
         <span class="tile tile-sm" data-tone="brand" id="sesionCtxIcon"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></span>
         <div><h2 class="eyebrow" id="sesionCtxTitulo">Sesión nueva</h2><p class="sesion-ctx-desc" id="sesionCtxDesc"></p></div>
       </div>
@@ -922,6 +932,7 @@ input[type=date]{scroll-margin-top:96px;}
         <button type="button" class="btn btn-secondary btn-sm" id="btnNuevaSesion" onclick="nuevaSesion()"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>Nueva sesión de este captador/a</button>
         <button type="button" class="btn btn-quiet btn-sm" onclick="nuevaFicha()"><svg class="ic" aria-hidden="true"><use href="#i-user"/></svg>Nuevo captador/a</button>
       </div>
+      <div class="sesion-estado" id="sesionEstado" role="group" aria-label="Estado de la sesión"></div>
     </section>
 
     <div id="diasFaseBadgeWrap"></div>
@@ -2424,7 +2435,8 @@ function cargarDatos(data, opts) {
   // Limpiar flag unsaved
   _isLoading = false;  // Permitir autoguardar normal de nuevo
   setTimeout(()=>{ _hasUnsavedChanges=false; const dot=document.getElementById('unsavedDot'); if(dot)dot.classList.remove('visible'); const st=document.getElementById('statusText'); if(st)st.classList.remove('unsaved');
-    if (opts && opts.pendiente) { marcarCambiosPendientes(); if (st) st.textContent = 'Borrador restaurado · sin guardar'; } },50);
+    if (opts && opts.pendiente) { marcarCambiosPendientes(); if (st) st.textContent = 'Borrador restaurado · sin guardar'; }
+    try { renderFlujo(); } catch(e){} },50);
   try{ actualizarDots(); }catch(e){}
   try{ contarCampos(); }catch(e){}
   try{ renderDiagnostico(); }catch(e){}
@@ -2572,6 +2584,76 @@ window.addEventListener('storage', function(e) {
 // La sesión del formulario es una sesión guardada (se está editando) o una sesión nueva
 function sesionEditada() { return AppState.lastLoadedId ? cargarFichas().find(f => f._id === AppState.lastLoadedId) || null : null; }
 function etiquetaGuardar() { return sesionEditada() ? 'Actualizar esta sesión' : 'Guardar sesión nueva'; }
+// ── FLUJO DE LA SESIÓN ──
+// Orden de trabajo de una sesión: de aquí salen el «Siguiente paso» de cada sección y el estado de la sesión.
+// Para cambiar el orden o las secciones basta con cambiar esta lista.
+const FLUJO_SESION = [
+  { tab: 0, nombre: 'Captador/a' },
+  { tab: 1, nombre: 'Evaluación' },
+  { tab: 2, nombre: 'Acompañamiento' },
+  { tab: 3, nombre: 'Diagnóstico y decisión' },
+];
+function estadoSesion() {
+  const d = recopilarDatos();
+  const lleno = k => (d[k] || '').trim().length > 0;
+  const nEval = Object.keys(ALL_VARS_LABELS).filter(k => hasScore(d, k)).length;
+  const nReg = REGISTRO_CAMPOS.filter(({k}) => lleno(k)).length;
+  const nCrit = CRITERIOS_MATRIZ.filter(k => d.decisionMatrix[k] !== null).length;
+  const textos = ['captador','nip','responsable','provincia','fechainicio'].concat([1,2,3,4,5].map(i=>'c'+i), [1,2,3,4,5,6].map(i=>'ic'+i),
+    [1,2,3,4,5,6,7,8,9].map(i=>'ip'+i), [1,2,3,4,5,6].map(i=>'ih'+i));
+  return {
+    nombre: lleno('captador'), inicio: fechaISOValida(d.fechainicio), nEval, nReg, nCrit,
+    vacia: !textos.some(lleno) && !nEval && !nReg && !nCrit && !AppState.revisionAnterior,
+    guardada: !!sesionEditada(), pendiente: _hasUnsavedChanges,
+  };
+}
+// Lo que impide avanzar desde una sección (null si nada): en su lugar se indica qué falta y dónde
+function bloqueoPaso(tab, e) {
+  if (tab === 0 && !e.nombre) return { txt: 'Escribe el nombre del captador/a para empezar.', ir: null };
+  if (tab === 2 && !e.inicio) return { txt: 'Falta la fecha de comienzo para calcular la fase.', ir: { tab: 0, id: 'd_fechainicio', txt: 'Ir a Captador' } };
+  return null;
+}
+function irA(tab, id) {
+  goTab(tab);
+  if (!id) return;
+  setTimeout(() => { const el = document.getElementById(id); if (!el) return;
+    el.scrollIntoView({ block: 'center' }); if (el.matches('input,textarea,select,button')) el.focus({ preventScroll: true }); }, 60);
+}
+function renderFlujo() {
+  const e = estadoSesion();
+  FLUJO_SESION.forEach((paso, i) => {
+    const sec = document.getElementById('tab' + paso.tab);
+    if (!sec) return;
+    let cont = sec.querySelector(':scope > .flujo-sig');
+    if (!cont) { cont = document.createElement('div'); cont.className = 'flujo-sig'; sec.appendChild(cont); }
+    const ultimo = i === FLUJO_SESION.length - 1, sig = FLUJO_SESION[i + 1];
+    const b = bloqueoPaso(paso.tab, e) || (ultimo && !e.nombre ? { txt: 'Para guardar la sesión falta el nombre del captador/a.', ir: { tab: 0, id: 'd_captador', txt: 'Ir a Captador' } } : null);
+    cont.innerHTML = b
+      ? '<p class="meta">' + esc(b.txt) + '</p>' + (b.ir ? '<button type="button" class="btn btn-secondary btn-sm" onclick="irA(' + b.ir.tab + ',\'' + b.ir.id + '\')">' + esc(b.ir.txt) + '</button>' : '')
+      : ultimo
+        ? '<button type="button" class="btn btn-primary" onclick="guardarFicha()">' + ic('save') + (e.guardada ? 'Actualizar la sesión' : 'Guardar la sesión') + '</button>'
+        : '<button type="button" class="btn btn-secondary" onclick="irA(' + sig.tab + ')">Siguiente: ' + esc(sig.nombre) + ic('arrow') + '</button>';
+  });
+  // Estado de la sesión (Captador): qué hay, qué falta y dónde está cada cosa
+  const el = document.getElementById('sesionEstado');
+  if (el) {
+    const item = (ok, texto, tab, id, etq) => '<button type="button" class="estado-item"' + (ok ? ' data-ok="1"' : '') + ' onclick="irA(' + tab + (id ? ',\'' + id + '\'' : '') + ')" aria-label="' + esc(etq) + '">' +
+      (ok ? ic('check') : '') + esc(texto) + '</button>';
+    const datosOk = e.nombre && e.inicio;
+    el.innerHTML =
+      item(datosOk, datosOk ? 'Datos' : !e.nombre ? 'Datos: falta el nombre' : 'Datos: falta la fecha de comienzo', 0, !e.nombre ? 'd_captador' : 'd_fechainicio', 'Datos del captador/a' + (datosOk ? ', completos' : ', incompletos')) +
+      item(e.nEval >= 4, 'Evaluación ' + (e.nEval ? e.nEval + (e.nEval === 1 ? ' variable' : ' variables') : '—'), 1, null, 'Evaluación: ' + e.nEval + ' variables puntuadas') +
+      item(e.nReg > 0, 'Registro ' + (e.nReg ? e.nReg + ' de ' + REGISTRO_CAMPOS.length : '—'), 2, 'h-registro', 'Registro de la sesión: ' + e.nReg + ' de ' + REGISTRO_CAMPOS.length + ' campos') +
+      item(e.nCrit === 4, 'Decisión ' + (e.nCrit === 4 ? '' : e.nCrit ? e.nCrit + ' de 4' : '—'), 3, 'h-criterios', 'Decisión: ' + e.nCrit + ' de 4 criterios') +
+      '<span class="estado-item"' + (e.pendiente ? ' data-pend="1"' : e.guardada ? ' data-ok="1"' : '') + '>' +
+        (e.pendiente ? (e.guardada ? 'Cambios sin guardar' : 'Sin guardar') : e.guardada ? ic('check') + 'Guardada' : 'Sin guardar') + '</span>';
+  }
+  // Sesión completamente vacía: crear otra sesión u otro captador no aporta nada
+  const acc = document.querySelector('#sesionCtx .sesion-ctx-acciones');
+  if (acc) acc.hidden = e.vacia;
+  try { contarCampos(); } catch (err) {}
+}
+
 function actualizarModoSesion() {
   const ed = sesionEditada();
   if (!ed && AppState.lastLoadedId) AppState.lastLoadedId = null;   // la sesión ya no existe (eliminada o reemplazada al importar)
@@ -2596,6 +2678,7 @@ function actualizarModoSesion() {
   if (lb) lb.textContent = ed ? 'Actualizar' : 'Guardar';
   const btn = document.getElementById('btnGuardar');
   if (btn) btn.setAttribute('aria-label', etiquetaGuardar() + (_hasUnsavedChanges ? ' (hay cambios sin guardar)' : ''));
+  try { renderFlujo(); } catch (e) {}
 }
 
 // Guardar: actualiza la sesión que se está editando o añade una sesión nueva; nunca duplica sin avisar
@@ -2772,8 +2855,11 @@ function contarCampos() {
   all.forEach(el=>{if(el.value.trim())filled++;});
   total+=Object.keys(scores).length+1;
   filled+=Object.values(scores).filter(v=>v>0).length+(faseSelected?1:0);
+  // Resumen de lo esencial (el recuento de campos no distinguía lo importante de lo opcional)
   const el=document.getElementById('camposRellenos');
-  if(el) el.textContent=`${filled} de ${total} campos rellenados`;
+  if(el) { try { const e=estadoSesion();
+    el.textContent='Evaluación '+(e.nEval||'—')+' · Registro '+(e.nReg?e.nReg+'/'+REGISTRO_CAMPOS.length:'—')+' · Decisión '+(e.nCrit?e.nCrit+'/4':'—')+' · '+(e.pendiente?'sin guardar':e.guardada?'guardada':'sin guardar');
+  } catch(err) { el.textContent=`${filled} de ${total} campos rellenados`; } }
 }
 
 // ── HELPERS ──
