@@ -431,10 +431,9 @@ input[type=date]{scroll-margin-top:96px;}
 .guia-estado{font-size:var(--t-md);line-height:1.6;color:var(--ink-2);background:var(--surface-2);border-radius:var(--r-md);padding:var(--s-3) var(--s-4);margin-top:var(--s-3);}
 
 /* ══════════ DIAGNÓSTICO — rasgo propio: la prioridad de hoy, lo primero y lo más grande ══════════ */
-.lmi-card{padding:0;overflow:hidden;}
-.lmi-head{display:flex;align-items:center;gap:var(--s-3);padding:var(--s-5) var(--s-5) 0;}
+.lmi-head{display:flex;align-items:center;gap:var(--s-3);}
 .lmi-head .card-head-text{flex:1;min-width:0;}
-.lmi-list{padding:var(--s-4) var(--s-5) var(--s-5);display:flex;flex-direction:column;gap:var(--s-3);}
+.lmi-list{padding:var(--s-4) 0 0;display:flex;flex-direction:column;gap:var(--s-3);}
 .lmi-item{display:flex;gap:var(--s-3);align-items:flex-start;}
 .lmi-item-main{flex-direction:column;gap:var(--s-3);padding:var(--s-5);border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--line);}
 .lmi-item-main .lmi-top{display:flex;align-items:center;gap:var(--s-3);width:100%;}
@@ -450,7 +449,7 @@ input[type=date]{scroll-margin-top:96px;}
 .lmi-desc{font-size:var(--t-md);line-height:1.6;color:var(--ink-2);margin-top:4px;}
 .urg{display:inline-flex;align-items:center;gap:6px;font-size:var(--t-xs);font-weight:700;white-space:nowrap;color:var(--tone-ink);}
 .urg::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--tone);}
-.lmi-empty{margin:var(--s-4) var(--s-5) var(--s-5);}
+.lmi-empty{margin:var(--s-4) 0 0;}
 .lmi-preview{display:flex;gap:var(--s-3);align-items:flex-start;}
 .lmi-preview-titulo{font-family:var(--font-brand);font-size:var(--t-md);font-weight:700;line-height:1.35;color:var(--ink);}
 .lmi-preview-desc{font-size:var(--t-sm);line-height:1.55;color:var(--ink-2);margin-top:4px;}
@@ -662,8 +661,8 @@ span.estado-item{border-style:dashed;}
 .screen-title-wrap{flex:1;min-width:0;}
 .screen-title{font-family:var(--font-brand);font-size:var(--t-lg);font-weight:700;line-height:1.25;color:var(--ink);}
 .screen-sub{font-size:var(--t-sm);color:var(--ink-3);margin-top:2px;}
-.btn-close{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 var(--s-3);border-radius:12px;border:1px solid var(--line);
-  background:var(--surface);color:var(--ink-2);font-family:var(--font-brand);font-size:var(--t-sm);font-weight:650;flex-shrink:0;
+.btn-close{display:inline-flex;align-items:center;gap:var(--s-2);min-height:40px;padding:0 var(--s-3);border-radius:12px;border:1px solid var(--line-2);
+  background:var(--surface);color:var(--ink);font-family:var(--font-brand);font-size:var(--t-xs);font-weight:700;flex-shrink:0;
   transition:background-color .15s var(--ease);}
 .screen-tools{flex-shrink:0;background:var(--surface);border-bottom:1px solid var(--line);}
 .screen-tools-inner{max-width:820px;margin:0 auto;padding:var(--s-3) var(--s-4);display:flex;flex-direction:column;gap:var(--s-3);}
@@ -795,7 +794,9 @@ span.estado-item{border-style:dashed;}
   .table-scroll{margin:0 calc(var(--s-4) * -1);padding:0 var(--s-4);}
 }
 @media (max-width:400px){
-  .mz-grid{grid-template-columns:1fr;}
+  .mz-grid{gap:var(--s-2);}
+  .mz-crit{padding:var(--s-3);}
+  .mz-crit-head .tile{display:none;}   /* dos columnas: el nombre necesita el ancho */
   .evo-summary{grid-template-columns:1fr 1fr;}
   .evo-summary .evo-pill:first-child{grid-column:1 / -1;}
 }
@@ -806,10 +807,10 @@ span.estado-item{border-style:dashed;}
   .hdr-actions{gap:2px;}
   .hdr-estado{font-size:11.5px;gap:4px;}
   .btn-save{padding:0 10px;font-size:13.5px;}
-  .icon-btn{width:38px;}
+  .hdr-actions .icon-btn{width:38px;}
 }
 @media (max-width:374px){ .btn-save .ic{display:none;} }   /* la palabra basta: sigue siendo el botón principal */
-@media (max-width:340px){ .hdr-logo{height:20px;} .icon-btn{width:34px;} .hdr-estado{font-size:11px;} }
+@media (max-width:340px){ .hdr-logo{height:20px;} .hdr-actions .icon-btn{width:34px;} .hdr-estado{font-size:11px;} }
 @media (max-width:440px){
   .nav-btn{font-size:10.5px;letter-spacing:-.03em;}   /* 6 pestañas con las etiquetas completas */
 }
@@ -852,6 +853,35 @@ span.estado-item{border-style:dashed;}
   body{background:#fff;}
   .card{box-shadow:none;}
 }
+/* ══ M29–M32: sistema, densidad y pulido ══ */
+/* A: la altura de las áreas de texto la fija ajustarAltura() (crecen con lo escrito hasta 10 líneas) */
+textarea.input,.field textarea,.intervencion-row textarea{overflow-y:hidden;}
+/* B: etiqueta y botón comparten fila solo si caben enteros; si no, el botón baja a la línea siguiente */
+.eyebrow-row{flex-wrap:wrap;row-gap:var(--s-2);}
+.eyebrow-row > .eyebrow,.eyebrow-row > label,.eyebrow-row > .btn{white-space:nowrap;}
+.card-head{flex-wrap:wrap;row-gap:var(--s-3);}
+.card-head > .card-head-text{flex:1 1 180px;}
+/* C: subpestañas de Equipo con el tamaño de chip del índice de bloques */
+#subtabsBar .chip{min-height:34px;padding:0 11px;font-size:13px;gap:6px;}
+@media (max-width:600px){
+  #subtabsBar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;overflow:visible;}
+  #subtabsBar .chip{justify-content:center;padding:0 6px;}
+}
+/* D: el panel plegable recorta por fuera: el contorno de foco va por dentro */
+.fold-btn:focus-visible{outline-offset:-3px;border-radius:var(--r-lg);}
+.alerta-item:focus-visible{outline-offset:-3px;}
+/* E: el punto acompaña a la primera palabra aunque la etiqueta ocupe dos líneas */
+.dash-stat-label{display:block;}
+.dash-stat-label .dot{margin-right:6px;vertical-align:1px;}
+/* F: prioridades 2 y 3 con el número junto al título y el texto a todo el ancho */
+.lmi-rest li{display:block;}
+.lmi-rest-top{display:flex;gap:var(--s-3);align-items:center;}
+.lmi-rest .lmi-desc{margin-top:var(--s-2);}
+/* J: factores del índice de atención más allá de los 3 primeros */
+.riesgo-ver-todos{margin-top:var(--s-2);}
+/* El relleno de móvil (.card) no debe sumarse al de las tarjetas que lo ponen por dentro */
+.card.card-flush{padding:0;}
+.riesgo-ver-todos .rot180{transform:rotate(180deg);}
 </style>
 </head>
 <body>
@@ -890,6 +920,7 @@ span.estado-item{border-style:dashed;}
   <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
   <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></symbol>
   <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.9-3"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.9 3"/><path d="M20 20v-4h-4"/></symbol>
+  <symbol id="i-half" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></symbol>
   <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><path d="M12 7.6h.01"/></symbol>
   <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5h.01"/></symbol>
   <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 3.5l9.5 16.5h-19z"/><path d="M12 10v4.5M12 17.5h.01"/></symbol>
@@ -1113,11 +1144,6 @@ span.estado-item{border-style:dashed;}
           <div class="score-group-avg" id="group-avg-h" aria-label="Media de hábitos"><span>—</span></div>
         </div>
         <div class="score-group-bar"><div class="score-group-bar-fill" id="group-bar-h" style="width:0%"></div></div>
-        <div class="escala-ref" aria-hidden="true">
-          <p class="escala-ref-tit">Escala</p>
-          <ol class="escala-ref-lista"><li><b>1</b> Lo intenta y no le sale, o con errores graves casi siempre</li><li><b>2</b> A veces, con errores frecuentes</li><li><b>3</b> En la mayoría de los intentos, con errores menores</li><li><b>4</b> Con soltura casi siempre</li><li><b>5</b> Con soltura y adaptándose a cada situación o persona</li></ol>
-          <p class="escala-ref-nota"><b>Sin estrellas = no observado.</b> No cuenta como puntuación baja. Para quitar una puntuación, pulsa de nuevo la estrella marcada.</p>
-        </div>
         <div class="notice" data-tone="warn" id="h6HistoricoAviso" hidden style="margin-bottom:12px"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><div><strong>«Aplica el feedback acordado» tiene una puntuación antigua.</strong> En esta sesión se puntuó «Disposición para recibir/aplicar feedback/formación», que mide otra cosa: se conserva, pero no se usa en lecturas, prioridades ni comparaciones. Si la puntúas ahora, la nueva sustituye a la antigua.</div></div>
         <div class="score-group-body" id="tbody-habitos"></div>
       </div>
@@ -1207,7 +1233,7 @@ span.estado-item{border-style:dashed;}
     <!-- 2. Qué haría ahora -->
     <section class="card lmi-card" id="lmiSection" aria-labelledby="h-lmi">
       <div class="lmi-head">
-        <span class="tile" data-tone="brand"><svg class="ic" aria-hidden="true"><use href="#i-target"/></svg></span>
+        <span class="tile tile-sm" data-tone="brand"><svg class="ic" aria-hidden="true"><use href="#i-target"/></svg></span>
         <div class="card-head-text"><p class="eyebrow">Qué haría ahora</p><h2 class="card-title" id="h-lmi">Lo más importante ahora mismo</h2><p class="card-sub">Prioridades sugeridas para esta sesión; orientan, no deciden</p></div>
         <button type="button" class="icon-btn" onclick="renderLMI()" aria-label="Recalcular prioridades"><svg class="ic" aria-hidden="true"><use href="#i-refresh"/></svg></button>
       </div>
@@ -1227,6 +1253,7 @@ span.estado-item{border-style:dashed;}
       </div>
       <div class="riesgo-card-bar" aria-hidden="true"><div class="riesgo-card-bar-fill" id="riesgoBarFill"></div></div>
       <ul class="riesgo-factores" id="riesgoFactores"></ul>
+      <button type="button" class="btn btn-quiet btn-sm riesgo-ver-todos" id="riesgoVerTodos" aria-controls="riesgoFactores" aria-expanded="false" hidden onclick="toggleFactoresRiesgo()"></button>
     </section>
 
     <section class="card semaforo-card" id="semaforoCard" aria-labelledby="semaforoTitle">
@@ -2250,6 +2277,8 @@ function selectFase(id, silent) {
   if (!silent) autoguardar();
 }
 
+// Paneles plegables de Acompañamiento: se repintan al editar, así que su estado abierto se recuerda aquí
+const _foldAbierto = {};
 function renderFaseDisplay(faseId) {
   const wrap = document.getElementById('faseDisplay');
   if (!wrap) return;
@@ -2281,14 +2310,22 @@ function renderFaseDisplay(faseId) {
       (guia ? '<p class="fd-hero-estado">' + esc(guia.estado.split('.')[0]) + '.</p>' : '') +
     '</section>' +
     (guia ? (
-      '<section class="card" aria-labelledby="h-garant">' +
+      '<div class="fold">' +
+        '<button type="button" class="fold-btn" onclick="toggleGuiaFase(this)" aria-expanded="' + !!_foldAbierto.garantizarPanel + '" aria-controls="garantizarPanel">' +
+          '<span class="tile tile-sm" data-tone="ok">' + ic('check-circle') + '</span>' +
+          '<span class="fold-title">Garantizar ahora<span class="fold-sub">' + puntos.length + (puntos.length === 1 ? ' punto' : ' puntos') +
+            (senales.length ? ' · ' + senales.length + (senales.length === 1 ? ' señal de alarma' : ' señales de alarma') : '') + '</span></span>' +
+          '<span class="fold-chev">' + ic('chev') + '</span>' +
+        '</button>' +
+        '<div class="fold-panel' + (_foldAbierto.garantizarPanel ? ' open' : '') + '" id="garantizarPanel"><div class="fold-inner"><div class="fold-body">' +
         '<div class="fd-ref-split">' +
-          '<div data-tone="ok"><h3 class="eyebrow" id="h-garant">Garantizar ahora</h3>' +
+          '<div data-tone="ok"><h3 class="eyebrow">Qué garantizar</h3>' +
             '<ul class="fd-ref-list">' + puntos.map(p => '<li>' + ic('check-circle') + '<span>' + esc(p) + '</span></li>').join('') + '</ul></div>' +
           (senales.length ? '<div data-tone="bad"><h3 class="eyebrow">Señales de alarma</h3>' +
             '<ul class="fd-ref-list">' + senales.map(s => '<li>' + ic('flag') + '<span>' + esc(s) + '</span></li>').join('') + '</ul></div>' : '') +
         '</div>' +
-      '</section>'
+        '</div></div></div>' +
+      '</div>'
     ) : '');
 }
 function irAFechaInicio() {
@@ -3093,7 +3130,29 @@ function nuevaSesionDe(id) {
 }
 function actualizarContador() { document.getElementById('fichaCount').textContent=cargarFichas().length; }
 
+// Áreas de texto: crecen con lo escrito hasta 10 líneas y a partir de ahí tienen scroll interno.
+// Así nunca queda una línea cortada a medias ni una entrada larga se convierte en una pared de texto.
+const TEXTAREA_MAX_LINEAS = 10;
+function ajustarAltura(el) {
+  if (!el || !el.isConnected || el.offsetParent === null) return;   // oculta: se ajusta al mostrarse
+  const cs = getComputedStyle(el);
+  const lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.5;
+  const bordes = parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
+  const max = Math.ceil(lh * TEXTAREA_MAX_LINEAS + parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom) + bordes);
+  el.style.height = 'auto';
+  const total = el.scrollHeight + bordes;
+  el.style.height = Math.min(total, max) + 'px';
+  el.style.overflowY = total > max ? 'auto' : 'hidden';
+}
+let _ajusteTA = 0;
+function ajustarTextareas() {
+  cancelAnimationFrame(_ajusteTA);
+  _ajusteTA = requestAnimationFrame(() => document.querySelectorAll('main textarea, .screen textarea').forEach(ajustarAltura));
+}
+document.addEventListener('input', e => { if (e.target && e.target.tagName === 'TEXTAREA') ajustarAltura(e.target); });
+window.addEventListener('resize', ajustarTextareas);
 function contarCampos() {
+  ajustarTextareas();
   const all=document.querySelectorAll('main input[type=text],main input[type=date],main textarea');
   let total=all.length, filled=0;
   all.forEach(el=>{if(el.value.trim())filled++;});
@@ -3658,7 +3717,7 @@ function renderDashboard(){
   Object.values(map).forEach(({latest})=>{const e=latest.estado;if(pe[e]!==undefined)pe[e]++;});
   const ds=document.getElementById('dashStats');
   if(ds)ds.innerHTML=`
-    <div class="dash-stat"><div class="dash-stat-val">${total}</div><div class="dash-stat-label">Captadores</div></div>
+    <div class="dash-stat"><div class="dash-stat-val">${total}</div><div class="dash-stat-label">${total === 1 ? 'Captador/a' : 'Captadores'}</div></div>
     <div class="dash-stat" data-tone="ok"><div class="dash-stat-val">${pe.progreso}</div><div class="dash-stat-label"><i class="dot"></i>En progreso</div></div>
     <div class="dash-stat" data-tone="warn"><div class="dash-stat-val">${pe.estancado+pe.riesgo}</div><div class="dash-stat-label"><i class="dot"></i>Estancado o en riesgo</div></div>
     <div class="dash-stat" data-tone="neutral"><div class="dash-stat-val">${pe.baja}</div><div class="dash-stat-label"><i class="dot"></i>Baja</div></div>`;
@@ -4018,6 +4077,7 @@ function renderDiagnostico() {
 
   card.classList.add('visible');
   tipoBadge.textContent = diag.tipo;
+  tipoBadge.hidden = diag.tipo === (NIVEL_EVIDENCIA_TXT[diag.nivelEvidencia] || '');   // R0: ya lo dice el nivel de evidencia
   const toneDe = c => ({red:'bad', orange:'warn', blue:'blue', green:'ok'}[c] || 'blue');
   // Un bloque de la lectura: icono en cuadrado tintado, título y contenido
   const bloque = (icono, tone, titulo, contenido) => `
@@ -4029,7 +4089,7 @@ function renderDiagnostico() {
       </div>
     </div>`;
   const texto = t => '<p class="diag-block-text">' + esc(t) + '</p>';
-  const NIVEL = { alto:{ txt:'Datos suficientes para esta lectura', cls:'good' }, medio:{ txt:'Datos parciales', cls:'mid' }, bajo:{ txt:'Datos insuficientes', cls:'' } };
+  const NIVEL = { alto:{ txt:'Datos suficientes para esta lectura', cls:'good', ic:'check-circle' }, medio:{ txt:'Datos parciales', cls:'mid', ic:'half' }, bajo:{ txt:'Datos insuficientes', cls:'', ic:'warn' } };
   const nv = NIVEL[diag.nivelEvidencia] || NIVEL.medio;
   const evidencia = (diag.evidencia || []).length
     ? '<ul class="diag-evid">' + diag.evidencia.map(e => '<li class="pill">' + esc(e) + '</li>').join('') + '</ul>'
@@ -4038,7 +4098,7 @@ function renderDiagnostico() {
     ? '<div class="notice" data-tone="warn">' + ic('calendar') + '<div><strong>Sin fase.</strong> Esta lectura no tiene en cuenta en qué fase está el captador/a; puede cambiar al poner la fecha de comienzo.</div></div>' : '';
   const faltaFase = diag.sinFase || diag.faseDesconocida;
   body.innerHTML = avisoFase +
-    '<div><span class="score-pill ' + nv.cls + '">' + nv.txt + '</span>' +
+    '<div><span class="score-pill ' + nv.cls + '">' + ic(nv.ic) + nv.txt + '</span>' +
       (diag.motivoParcial ? '<span class="meta diag-motivo"> · ' + esc(diag.motivoParcial) + '</span>' : '') + '</div>' +
     bloque('chart', 'slate', 'Evidencia', evidencia) +
     (diag.contexto ? bloque(diag.contexto.startsWith('Mejora') ? 'trend' : 'trend-down', diag.contexto.startsWith('Mejora') ? 'ok' : 'warn', 'Contexto', texto(diag.contexto)) : '') +
@@ -5942,12 +6002,30 @@ function renderRiesgoCard() {
   }
   if (barFill) { barFill.className = 'riesgo-card-bar-fill ' + n.fill; barFill.style.width = (r.score || 0) + '%'; }
   if (factoresEl) {
+    // Los 3 que más pesan (vienen ordenados) a la vista; el resto, plegado
+    const plegar = r.factores.length > FACTORES_VISIBLES;
     factoresEl.innerHTML = r.factores.length
-      ? r.factores.map(f => `<li class="riesgo-factor${f.puntos === 0 ? ' meta' : ''}">${ic(f.icono || 'dot')}<span>${esc(f.label)}</span></li>`).join('')
+      ? r.factores.map((f, i) => `<li class="riesgo-factor${f.puntos === 0 ? ' meta' : ''}"${plegar && i >= FACTORES_VISIBLES ? ' data-extra' : ''}>${ic(f.icono || 'dot')}<span>${esc(f.label)}</span></li>`).join('')
       : `<li class="riesgo-factor">${ic('check-circle')}<span>Sin señales de atención en los datos registrados</span></li>`;
+    const btn = document.getElementById('riesgoVerTodos');
+    if (btn) { btn.hidden = !plegar; btn.dataset.total = r.factores.length; }
+    aplicarFactoresRiesgo();
   }
 
 }
+
+// Factores del índice de atención: los 3 primeros abiertos; el resto, con «Ver todos». Se recuerda al cambiar de pestaña.
+const FACTORES_VISIBLES = 3;
+let _factoresAbiertos = false;
+function aplicarFactoresRiesgo() {
+  const btn = document.getElementById('riesgoVerTodos');
+  document.querySelectorAll('#riesgoFactores [data-extra]').forEach(li => { li.hidden = !_factoresAbiertos; });
+  if (!btn || btn.hidden) return;
+  btn.setAttribute('aria-expanded', _factoresAbiertos ? 'true' : 'false');
+  btn.innerHTML = _factoresAbiertos ? 'Ver menos' + ic('chev', 'ic-sm rot180')
+    : 'Ver todos (' + btn.dataset.total + ')' + ic('chev', 'ic-sm');
+}
+function toggleFactoresRiesgo() { _factoresAbiertos = !_factoresAbiertos; aplicarFactoresRiesgo(); }
 
 // ── Alertas en dashboard ──
 function renderAlertas(map) {
@@ -6124,12 +6202,12 @@ function renderGuiaFase(faseId) {
     '<div class="guia-section" data-tone="' + tone + '"><h4 class="eyebrow">' + ic(icono, 'ic-sm') + titulo + '</h4>' + contenido + '</div>';
   wrap.innerHTML =
     '<div class="fold">' +
-      '<button type="button" class="fold-btn" onclick="toggleGuiaFase(this)" aria-expanded="false" aria-controls="guiaFasePanel">' +
+      '<button type="button" class="fold-btn" onclick="toggleGuiaFase(this)" aria-expanded="' + !!_foldAbierto.guiaFasePanel + '" aria-controls="guiaFasePanel">' +
         '<span class="tile tile-sm" data-tone="' + (FASE_TONO[faseId] || 'slate') + '">' + ic('book') + '</span>' +
         '<span class="fold-title">Guía de intervención<span class="fold-sub">' + esc(guia.label) + '</span></span>' +
         '<span class="fold-chev">' + ic('chev') + '</span>' +
       '</button>' +
-      '<div class="fold-panel fase-guia" id="guiaFasePanel"><div class="fold-inner"><div class="fold-body">' +
+      '<div class="fold-panel fase-guia' + (_foldAbierto.guiaFasePanel ? ' open' : '') + '" id="guiaFasePanel"><div class="fold-inner"><div class="fold-body">' +
         '<p class="guia-estado">' + esc(guia.estado) + '</p>' +
         '<div style="margin-top:20px">' +
         seccion('check-circle', 'ok', 'Qué debe garantizar el RE/RP', lista(guia.garantizar)) +
@@ -6322,7 +6400,7 @@ function calcMatriz() {
   if (!allSet) {
     if (resEl) resEl.className = 'card mz-resultado';
     var nF = Object.values(s).filter(function(v){ return v === null; }).length;
-    if (decEl) decEl.textContent = decisionPendienteTxt(nF);
+    if (decEl) decEl.textContent = decisionPendienteTxt(nF).replace(' \u00b7 ', '\u00a0\u00b7 ');
     if (desEl) desEl.textContent = criteriosFaltanTxt(s);
     var cs = document.getElementById('checklistSection');
     if (cs) cs.style.display = 'none';
@@ -6515,15 +6593,15 @@ function actualizarSenalesResult() {
 const SEMAFORO_CONFIG = {
   verde: {
     cls: 'semaforo-verde', title: 'Seguimiento normal',
-    accion: '<strong>Seguimiento normal.</strong> Las señales comparables no muestran caídas ni puntuaciones bajas. Buen momento para acordar un nuevo reto y hablar de objetivos: «¿Dónde quieres estar dentro de un mes?»'
+    accion: 'Las señales comparables no muestran caídas ni puntuaciones bajas. Buen momento para acordar un nuevo reto y hablar de objetivos: «¿Dónde quieres estar dentro de un mes?»'
   },
   amarillo: {
     cls: 'semaforo-amarillo', title: 'Seguimiento reforzado',
-    accion: '<strong>Seguimiento reforzado.</strong> Hay alguna señal de atención. Conviene hablar esta semana con el captador/a sobre cómo se ve en el equipo y qué necesita, y revisar estas señales en la próxima sesión.'
+    accion: 'Hay alguna señal de atención. Conviene hablar esta semana con el captador/a sobre cómo se ve en el equipo y qué necesita, y revisar estas señales en la próxima sesión.'
   },
   rojo: {
     cls: 'semaforo-rojo', title: 'Seguimiento prioritario',
-    accion: '<strong>Seguimiento prioritario.</strong> Conviene hablar con el captador/a en los próximos días, sin esperar a la próxima sesión programada, para entender qué está pasando.'
+    accion: 'Conviene hablar con el captador/a en los próximos días, sin esperar a la próxima sesión programada, para entender qué está pasando.'
   },
 };
 
@@ -6993,9 +7071,9 @@ function renderLMI() {
       '</div>' +
       (resto.length ? '<ol class="lmi-rest" start="2">' + resto.map((item, i) =>
         '<li class="lmi-item">' +
-          '<span class="lmi-num" aria-hidden="true">' + (i + 2) + '</span>' +
+          '<div class="lmi-rest-top"><span class="lmi-num" aria-hidden="true">' + (i + 2) + '</span>' +
+            '<h3 class="lmi-titulo">' + esc(item.titulo) + '</h3></div>' +
           '<div class="lmi-content">' +
-            '<h3 class="lmi-titulo">' + esc(item.titulo) + '</h3>' +
             '<p class="lmi-desc">' + esc(item.desc) + '</p>' + notasLMI(item) +
             (item.revision ? '<p class="lmi-revision">' + ic('check-circle', 'ic-sm') + '<span><strong>Revisar la próxima vez:</strong> ' + esc(item.revision) + '</span></p>' : '') +
             '<div style="margin-top:8px">' + urgencia(item.urgencia) + '</div>' +
@@ -7017,6 +7095,7 @@ function toggleGuiaFase(btn) {
   const panel = document.getElementById(btn.getAttribute('aria-controls')) || btn.nextElementSibling;
   if (!panel) return;
   const open = panel.classList.toggle('open');
+  if (panel.id) _foldAbierto[panel.id] = open;
   btn.setAttribute('aria-expanded', open ? 'true' : 'false');
 }
 
