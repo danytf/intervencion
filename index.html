@@ -338,7 +338,9 @@ input[type=date]{scroll-margin-top:96px;}
 .escala-ref-nota b{color:var(--ink-2);}
 .score-group-n{display:block;font-family:var(--font-body);font-size:var(--t-xs);font-weight:500;color:var(--ink-3);margin-top:2px;}
 .score-row{flex-wrap:wrap;}
-.score-sig{flex-basis:100%;font-size:var(--t-xs);color:var(--ink-2);line-height:1.4;}
+.score-obs{flex-basis:100%;order:1;font-size:var(--t-xs);color:var(--ink-3);line-height:1.45;margin-top:-2px;}
+.score-obs:empty{display:none;}
+.score-sig{flex-basis:100%;order:2;font-size:var(--t-xs);color:var(--ink-2);line-height:1.4;}
 .score-sig:empty{display:none;}
 
 /* ---------- Píldoras de puntuación y estado (fondo suave, nunca texto blanco sobre color) ---------- */
@@ -779,6 +781,7 @@ span.estado-item{border-style:dashed;}
   .score-row{flex-wrap:wrap;row-gap:0;padding:var(--s-3) var(--s-4) var(--s-2);}
   .score-row-label{flex:1 1 0;min-width:0;font-size:var(--t-md);}
   .score-val{order:2;flex-shrink:0;}
+  .score-obs{order:2;margin-top:0;}
   .score-sig{order:4;margin-top:2px;}
   .score-stars{order:3;flex:1 1 100%;justify-content:space-between;margin-top:4px;}
   .score-star{flex:1;width:auto;}
@@ -2066,6 +2069,24 @@ const scores = {};
 // Escala 1–5 con anclajes de conducta (también en la Ayuda). 0 = no observado: no es una puntuación baja.
 const ESCALA = { 1:'Lo intenta y no le sale, o con errores graves casi siempre', 2:'A veces, con errores frecuentes',
   3:'En la mayoría de los intentos, con errores menores', 4:'Con soltura casi siempre', 5:'Con soltura y adaptándose a cada situación o persona' };
+// Qué observar en cada variable (contenido validado; ayuda para observar, no indica qué puntuación poner)
+const QUE_OBSERVAR = {
+  t_0: 'Se acerca con iniciativa y consigue que la persona se detenga para escuchar.',
+  t_1: 'Explica el proyecto con la estructura de referencia, con un tono cercano y adaptado a la persona.',
+  t_2: 'Ante una objeción, responde de forma adecuada y retoma la conversación sin perder el hilo.',
+  t_3: 'Plantea la colaboración de forma clara y oportuna, sin presión.',
+  h_0: 'Llega a la hora acordada y comienza la actividad sin retrasos.',
+  h_1: 'Mantiene un ritmo y una ejecución adecuados cuando no está acompañado.',
+  h_2: 'Ante un desacuerdo o una situación de tensión, mantiene la calma y busca resolverlo o comunicarlo adecuadamente.',
+  h_3: 'Tras varios rechazos, mantiene una actitud adecuada de captación y evita trasladar al equipo comentarios derrotistas.',
+  h_4: 'Conoce los criterios Wesser relevantes para su actividad y los aplica correctamente.',
+  h_5: 'Se relaciona y trabaja adecuadamente con sus compañeros, favoreciendo una dinámica de trabajo fluida y respetuosa.',
+  h_6: 'Pone en práctica en campo las correcciones acordadas en la sesión anterior.',
+  h_7: 'Mantiene una presentación personal acorde con la imagen y las normas de la organización.',
+  h_8: 'Aplica buenas prácticas durante la captación, siguiendo el proceso establecido y evitando conductas de mala praxis.',
+  h_9: 'Aprovecha adecuadamente el tiempo de captación y evita pausas o interrupciones innecesarias.',
+  h_10: 'Mantiene un rendimiento relativamente estable entre jornadas, salvo variaciones explicables.',
+};
 function buildScoreRow(container, vars, prefix) {
   vars.forEach(function(v, i) {
     var key = prefix + '_' + i;
@@ -2083,6 +2104,7 @@ function buildScoreRow(container, vars, prefix) {
     starsDiv.className = 'score-stars';
     starsDiv.setAttribute('role', 'group');
     starsDiv.setAttribute('aria-labelledby', labelDiv.id);
+    if (QUE_OBSERVAR[key]) starsDiv.setAttribute('aria-describedby', 'scoreobs_' + key);
     [1,2,3,4,5].forEach(function(n) {
       var s = document.createElement('button');
       s.type = 'button';
@@ -2110,9 +2132,16 @@ function buildScoreRow(container, vars, prefix) {
     sigDiv.className = 'score-sig';
     sigDiv.id = 'scoresig_' + key;
 
+    // Qué observar: bajo el nombre de la variable
+    var obsDiv = document.createElement('p');
+    obsDiv.className = 'score-obs';
+    obsDiv.id = 'scoreobs_' + key;
+    obsDiv.textContent = QUE_OBSERVAR[key] || '';
+
     row.appendChild(labelDiv);
     row.appendChild(valDiv);
     row.appendChild(starsDiv);
+    row.appendChild(obsDiv);
     row.appendChild(sigDiv);
     container.appendChild(row);
   });
