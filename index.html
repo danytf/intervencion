@@ -878,6 +878,7 @@ input[type=date]{scroll-margin-top:96px;}
       <div class="hdr-dropdown" id="hdrDropdown">
         <button type="button" class="hdr-drop-item" onclick="cerrarHdrMenu();nuevaSesion()"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg><span class="hdr-drop-label">Nueva sesión de este captador/a</span></button>
         <button type="button" class="hdr-drop-item" onclick="cerrarHdrMenu();nuevaFicha()"><svg class="ic" aria-hidden="true"><use href="#i-user"/></svg><span class="hdr-drop-label">Nuevo captador/a</span></button>
+        <button type="button" class="hdr-drop-item" onclick="cerrarHdrMenu();descartarCambios()"><svg class="ic" aria-hidden="true"><use href="#i-x-circle"/></svg><span class="hdr-drop-label">Descartar cambios sin guardar</span></button>
         <button type="button" class="hdr-drop-item" onclick="cerrarHdrMenu();abrirHistorial()"><svg class="ic" aria-hidden="true"><use href="#i-clock"/></svg><span class="hdr-drop-label">Historial</span><span class="hdr-drop-badge" id="fichaCount">0</span></button>
         <div class="hdr-drop-sep"></div>
         <button type="button" class="hdr-drop-item" onclick="cerrarHdrMenu();abrirRecursosDesdeMenu()"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg><span class="hdr-drop-label">Recursos</span></button>
@@ -2356,7 +2357,7 @@ function recopilarDatos() {
   return d;
 }
 
-function cargarDatos(data) {
+function cargarDatos(data, opts) {
   _isLoading = true;
   if(!data) return;
   ['captador','responsable','provincia','antiguedad','fecha','estado','nip','fechainicio'].forEach(k => { const el=document.getElementById('d_'+k); if(el) el.value=data[k]||''; });
@@ -2386,7 +2387,8 @@ function cargarDatos(data) {
   try{renderRiesgoCard();}catch(e){}
   // Limpiar flag unsaved
   _isLoading = false;  // Permitir autoguardar normal de nuevo
-  setTimeout(()=>{ _hasUnsavedChanges=false; const dot=document.getElementById('unsavedDot'); if(dot)dot.classList.remove('visible'); const st=document.getElementById('statusText'); if(st)st.classList.remove('unsaved'); },50);
+  setTimeout(()=>{ _hasUnsavedChanges=false; const dot=document.getElementById('unsavedDot'); if(dot)dot.classList.remove('visible'); const st=document.getElementById('statusText'); if(st)st.classList.remove('unsaved');
+    if (opts && opts.pendiente) { marcarCambiosPendientes(); if (st) st.textContent = 'Borrador restaurado · sin guardar'; } },50);
   try{ actualizarDots(); }catch(e){}
   try{ contarCampos(); }catch(e){}
   try{ renderDiagnostico(); }catch(e){}
@@ -2396,15 +2398,47 @@ function cargarDatos(data) {
 }
 
 // ── AUTOSAVE (sesión) ──
+// ── BORRADOR ──
+// Copia de lo que hay en el formulario sin guardar. Vive en el almacenamiento del navegador (no en el de la pestaña):
+// en iPhone, Safari no avisa al cerrar y borra el de la pestaña, y el trabajo se perdía. Sigue siendo un borrador:
+// al abrir se ofrece restaurarlo o descartarlo, y se elimina al guardar, al descartar o al cargar otra sesión.
+const BORRADOR_KEY = 'wesser_borrador';
+function guardarBorrador() {
+  try { localStorage.setItem(BORRADOR_KEY, JSON.stringify({ datos: recopilarDatos(), id: AppState.lastLoadedId || '', at: new Date().toISOString() })); } catch(e) {}
+}
+function leerBorrador() {
+  try {
+    const b = JSON.parse(localStorage.getItem(BORRADOR_KEY) || 'null');
+    if (b && esObjeto(b.datos)) return b;
+  } catch(e) {}
+  try {   // borrador de pestaña de versiones anteriores
+    const d = JSON.parse(sessionStorage.getItem(BORRADOR_KEY) || 'null');
+    if (esObjeto(d)) return { datos: d, id: sessionStorage.getItem(BORRADOR_KEY + '_id') || '', at: null };
+  } catch(e) {}
+  return null;
+}
+function borrarBorrador() {
+  try { localStorage.removeItem(BORRADOR_KEY); } catch(e) {}
+  try { sessionStorage.removeItem(BORRADOR_KEY); sessionStorage.removeItem(BORRADOR_KEY + '_id'); } catch(e) {}
+}
+// Descartar a propósito lo que no se ha guardado: vuelve a la sesión guardada (o a un formulario vacío si no lo estaba)
+function descartarCambios() {
+  if (!_hasUnsavedChanges) { toast('No hay cambios sin guardar.'); return; }
+  if (!confirm('¿Descartar los cambios sin guardar? Se perderán y no se podrán recuperar.')) return;
+  borrarBorrador();
+  _hasUnsavedChanges = false;
+  const id = AppState.lastLoadedId;
+  if (id && cargarFichas().some(f => f._id === id)) { cargarFichaEnFormulario(id); toast('Cambios descartados: se ha vuelto a la sesión guardada.'); }
+  else { limpiarFormulario(); trasLimpiar('Cambios descartados'); }
+}
+
 function autoguardar() {
   marcarCambiosPendientes();
-  try { sessionStorage.setItem('wesser_borrador', JSON.stringify(recopilarDatos())); sessionStorage.setItem('wesser_borrador_id', AppState.lastLoadedId || ''); } catch(e){}
-  // Solo actualizar statusText si no hay mensaje de guardado reciente
-  if (!_hasUnsavedChanges || document.getElementById('statusText')?.classList.contains('saved')) {
-    const now = new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
-    const el = document.getElementById('statusText');
-    if(el && !el.classList.contains('saved')) el.textContent = `Sin guardar · ${now}`;
-  }
+  if (!_isLoading) guardarBorrador();
+  // Estado en la cabecera (salvo mientras se muestra un mensaje de guardado reciente)
+  const el = document.getElementById('statusText');
+  if (el && !_isLoading && !el.classList.contains('saved'))
+    el.textContent = 'Sin guardar · ' + new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
   try{contarCampos();}catch(e){}
   try{actualizarDots();}catch(e){}
   try{renderDiagnostico();}catch(e){console.error('diag error:',e);}
@@ -2612,6 +2646,7 @@ function cargarFichaEnFormulario(id) {
   if (_hasUnsavedChanges && !confirm('Hay cambios sin guardar en el formulario. ¿Cargar otra sesión igualmente? Esos cambios se perderán.')) return false;
   const ficha = cargarFichas().find(f => f._id === id);
   if(!ficha) return false;
+  borrarBorrador();   // el responsable ha aceptado perder lo que no estaba guardado
   AppState.lastLoadedId = id;
   AppState.faseCongelada = true;   // consultar no modifica: se respeta la fase guardada
   cargarDatos(ficha);
@@ -2632,7 +2667,7 @@ function limpiarFormulario() {
   AppState.notasAnteriores = {};
   AppState.revisionAnterior = '';
   _hasUnsavedChanges = false;
-  try{ sessionStorage.removeItem('wesser_borrador'); sessionStorage.removeItem('wesser_borrador_id'); }catch(e){}
+  borrarBorrador();
   document.querySelectorAll('main input[type=text],main input[type=date],main textarea').forEach(el=>el.value='');
   const est = document.getElementById('d_estado'); if (est) est.value = '';
   Object.keys(scores).forEach(k=>{scores[k]=0;renderStars(k);});
@@ -2659,7 +2694,9 @@ function trasLimpiar(msg) {
 }
 
 function nuevaFicha() {
-  if(!confirm('¿Limpiar el formulario para empezar con un captador/a nuevo?')) return;
+  if(!confirm(_hasUnsavedChanges
+    ? 'Hay cambios sin guardar en esta sesión. ¿Empezar con un captador/a nuevo igualmente? Esos cambios se perderán.'
+    : '¿Limpiar el formulario para empezar con un captador/a nuevo?')) return;
   limpiarFormulario();
   trasLimpiar('Formulario listo para un captador/a nuevo');
 }
@@ -6585,7 +6622,7 @@ function marcarCambiosPendientes() {
 
 function marcarGuardado(msg) {
   _hasUnsavedChanges = false;
-  try { sessionStorage.removeItem('wesser_borrador'); sessionStorage.removeItem('wesser_borrador_id'); } catch(e) {}
+  borrarBorrador();
   const dot = document.getElementById('unsavedDot');
   const st  = document.getElementById('statusText');
   const btn = document.getElementById('btnGuardar');
@@ -6652,25 +6689,18 @@ document.addEventListener('DOMContentLoaded',()=>{
   buildFases();
   actualizarContador();
   try {
-    const s = sessionStorage.getItem('wesser_borrador');
-    if (s) {
-      const b = JSON.parse(s);
-      // Solo restaurar si hay datos reales (nombre o NIP relleno)
-      if (b && (b.captador||'').trim()) {
-        const restaurar = confirm(
-          `Hay un borrador sin guardar de "${b.captador}".
-
-¿Restaurar el borrador?`
-        );
-        if (restaurar) {
-          const bid = sessionStorage.getItem('wesser_borrador_id');
-          if (bid && cargarFichas().some(f => f._id === bid)) { AppState.lastLoadedId = bid; AppState.faseCongelada = true; }
-          cargarDatos(b);
-        }
-        else { sessionStorage.removeItem('wesser_borrador'); sessionStorage.removeItem('wesser_borrador_id'); }
-      }
+    const bor = leerBorrador();
+    // Solo si hay datos reales (nombre del captador/a)
+    if (bor && (bor.datos.captador || '').trim()) {
+      const b = bor.datos;
+      const cuando = bor.at && !isNaN(new Date(bor.at)) ? ' (último cambio: ' + new Date(bor.at).toLocaleString('es-ES', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) + ')' : '';
+      if (confirm(`Hay un borrador sin guardar de "${String(b.captador).trim().slice(0, 100)}"${cuando}.\n\nAceptar: recuperarlo y seguir editando (seguirá sin guardar hasta que pulses Guardar).\nCancelar: descartarlo.`)) {
+        if (bor.id && cargarFichas().some(f => f._id === bor.id)) { AppState.lastLoadedId = bor.id; AppState.faseCongelada = true; }
+        cargarDatos(b, { pendiente: true });   // restaurado ≠ guardado: queda como cambio pendiente
+        guardarBorrador();                     // y pasa al almacenamiento del navegador si venía de la pestaña
+      } else borrarBorrador();
     }
-  } catch(e) { sessionStorage.removeItem('wesser_borrador'); }
+  } catch(e) { borrarBorrador(); }
   if(!document.getElementById('d_fecha').value) document.getElementById('d_fecha').value=aISO(new Date());
   contarCampos(); actualizarDots(); actualizarModoSesion();
   aplicarTema();
