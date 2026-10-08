@@ -574,6 +574,10 @@ input[type=date]{scroll-margin-top:96px;}
 /* Registro de la sesión (Acompañamiento) */
 .registro-campos{display:flex;flex-direction:column;gap:var(--s-4);}
 .registro-campos .eyebrow-row{margin:0;}
+.registro-campos .field > .meta{margin-top:6px;}
+.revision-anterior{margin-bottom:var(--s-5);padding-bottom:var(--s-4);border-bottom:1px solid var(--line);}
+.revision-anterior .registro-txt{margin:var(--s-2) 0 var(--s-3);}
+.revision-pregunta{font-size:var(--t-sm);font-weight:600;color:var(--ink);margin-bottom:var(--s-2);}
 .registro-anterior{margin-top:var(--s-5);padding-top:var(--s-4);border-top:1px solid var(--line);}
 .registro-txt dt{font-family:var(--font-brand);font-size:11.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);margin-top:var(--s-2);}
 .registro-txt dt:first-child{margin-top:0;}
@@ -1062,9 +1066,24 @@ input[type=date]{scroll-margin-top:96px;}
         <span class="tile tile-sm" data-tone="slate"><svg class="ic" aria-hidden="true"><use href="#i-pencil"/></svg></span>
         <div class="card-head-text"><h2 class="card-title" id="h-registro">Registro de la sesión</h2><p class="card-sub">Se guarda con la fecha de intervención y aparece en el historial</p></div>
       </div>
+      <!-- Revisión de lo que quedó pendiente en la sesión anterior: cierra el ciclo entre sesiones -->
+      <div class="revision-anterior" id="revisionAnterior" hidden>
+        <p class="eyebrow" id="h-revision">Revisión de la sesión anterior</p>
+        <div id="revisionAnteriorCtx"></div>
+        <p class="revision-pregunta" id="revisionPregunta">¿Qué hacemos con lo que se trabajó?</p>
+        <div class="seg" role="group" aria-labelledby="revisionPregunta" id="revisionSeg">
+          <button type="button" class="seg-btn" data-rev="mantener" aria-pressed="false" onclick="setRevisionAnterior('mantener')">Mantener</button>
+          <button type="button" class="seg-btn" data-rev="ajustar" aria-pressed="false" onclick="setRevisionAnterior('ajustar')">Ajustar</button>
+          <button type="button" class="seg-btn" data-rev="cerrar" aria-pressed="false" onclick="setRevisionAnterior('cerrar')">Cerrar</button>
+        </div>
+      </div>
       <div class="registro-campos">
         <div class="field"><label for="reg_observe">Qué observé</label>
           <textarea id="reg_observe" class="input" placeholder="Hechos observados en campo…" oninput="autoguardar()"></textarea></div>
+        <div class="field">
+          <div class="eyebrow-row"><label for="reg_lectura">Mi lectura</label><button type="button" class="btn btn-tinted btn-sm" onclick="usarLecturaSugerida()"><svg class="ic" aria-hidden="true"><use href="#i-bulb"/></svg>Usar lectura sugerida</button></div>
+          <textarea id="reg_lectura" class="input" placeholder="Qué creo que está pasando (hipótesis, no conclusión)…" aria-describedby="reg_lectura_ayuda" oninput="autoguardar()"></textarea>
+          <p class="meta" id="reg_lectura_ayuda">Tu interpretación de lo observado. La lectura de la herramienta es una propuesta: úsala como punto de partida si te sirve.</p></div>
         <div class="field">
           <div class="eyebrow-row"><label for="reg_trabajo">Qué trabajamos</label><button type="button" class="btn btn-tinted btn-sm" onclick="abrirPlantillasFase(faseSelected, this)"><svg class="ic" aria-hidden="true"><use href="#i-clipboard"/></svg>Plantillas</button></div>
           <textarea id="reg_trabajo" class="input" placeholder="Qué se trabajó en la sesión…" oninput="autoguardar()"></textarea></div>
@@ -2104,6 +2123,7 @@ function abrirPlantillasFase(faseId, opener) {
 // se muestran como solo lectura y se vuelven a guardar tal cual.
 const REGISTRO_CAMPOS = [
   { k:'reg_observe',   label:'Qué observé' },
+  { k:'reg_lectura',   label:'Mi lectura' },
   { k:'reg_trabajo',   label:'Qué trabajamos' },
   { k:'reg_acuerdo',   label:'Qué acordamos' },
   { k:'reg_siguiente', label:'Siguiente paso' },
@@ -2139,6 +2159,92 @@ function renderRegistroAnterior() {
     : '';
 }
 
+// ── MI LECTURA Y TRAZABILIDAD ──
+// Evidencia (qué observé, puntuaciones) → lectura sugerida por las reglas → mi lectura (la del responsable)
+// → qué trabajamos / acordamos / siguiente paso → en la sesión siguiente: mantener, ajustar o cerrar.
+const REVISION_OPCIONES = { mantener:'Mantener', ajustar:'Ajustar', cerrar:'Cerrar' };
+function setRevisionAnterior(v) {
+  AppState.revisionAnterior = AppState.revisionAnterior === v ? '' : v;   // pulsar la opción marcada la desmarca
+  pintarRevisionAnterior();
+  autoguardar();
+}
+function pintarRevisionAnterior() {
+  document.querySelectorAll('#revisionSeg .seg-btn').forEach(b =>
+    b.setAttribute('aria-pressed', b.dataset.rev === AppState.revisionAnterior ? 'true' : 'false'));
+}
+// Muestra lo que quedó pendiente en la sesión anterior de esta persona (anterior por fecha a la del formulario)
+function renderRevisionAnterior() {
+  const wrap = document.getElementById('revisionAnterior');
+  const ctx = document.getElementById('revisionAnteriorCtx');
+  if (!wrap || !ctx) return;
+  const data = recopilarDatos();
+  const previas = data.captador.trim() ? sesionesAnterioresA(data.captador.trim(), data) : [];
+  const prev = previas[previas.length - 1];
+  wrap.hidden = !prev && !AppState.revisionAnterior;
+  pintarRevisionAnterior();
+  if (!prev) { ctx.innerHTML = ''; return; }
+  const pendiente = ['reg_acuerdo', 'reg_siguiente'].map(k => REGISTRO_CAMPOS.find(c => c.k === k))
+    .map(({k, label}) => ({ label, texto: (prev[k] || '').trim() })).filter(x => x.texto);
+  const fecha = formatFecha(aISO(getFechaIntervencion(prev)));
+  ctx.innerHTML = pendiente.length
+    ? '<p class="meta">Sesión del ' + esc(fecha) + '</p>' + registroHtml(pendiente)
+    : '<p class="meta" style="margin:8px 0 12px">La sesión del ' + esc(fecha) + ' no dejó registrado un acuerdo ni un siguiente paso.</p>';
+}
+// Copia en «Mi lectura» la lectura que sugieren las reglas con los datos actuales, para editarla
+function usarLecturaSugerida() {
+  const ta = document.getElementById('reg_lectura');
+  if (!ta) return;
+  const data = recopilarDatos();
+  const previas = data.captador.trim() ? sesionesAnterioresA(data.captador.trim(), data) : [];
+  const diag = diagnosticar(data, previas);
+  if (!diag || diag.datosInsuficientes) {
+    toast(diag && diag.sinFase
+      ? 'Aún no hay lectura sugerida: falta la fecha de comienzo para calcular la fase.'
+      : 'Aún no hay lectura sugerida: puntúa en Evaluación al menos 4 variables que hayas observado.', {ms:4500});
+    return;
+  }
+  const texto = diag.diagnostico.texto;
+  if (ta.value.trim() === texto) { ta.focus(); return; }
+  if (ta.value.trim() && !confirm('«Mi lectura» ya tiene texto. ¿Sustituirlo por la lectura sugerida?')) return;
+  ta.value = texto;
+  autoguardar();
+  ta.focus();
+  toast('Lectura sugerida copiada (' + diag.tipo + '). Ajústala a lo que has visto.', {ms:4000});
+}
+// Lectura que sugirió la herramienta, congelada al guardar: si las reglas cambian en otra versión,
+// la sesión sigue mostrando la que se propuso entonces
+function lecturaSugeridaDe(data) {
+  const previas = data.captador.trim() ? sesionesAnterioresA(data.captador.trim(), data) : [];
+  const diag = diagnosticar(data, previas);
+  if (!diag) return null;
+  return { regla: diag.regla, tipo: diag.tipo, texto: diag.diagnostico.texto };
+}
+// Lectura sugerida de lo que hay en el formulario: la congelada de la sesión cargada si su evidencia no ha cambiado
+function lecturaSugeridaFormulario(d) {
+  const orig = AppState.lastLoadedId ? cargarFichas().find(f => f._id === AppState.lastLoadedId) : null;
+  if (orig && orig.lecturaSugerida && firmaEvidencia(orig) === firmaEvidencia(d)) return orig.lecturaSugerida;
+  return lecturaSugeridaDe(d);
+}
+// Lo que alimenta las reglas: si no cambia, una edición de la sesión conserva la lectura sugerida original
+function firmaEvidencia(d) {
+  const o = { fase: d.faseSelected || null, fecha: d.fecha || '', inicio: d.fechainicio || '' };
+  Object.keys(ALL_VARS_LABELS).forEach(k => o[k] = d[k] || 0);
+  for (let i = 1; i <= 5; i++) o['c' + i] = d['c' + i] || '';
+  return JSON.stringify(o);
+}
+// Registro completo de una sesión para el historial y el PDF: revisión de la anterior, evidencia,
+// lectura sugerida (congelada), mi lectura e intervención, cada una por separado
+function registroConContexto(d) {
+  const items = registroDe(d);
+  const ls = d && d.lecturaSugerida;
+  if (ls && ls.texto) {
+    const tras = items.findIndex(x => x.label === 'Qué observé');
+    items.splice(tras + 1, 0, { label: 'Lectura sugerida por la herramienta · ' + ls.tipo, texto: ls.texto, sugerida: true });
+  }
+  if (d && REVISION_OPCIONES[d.revisionAnterior]) items.unshift({ label: 'Revisión de la sesión anterior', texto: REVISION_OPCIONES[d.revisionAnterior] });
+  return items;
+}
+
 // ── TABS ──
 let currentTab=0;
 function goTab(i) {
@@ -2163,7 +2269,7 @@ function goTab(i) {
   // La decisión está al final de Diagnóstico: los criterios solo se proponen con «Sugerir desde la evaluación»,
   // para que ninguna decisión se guarde sin que el responsable la haya visto
   if(i===3){ try{ renderDiagnostico(); }catch(e){} }
-  if(i===2){ try{ renderFaseDisplay(faseSelected); }catch(e){} }
+  if(i===2){ try{ renderFaseDisplay(faseSelected); }catch(e){} try{ renderRevisionAnterior(); }catch(e){} }
   AppState.currentTab = i;
   if (cambia) { const lb = document.querySelector('#maintab' + i + ' .lb-long')?.textContent; if (lb) anunciar('Sección ' + lb); }
   try { window.scrollTo({top:0,behavior:'instant'}); } catch(e){ window.scrollTo(0,0); }
@@ -2225,6 +2331,7 @@ function recopilarDatos() {
   // Registro de la sesión; las notas del formato anterior de una ficha cargada se conservan tal cual
   REGISTRO_CAMPOS.forEach(({k}) => d[k] = document.getElementById(k)?.value||'');
   Object.assign(d, AppState.notasAnteriores);
+  d.revisionAnterior = AppState.revisionAnterior || '';
   // Matriz de decisión y checklist pre-despido de esta intervención
   d.decisionMatrix = copiaMatriz(matrizState);
   d.decisionResult = resultadoMatriz(d.decisionMatrix);
@@ -2251,7 +2358,9 @@ function cargarDatos(data) {
   else { faseSelected=null; FASES.forEach(f=>{ const r=document.getElementById('radio_'+f.id); if(r)r.checked=false; document.getElementById('frow_'+f.id)?.classList.remove('selected-fase'); }); }
   REGISTRO_CAMPOS.forEach(({k}) => { const el=document.getElementById(k); if(el) el.value=data[k]||''; });
   AppState.notasAnteriores = notasAnterioresDe(data);
+  AppState.revisionAnterior = REVISION_OPCIONES[data.revisionAnterior] ? data.revisionAnterior : '';
   try{ renderRegistroAnterior(); }catch(e){}
+  try{ renderRevisionAnterior(); }catch(e){}
   // Sincronizar tras carga
   try{if(faseSelected)renderFaseDisplay(faseSelected);}catch(e){}
   try{ _senalesFase = null; if(faseSelected)renderSenales(faseSelected);}catch(e){}
@@ -2290,6 +2399,7 @@ function autoguardar() {
   try{actualizarDiasFase();}catch(e){}
   try{calcMatriz();}catch(e){}
   try{actualizarModoSesion();}catch(e){}
+  try{renderRevisionAnterior();}catch(e){}
 }
 
 // ── FICHAS (localStorage), con varias pestañas abiertas ──
@@ -2415,16 +2525,29 @@ function guardarFicha() {
   data.nip = (data.nip||'').trim().slice(0,30);
   const fichas=cargarFichas();
   const idx = AppState.lastLoadedId ? fichas.findIndex(f => f._id === AppState.lastLoadedId) : -1;
-  let msg;
+  let msg, avisoLectura = '';
   if (idx >= 0) {
     const orig = fichas[idx];
     data._id = orig._id;
     data._savedAt = orig._savedAt;   // alta de la sesión; la edición queda aparte
     data._editedAt = new Date().toISOString();
+    // La lectura sugerida se congela al guardar: corregir textos no la cambia; cambiar la evidencia sí,
+    // porque la sugerencia anterior ya no corresponde a los datos
+    const mismaEvidencia = firmaEvidencia(orig) === firmaEvidencia(data);
+    if (mismaEvidencia) { if (orig.lecturaSugerida) data.lecturaSugerida = orig.lecturaSugerida; }
+    else {
+      const ls = lecturaSugeridaDe(data);
+      if (ls) data.lecturaSugerida = ls;
+      const antes = orig.lecturaSugerida && orig.lecturaSugerida.regla;
+      if (antes && (!ls || ls.regla !== antes) && (data.reg_lectura || '').trim())
+        avisoLectura = 'Sesión actualizada. Con los datos corregidos la lectura sugerida ha cambiado: revisa «Mi lectura».';
+    }
     invalidarCache();
     fichas[idx] = data;
     msg = `Sesión de "${data.captador}" actualizada`;
   } else {
+    const ls = lecturaSugeridaDe(data);
+    if (ls) data.lecturaSugerida = ls;
     const mismoDia = fichas.some(f => claveIdentidad(f) === claveIdentidad(data) && f.fecha && f.fecha === data.fecha);
     if (mismoDia && !confirm(`Ya hay una sesión de "${data.captador}" con fecha ${formatFecha(data.fecha)}. ¿Guardar otra sesión ese mismo día?\n\nSi querías corregir esa sesión, cárgala desde Equipo › Historial y pulsa «Actualizar».`)) return;
     data._id=Date.now().toString();
@@ -2437,6 +2560,7 @@ function guardarFicha() {
   AppState.lastLoadedId = data._id;
   actualizarContador();
   marcarGuardado(msg);
+  if (avisoLectura) toast(avisoLectura, {ms:6000});
   actualizarModoSesion();
   renderDiagnostico();
   try{ renderHistorialTab(); }catch(e){} populateEvoSelect(); renderDashboard();
@@ -2490,6 +2614,7 @@ function limpiarFormulario() {
   AppState.lastLoadedId = null;
   AppState.faseCongelada = false;
   AppState.notasAnteriores = {};
+  AppState.revisionAnterior = '';
   _hasUnsavedChanges = false;
   try{ sessionStorage.removeItem('wesser_borrador'); sessionStorage.removeItem('wesser_borrador_id'); }catch(e){}
   document.querySelectorAll('main input[type=text],main input[type=date],main textarea').forEach(el=>el.value='');
@@ -2510,6 +2635,7 @@ function trasLimpiar(msg) {
   try{ renderFaseDisplay(faseSelected); renderGuiaFase(faseSelected); }catch(e){}
   try{ refrescarListas(); }catch(e){}
   try{ renderDiagnostico(); renderLMI(); renderRiesgoCard(); renderSemaforo(); }catch(e){}
+  try{ renderRevisionAnterior(); }catch(e){}
   const st=document.getElementById('statusText');
   if(st){ st.textContent=msg; st.classList.remove('unsaved'); }
   actualizarModoSesion(); contarCampos(); actualizarDots(); goTab(0);
@@ -2796,6 +2922,7 @@ function generarPDF(){
 
   // Datos
   const d = recopilarDatos();
+  d.lecturaSugerida = lecturaSugeridaFormulario(d);
   const captadorNombre = d.captador || 'captador';
   // Corte histórico: el informe representa la sesión del formulario. Solo entran las sesiones del captador hasta
   // ella (incluida), en el orden de la app: fecha de intervención y, el mismo día, momento de guardado.
@@ -3006,7 +3133,7 @@ function generarPDF(){
   y+=4;
 
   // Registro de la sesión (y notas guardadas con el formato anterior, si las hay)
-  const registro=registroDe(d);
+  const registro=registroConContexto(d);
   if(registro.length){ sec('REGISTRO DE LA SESI\u00d3N',ROJO);
     registro.forEach(r=>{ chk(10);
       doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(...GRIS);
@@ -4875,6 +5002,18 @@ function validarFichaImportada(f) {
     out.decisionResult = { regla: r.regla, cls: r.cls };
     if (r.sinBaseSalida) out.decisionResult.sinBaseSalida = true;
   }
+  // Trazabilidad de la lectura: revisión de la sesión anterior y lectura sugerida congelada al guardar
+  if (!ausente(f.revisionAnterior)) {
+    if (f.revisionAnterior !== '' && !Object.prototype.hasOwnProperty.call(REVISION_OPCIONES, f.revisionAnterior)) return { error: 'revisión de la sesión anterior no válida' };
+    out.revisionAnterior = f.revisionAnterior;
+  }
+  if (!ausente(f.lecturaSugerida)) {
+    const l = f.lecturaSugerida;
+    if (!esObjeto(l) || Object.keys(l).some(k => !['regla', 'tipo', 'texto'].includes(k)) ||
+        typeof l.regla !== 'string' || !/^R\d{1,2}b?$/.test(l.regla) ||
+        typeof l.tipo !== 'string' || l.tipo.length > 200 || typeof l.texto !== 'string' || l.texto.length > 3000) return { error: 'lectura sugerida no válida' };
+    out.lecturaSugerida = { regla: l.regla, tipo: l.tipo, texto: l.texto };
+  }
   if (!ausente(f.checklistDespido)) {
     const c = f.checklistDespido;
     if (!Array.isArray(c) || c.length > casillasChecklist().length || c.some(x => typeof x !== 'boolean')) return { error: 'checklist no válido' };
@@ -6275,7 +6414,7 @@ function renderHistorialTab() {
     const entries = sessions.map((f,idx) => {
       const tA=avgScores(f,'t',TECNICA_VARS.length), hA=avgScores(f,'h',HABITOS_VARS.length);
       const faseObj=FASES.find(x=>x.id===f.faseSelected);
-      const registro = registroDe(f);
+      const registro = registroConContexto(f);
       return `<div class="hist-entry">
         <div class="hist-entry-date">Sesión ${idx+1} · ${esc(formatFecha(f.fecha))} · guardada el ${formatSaved(f._savedAt)}</div>
         <div class="hist-entry-scores">
@@ -6363,6 +6502,7 @@ const AppState = {
   currentSubtab: 'equipo',
   lastLoadedId: null,
   notasAnteriores: {},     // notas del formato anterior de la ficha cargada (solo lectura, se conservan al guardar)
+  revisionAnterior: '',    // qué se hace con lo trabajado en la sesión anterior: mantener / ajustar / cerrar
   faseCongelada: false,   // ficha del historial cargada: su fase no se recalcula
   get hasUnsaved()  { return _hasUnsavedChanges; },
   get isLoading()   { return _isLoading; },
