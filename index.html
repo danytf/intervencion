@@ -1444,7 +1444,8 @@ function fechaISOValida(s) {
   return dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d;
 }
 function fechaLocal(iso) { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d); }
-function aISO(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+// Sin fecha (ficha sin fecha de intervención ni de guardado) → '', que formatFecha muestra como «—»
+function aISO(d) { if (!(d instanceof Date) || isNaN(d)) return ''; return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
 // Día natural como número entero (sin horas ni cambio de horario)
 function numeroDia(d) { return Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000); }
 // Fecha efectiva de una intervención: `fecha` si es válida; si no, `_savedAt`; null si no hay ninguna
