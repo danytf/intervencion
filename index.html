@@ -650,6 +650,7 @@ span.estado-item{border-style:dashed;}
 .hist-entry-date{font-size:var(--t-xs);font-weight:600;color:var(--ink-3);font-variant-numeric:tabular-nums;}
 .hist-entry-scores{display:flex;flex-wrap:wrap;gap:6px;margin-top:var(--s-2);}
 .hist-nota{margin-top:var(--s-2);font-size:var(--t-sm);line-height:1.55;color:var(--ink);white-space:pre-wrap;border-left:3px solid var(--line-2);padding-left:var(--s-3);}
+.hist-decision{font-size:var(--t-sm);font-weight:600;color:var(--ink-2);margin-top:var(--s-2);}
 .hist-entry-actions{display:flex;gap:var(--s-2);margin-top:var(--s-3);flex-wrap:wrap;}
 
 /* ══════════ PANTALLAS SECUNDARIAS (pantalla completa) ══════════ */
@@ -810,7 +811,7 @@ span.estado-item{border-style:dashed;}
 @media (max-width:374px){ .btn-save .ic{display:none;} }   /* la palabra basta: sigue siendo el botón principal */
 @media (max-width:340px){ .hdr-logo{height:20px;} .icon-btn{width:34px;} .hdr-estado{font-size:11px;} }
 @media (max-width:440px){
-  .nav-btn{font-size:10.5px;letter-spacing:-.03em;}   /* 6 pestañas: «Diagnóstico» y «Evaluación» completas */
+  .nav-btn{font-size:10.5px;letter-spacing:-.03em;}   /* 6 pestañas con las etiquetas completas */
 }
 @media (max-width:379px){
   .nav-btn{font-size:9.5px;letter-spacing:-.03em;}
@@ -957,10 +958,10 @@ span.estado-item{border-style:dashed;}
     </div>
   </div>
 
-  <nav class="nav" id="tabsBar" aria-label="Pasos de la ficha">
-    <button type="button" class="nav-btn active" id="maintab0" data-tab="0" aria-current="page"><span class="nav-ic"><svg class="ic" aria-hidden="true"><use href="#i-user"/></svg><span class="tab-dot" id="dot0"></span></span><span class="nav-lb"><span class="lb-long">Captador</span></span></button>
+  <nav class="nav" id="tabsBar" aria-label="Pasos de la sesión">
+    <button type="button" class="nav-btn active" id="maintab0" data-tab="0" aria-current="page"><span class="nav-ic"><svg class="ic" aria-hidden="true"><use href="#i-user"/></svg><span class="tab-dot" id="dot0"></span></span><span class="nav-lb"><span class="lb-long">Captador/a</span></span></button>
     <button type="button" class="nav-btn" id="maintab1" data-tab="1"><span class="nav-ic"><svg class="ic" aria-hidden="true"><use href="#i-star"/></svg><span class="tab-dot" id="dot1"></span></span><span class="nav-lb"><span class="lb-long">Evaluación</span></span></button>
-    <button type="button" class="nav-btn" id="maintab3" data-tab="3"><span class="nav-ic"><svg class="ic" aria-hidden="true"><use href="#i-pulse"/></svg><span class="tab-dot" id="dot3"></span></span><span class="nav-lb"><span class="lb-long">Diagnóstico</span></span></button>
+    <button type="button" class="nav-btn" id="maintab3" data-tab="3"><span class="nav-ic"><svg class="ic" aria-hidden="true"><use href="#i-pulse"/></svg><span class="tab-dot" id="dot3"></span></span><span class="nav-lb"><span class="lb-long">Lectura</span></span></button>
     <button type="button" class="nav-btn" id="maintab2" data-tab="2"><span class="nav-ic"><svg class="ic" aria-hidden="true"><use href="#i-compass"/></svg><span class="tab-dot" id="dot2"></span></span><span class="nav-lb"><span class="lb-long has-short">Acompañamiento</span><span class="lb-short" aria-hidden="true">Acomp.</span></span></button>
     <button type="button" class="nav-btn" id="maintab5" data-tab="5"><span class="nav-ic"><svg class="ic" aria-hidden="true"><use href="#i-scale"/></svg><span class="tab-dot" id="dot5"></span></span><span class="nav-lb"><span class="lb-long">Decisión</span></span></button>
     <button type="button" class="nav-btn" id="maintab4" data-tab="4"><span class="nav-ic"><svg class="ic" aria-hidden="true"><use href="#i-users"/></svg><span class="tab-dot" id="dot4"></span></span><span class="nav-lb"><span class="lb-long">Equipo</span></span></button>
@@ -979,7 +980,7 @@ span.estado-item{border-style:dashed;}
   <section class="section-card active" id="tab0" aria-labelledby="h-tab0">
     <div class="page-head">
       <span class="tile tile-lg" data-tone="brand"><svg class="ic" aria-hidden="true"><use href="#i-user"/></svg></span>
-      <div><h1 class="page-title" id="h-tab0">Captador/a</h1><p class="page-sub">Identificación e intervención</p></div>
+      <div><h1 class="page-title" id="h-tab0">Captador/a</h1><p class="page-sub">Identificación y datos de la sesión</p></div>
     </div>
 
     <!-- Qué se está registrando: una sesión nueva o una sesión guardada -->
@@ -1015,14 +1016,14 @@ span.estado-item{border-style:dashed;}
     <section class="card" aria-labelledby="h-interv">
       <div class="card-head">
         <span class="tile tile-sm" data-tone="slate"><svg class="ic" aria-hidden="true"><use href="#i-calendar"/></svg></span>
-        <h2 class="card-title" id="h-interv">Datos de la intervención</h2>
+        <h2 class="card-title" id="h-interv">Datos de la sesión</h2>
       </div>
       <div class="field-row">
         <div class="field"><label for="d_fechainicio">Fecha de comienzo</label><input type="date" id="d_fechainicio" oninput="fechasEditadas()"></div>
         <div class="field"><label for="d_antiguedad">Antigüedad</label><input type="text" id="d_antiguedad" placeholder="Se calcula sola" readonly tabindex="-1"></div>
       </div>
       <div class="field-row">
-        <div class="field"><label for="d_fecha">Fecha de intervención</label><input type="date" id="d_fecha" oninput="fechasEditadas()"></div>
+        <div class="field"><label for="d_fecha">Fecha de la sesión</label><input type="date" id="d_fecha" oninput="fechasEditadas()"></div>
         <div class="field"><label for="d_estado">Estado</label>
           <select id="d_estado" onchange="autoguardar()" class="field-select">
             <option value="">Sin asignar</option>
@@ -1046,7 +1047,7 @@ span.estado-item{border-style:dashed;}
     <!-- Mini preview LMI -->
     <section class="card" id="lmiPreviewWrap" style="display:none" aria-labelledby="h-lmiprev">
       <div class="eyebrow-row"><h2 class="eyebrow" id="h-lmiprev"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-target"/></svg>Prioridad actual</h2>
-        <button type="button" class="btn btn-quiet btn-sm" onclick="goTab(3)">Ver diagnóstico<svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></button></div>
+        <button type="button" class="btn btn-quiet btn-sm" onclick="goTab(3)">Ver lectura<svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></button></div>
       <div id="lmiPreviewCard"></div>
     </section>
 
@@ -1058,11 +1059,11 @@ span.estado-item{border-style:dashed;}
       </div>
       <h3 class="eyebrow" style="margin-bottom:12px">Creencias detectadas</h3>
       <div class="creencias-list" data-lista="c">
-        <div class="creencia-row"><span class="creencia-num" aria-hidden="true">1</span><input type="text" id="c1" aria-label="Creencia 1" placeholder="Lo que dice el captador, con sus palabras cuando sea posible" oninput="autoguardar()"></div>
-        <div class="creencia-row"><span class="creencia-num" aria-hidden="true">2</span><input type="text" id="c2" aria-label="Creencia 2" placeholder="Lo que dice el captador, con sus palabras cuando sea posible" oninput="autoguardar()"></div>
-        <div class="creencia-row"><span class="creencia-num" aria-hidden="true">3</span><input type="text" id="c3" aria-label="Creencia 3" placeholder="Lo que dice el captador, con sus palabras cuando sea posible" oninput="autoguardar()"></div>
-        <div class="creencia-row"><span class="creencia-num" aria-hidden="true">4</span><input type="text" id="c4" aria-label="Creencia 4" placeholder="Lo que dice el captador, con sus palabras cuando sea posible" oninput="autoguardar()"></div>
-        <div class="creencia-row"><span class="creencia-num" aria-hidden="true">5</span><input type="text" id="c5" aria-label="Creencia 5" placeholder="Lo que dice el captador, con sus palabras cuando sea posible" oninput="autoguardar()"></div>
+        <div class="creencia-row"><span class="creencia-num" aria-hidden="true">1</span><input type="text" id="c1" aria-label="Creencia 1" placeholder="Lo que dice el captador/a, con sus palabras cuando sea posible" oninput="autoguardar()"></div>
+        <div class="creencia-row"><span class="creencia-num" aria-hidden="true">2</span><input type="text" id="c2" aria-label="Creencia 2" placeholder="Lo que dice el captador/a, con sus palabras cuando sea posible" oninput="autoguardar()"></div>
+        <div class="creencia-row"><span class="creencia-num" aria-hidden="true">3</span><input type="text" id="c3" aria-label="Creencia 3" placeholder="Lo que dice el captador/a, con sus palabras cuando sea posible" oninput="autoguardar()"></div>
+        <div class="creencia-row"><span class="creencia-num" aria-hidden="true">4</span><input type="text" id="c4" aria-label="Creencia 4" placeholder="Lo que dice el captador/a, con sus palabras cuando sea posible" oninput="autoguardar()"></div>
+        <div class="creencia-row"><span class="creencia-num" aria-hidden="true">5</span><input type="text" id="c5" aria-label="Creencia 5" placeholder="Lo que dice el captador/a, con sus palabras cuando sea posible" oninput="autoguardar()"></div>
       </div>
       <div class="eyebrow-row"><h3 class="eyebrow">Intervención sobre creencias</h3><button type="button" class="btn btn-tinted btn-sm" onclick="abrirPlantillas('creencias','ic',this)"><svg class="ic" aria-hidden="true"><use href="#i-clipboard"/></svg>Plantillas</button></div>
       <div class="intervencion-list" data-lista="ic">
@@ -1141,11 +1142,11 @@ span.estado-item{border-style:dashed;}
     <div id="faseDisplay"><div class="fd-empty">Introduce la fecha de comienzo en Captador para calcular la fase.</div></div>
     <div hidden id="tbody-fases-hidden"></div>
 
-    <!-- Único registro narrativo de la sesión: se guarda con la fecha de intervención -->
+    <!-- Único registro narrativo de la sesión: se guarda con la fecha de la sesión -->
     <section class="card" aria-labelledby="h-registro">
       <div class="card-head">
         <span class="tile tile-sm" data-tone="slate"><svg class="ic" aria-hidden="true"><use href="#i-pencil"/></svg></span>
-        <div class="card-head-text"><h2 class="card-title" id="h-registro">Registro de la sesión</h2><p class="card-sub">Se guarda con la fecha de intervención y aparece en el historial</p></div>
+        <div class="card-head-text"><h2 class="card-title" id="h-registro">Registro de la sesión</h2><p class="card-sub">Se guarda con la fecha de la sesión y aparece en el historial</p></div>
       </div>
       <!-- Revisión de lo que quedó pendiente en la sesión anterior: cierra el ciclo entre sesiones -->
       <div class="revision-anterior" id="revisionAnterior" hidden>
@@ -1165,14 +1166,14 @@ span.estado-item{border-style:dashed;}
           <select id="reg_foco" class="field-select" aria-describedby="reg_foco_ayuda" onchange="autoguardar()"></select>
           <p class="meta" id="reg_foco_ayuda">Variable de la evaluación en la que se centra la intervención. En la próxima sesión se comparará su puntuación.</p></div>
         <div class="field">
-          <div class="eyebrow-row"><label for="reg_lectura">Mi lectura</label><button type="button" class="btn btn-tinted btn-sm" onclick="usarLecturaSugerida()"><svg class="ic" aria-hidden="true"><use href="#i-bulb"/></svg>Usar lectura sugerida</button></div>
+          <div class="eyebrow-row"><label for="reg_lectura">Mi lectura</label><button type="button" class="btn btn-tinted btn-sm" onclick="usarLecturaSugerida()"><svg class="ic" aria-hidden="true"><use href="#i-bulb"/></svg>Usar lectura de la herramienta</button></div>
           <textarea id="reg_lectura" class="input" placeholder="Qué creo que está pasando (hipótesis, no conclusión)…" aria-describedby="reg_lectura_ayuda" oninput="autoguardar()"></textarea>
           <p class="meta" id="reg_lectura_ayuda">Tu interpretación de lo observado. La lectura de la herramienta es una propuesta: úsala como punto de partida si te sirve.</p></div>
         <div class="field">
           <div class="eyebrow-row"><label for="reg_trabajo">Qué trabajamos / objetivo</label><button type="button" class="btn btn-tinted btn-sm" onclick="abrirPlantillasFase(faseSelected, this)"><svg class="ic" aria-hidden="true"><use href="#i-clipboard"/></svg>Plantillas</button></div>
           <textarea id="reg_trabajo" class="input" placeholder="Qué se trabajó en la sesión y qué se quiere conseguir…" oninput="autoguardar()"></textarea></div>
-        <div class="field"><label for="reg_acuerdo">Acción del captador</label>
-          <textarea id="reg_acuerdo" class="input" placeholder="Qué hará el captador: qué, cuántas veces o en qué situación…" oninput="autoguardar()"></textarea></div>
+        <div class="field"><label for="reg_acuerdo">Acción del captador/a</label>
+          <textarea id="reg_acuerdo" class="input" placeholder="Qué hará el captador/a: qué, cuántas veces o en qué situación…" oninput="autoguardar()"></textarea></div>
         <div class="field"><label for="reg_siguiente">Cómo y cuándo lo comprobaremos</label>
           <textarea id="reg_siguiente" class="input" placeholder="Qué observaremos en la próxima sesión para saber si ha funcionado…" oninput="autoguardar()"></textarea>
           <div class="field" style="margin-top:8px"><label for="reg_fecha_revision" class="meta">Fecha de comprobación <span>(opcional)</span></label>
@@ -1188,15 +1189,15 @@ span.estado-item{border-style:dashed;}
   <section class="section-card" id="tab3" aria-labelledby="h-tab3">
     <div class="page-head">
       <span class="tile tile-lg" data-tone="brand"><svg class="ic" aria-hidden="true"><use href="#i-pulse"/></svg></span>
-      <div><h1 class="page-title" id="h-tab3" tabindex="-1">Diagnóstico</h1><p class="page-sub">Lo que indican los datos</p></div>
+      <div><h1 class="page-title" id="h-tab3" tabindex="-1">Lectura</h1><p class="page-sub">Lo que indican los datos</p></div>
     </div>
-    <nav class="chip-row bloque-indice" id="indiceBloques3" aria-label="Ir a un bloque de Diagnóstico"></nav>
+    <nav class="chip-row bloque-indice" id="indiceBloques3" aria-label="Ir a un bloque de Lectura"></nav>
 
-    <!-- 1. Qué veo · Qué significa (evidencia → lectura → intervención → revisión) -->
+    <!-- 1. Qué veo · Qué puede significar (evidencia → lectura → intervención → revisión) -->
     <section class="card diag-card" id="diagCard" aria-labelledby="h-diag">
       <div class="card-head">
         <span class="tile tile-sm" data-tone="slate"><svg class="ic" aria-hidden="true"><use href="#i-pulse"/></svg></span>
-        <div class="card-head-text"><p class="eyebrow">Qué veo · Qué significa</p><h2 class="card-title" id="h-diag">Lectura generada por reglas</h2></div>
+        <div class="card-head-text"><p class="eyebrow">Qué veo · Qué puede significar</p><h2 class="card-title" id="h-diag">Lectura de la herramienta</h2></div>
         <span class="pill pill-type" id="diagTipo">—</span>
       </div>
       <div class="diag-body" id="diagBody"></div>
@@ -1207,7 +1208,7 @@ span.estado-item{border-style:dashed;}
     <section class="card lmi-card" id="lmiSection" aria-labelledby="h-lmi">
       <div class="lmi-head">
         <span class="tile" data-tone="brand"><svg class="ic" aria-hidden="true"><use href="#i-target"/></svg></span>
-        <div class="card-head-text"><p class="eyebrow">Qué haría ahora</p><h2 class="card-title" id="h-lmi">Lo más importante ahora mismo</h2><p class="card-sub">Prioridades sugeridas para esta intervención; orientan, no deciden</p></div>
+        <div class="card-head-text"><p class="eyebrow">Qué haría ahora</p><h2 class="card-title" id="h-lmi">Lo más importante ahora mismo</h2><p class="card-sub">Prioridades sugeridas para esta sesión; orientan, no deciden</p></div>
         <button type="button" class="icon-btn" onclick="renderLMI()" aria-label="Recalcular prioridades"><svg class="ic" aria-hidden="true"><use href="#i-refresh"/></svg></button>
       </div>
       <div id="lmiCard"><div class="lmi-empty">Puntúa las variables y selecciona la fase para generar el análisis.</div></div>
@@ -1246,7 +1247,7 @@ span.estado-item{border-style:dashed;}
         <span class="tile tile-sm" data-tone="rose"><svg class="ic" aria-hidden="true"><use href="#i-flag"/></svg></span>
         <div class="card-head-text"><h2 class="card-title" id="h-senales">Señales de alarma en campo</h2><p class="card-sub" id="senalesFaseLabel">—</p></div>
       </div>
-      <p class="desc" style="margin-bottom:12px">Marca las señales observadas. Cuantas más activas, mayor urgencia. Orientan esta sesión: no se guardan con la ficha.</p>
+      <p class="desc" style="margin-bottom:12px">Marca las señales observadas. Cuantas más activas, mayor urgencia. Orientan esta sesión: no se guardan con la sesión.</p>
       <div class="senales-grid" id="senalesGrid"></div>
       <div class="senales-result notice" id="senalesResult" role="status"></div>
     </section>
@@ -1308,9 +1309,9 @@ span.estado-item{border-style:dashed;}
     </section>
 
     <section class="card mz-resultado" id="mzResultado" aria-labelledby="mzDecision" aria-live="polite">
-      <p class="eyebrow" style="margin-bottom:8px">Resultado de tus criterios</p>
-      <h2 class="mz-resultado-title" id="mzDecision">Selecciona los 4 criterios</h2>
-      <p class="mz-resultado-desc" id="mzDesc">Evalúa esfuerzo, aprendizaje, proceso y resultado.</p>
+      <p class="eyebrow" style="margin-bottom:8px">Lo que indican tus criterios</p>
+      <h2 class="mz-resultado-title" id="mzDecision">Decisión pendiente · faltan 4 criterios</h2>
+      <p class="mz-resultado-desc" id="mzDesc">Falta decidir esfuerzo, aprendizaje, proceso y resultado.</p>
     </section>
 
     <!-- 6. Antes de una salida -->
@@ -1373,7 +1374,7 @@ span.estado-item{border-style:dashed;}
       </section>
       <div class="dash-table-wrap" style="margin-top:16px">
         <table class="dash-table" id="dashTable">
-          <thead><tr><th scope="col">Captador/a</th><th scope="col">Estado</th><th scope="col">Técnica</th><th scope="col">Hábitos</th><th scope="col">Fase</th><th scope="col">Atención</th><th scope="col">Semáforo</th><th scope="col">Sesiones</th><th scope="col">Última int.</th></tr></thead>
+          <thead><tr><th scope="col">Captador/a</th><th scope="col">Estado</th><th scope="col">Técnica</th><th scope="col">Hábitos</th><th scope="col">Fase</th><th scope="col">Atención</th><th scope="col">Semáforo</th><th scope="col">Sesiones</th><th scope="col">Última sesión</th></tr></thead>
           <tbody id="dashTbody"></tbody>
         </table>
       </div>
@@ -1405,7 +1406,7 @@ span.estado-item{border-style:dashed;}
     <h2 id="t-pdf">Informe de la sesión</h2>
     <p id="pdfModalSesion"></p>
     <div class="notice" data-tone="warn" id="pdfModalPendiente" hidden><svg class="ic" aria-hidden="true"><use href="#i-warn"/></svg><div><strong>Incluye cambios sin guardar.</strong> El informe no coincidirá con la sesión guardada y llevará la marca «Borrador».</div></div>
-    <p>Contiene datos generales, índice de atención, lectura generada por reglas, creencias, valoraciones de técnica y hábitos con sus intervenciones, fase, decisión y registro de la sesión.</p>
+    <p>Contiene datos generales, índice de atención, lectura de la herramienta, creencias, valoraciones de técnica y hábitos con sus intervenciones, fase, decisión y registro de la sesión.</p>
     <p class="meta">Contiene datos personales y valoraciones: compártelo solo con quien lo necesite (RP/RE).</p>
     <div class="dialog-actions">
       <button type="button" class="btn btn-secondary" onclick="cerrarPdfModal()">Cancelar</button>
@@ -1418,7 +1419,7 @@ span.estado-item{border-style:dashed;}
 <div class="screen" id="recursosModal" role="dialog" aria-modal="true" aria-labelledby="t-recursos" aria-describedby="recursosSub" hidden>
   <div class="screen-head"><div class="screen-head-row">
     <span class="tile" data-tone="indigo" id="recursosIcon"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg></span>
-    <div class="screen-title-wrap"><h2 class="screen-title" id="t-recursos">Recursos</h2><p class="screen-sub" id="recursosSub">Inserta una creencia en la ficha junto con su intervención</p></div>
+    <div class="screen-title-wrap"><h2 class="screen-title" id="t-recursos">Recursos</h2><p class="screen-sub" id="recursosSub">Inserta una creencia en la sesión junto con su intervención</p></div>
     <button type="button" class="btn-close" onclick="cerrarRecursos()"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg>Cerrar</button>
   </div></div>
   <div class="screen-tools"><div class="screen-tools-inner">
@@ -1476,7 +1477,7 @@ span.estado-item{border-style:dashed;}
         <span class="meta">O arrástralo aquí</span>
       </button>
       <input type="file" id="jsonFileInput" accept=".json" hidden onchange="importarJSON(this)">
-      <label class="json-merge-opt"><input type="checkbox" id="jsonMerge" checked>Combinar con las fichas que ya tienes (sin duplicar)</label>
+      <label class="json-merge-opt"><input type="checkbox" id="jsonMerge" checked>Combinar con las sesiones que ya tienes (sin duplicar)</label>
       <div class="json-import-result" id="jsonImportResult"></div>
     </div>
   </div></div>
@@ -1775,7 +1776,7 @@ const AVISOS_ALMACEN = {
   lectura: 'No se pueden leer los datos guardados en este navegador. Mientras no se resuelva, no se podrá guardar ni eliminar nada.',
   escritura: 'No se ha podido guardar: el almacenamiento del navegador no está disponible o está lleno. Los cambios siguen en pantalla, pero NO se han guardado.',
   eliminacion: 'No se ha podido eliminar: el almacenamiento del navegador no está disponible. No se ha borrado nada.',
-  importacion: 'No se ha podido importar: el almacenamiento del navegador no está disponible o está lleno. Tus fichas no se han modificado.',
+  importacion: 'No se ha podido importar: el almacenamiento del navegador no está disponible o está lleno. Tus sesiones no se han modificado.',
   danadoFichas: 'Las sesiones guardadas en este navegador están dañadas y no se pueden leer. Para no perderlas, no se guardará, eliminará ni importará nada; se ha conservado una copia de lo guardado.',
   danadoPlantillas: 'Tus plantillas guardadas en este navegador están dañadas y no se pueden leer. Para no perderlas, no se guardará ni eliminará ninguna; se ha conservado una copia de lo guardado.'
 };
@@ -1913,54 +1914,54 @@ const AYUDA_TABS = [
   {
     tab: 'Captador/a',
     icon: '👤',
-    desc: 'Ficha de identificación del captador y datos de la intervención activa.',
+    desc: 'Identificación del captador/a y datos de la sesión activa.',
     secciones: [
-      { titulo: 'Sesión nueva o sesión guardada', texto: 'La tarjeta superior indica si estás registrando una sesión nueva o editando una guardada. «Guardar» añade una sesión nueva al historial; «Actualizar» guarda los cambios en la sesión cargada. Para registrar otra intervención de la misma persona usa «Nueva sesión de este captador/a»: conserva sus datos y deja en blanco evaluación, registro y decisión.' },
+      { titulo: 'Sesión nueva o sesión guardada', texto: 'La tarjeta superior indica si estás registrando una sesión nueva o editando una guardada. «Guardar» añade una sesión nueva al historial; «Actualizar» guarda los cambios en la sesión cargada. Para registrar otra sesión de la misma persona usa «Nueva sesión de este captador/a»: conserva sus datos y deja en blanco evaluación, registro y decisión.' },
       { titulo: 'Datos del captador/a', texto: 'Nombre completo, NIP (identificador Wesser), responsable directo y provincia. Las sesiones con el mismo NIP forman un solo historial aunque el nombre se escriba distinto. Las sesiones sin NIP se agrupan por nombre, y una sesión con NIP no se junta con las que no lo tienen.' },
-      { titulo: 'Fecha de comienzo', texto: 'Fecha en que el captador inició su actividad. Permite calcular automáticamente la fase actual (F1–F6) y los días de antigüedad.' },
-      { titulo: 'Badge de fase', texto: 'Se actualiza solo al introducir la fecha de comienzo. Muestra los días activos, la fase actual, el rango de días de esa fase y el estado del captador.' },
-      { titulo: 'Fecha de intervención', texto: 'Fecha de esta sesión concreta. Puede ser diferente al día de hoy si se rellena a posteriori.' },
-      { titulo: 'Estado', texto: 'Situación actual del captador: En progreso, Estancado, En riesgo o Baja. Se muestra como contexto junto al índice de atención y al semáforo; no cambia su cálculo, salvo «Baja»: entonces no se calculan ni el índice ni el semáforo.' },
+      { titulo: 'Fecha de comienzo', texto: 'Fecha en que el captador/a inició su actividad. Permite calcular automáticamente la fase actual (F1–F6) y los días de antigüedad.' },
+      { titulo: 'Badge de fase', texto: 'Se actualiza solo al introducir la fecha de comienzo. Muestra los días activos, la fase actual, el rango de días de esa fase y el estado del captador/a.' },
+      { titulo: 'Fecha de la sesión', texto: 'Fecha de esta sesión concreta. Puede ser diferente al día de hoy si se rellena a posteriori.' },
+      { titulo: 'Estado', texto: 'Situación actual del captador/a: En progreso, Estancado, En riesgo o Baja. Se muestra como contexto junto al índice de atención y al semáforo; no cambia su cálculo, salvo «Baja»: entonces no se calculan ni el índice ni el semáforo.' },
     ],
-    siguiente: 'Evaluación — puntúa las variables para activar el diagnóstico.',
+    siguiente: 'Evaluación — puntúa las variables para activar la lectura.',
   },
   {
     tab: 'Evaluación',
     icon: '⭐',
-    desc: 'Puntuación de las variables de técnica, hábitos y creencias del captador.',
+    desc: 'Puntuación de las variables de técnica, hábitos y creencias del captador/a.',
     secciones: [
-      { titulo: 'Mentalidad (Creencias)', texto: 'Anota las creencias limitantes que el captador verbaliza, con sus palabras cuando sea posible. Con dos o más registradas y una valoración baja en manejo de la negatividad, la lectura propone revisarlas; no suman al índice de atención.' },
+      { titulo: 'Mentalidad (Creencias)', texto: 'Anota las creencias limitantes que el captador/a verbaliza, con sus palabras cuando sea posible. Con dos o más registradas y una valoración baja en manejo de la negatividad, la lectura propone revisarlas; no suman al índice de atención.' },
       { titulo: 'Técnica (azul)', texto: 'Puntúa del 1 al 5: Parada, Speech, Rebatidas y Cierre. El promedio del grupo aparece en tiempo real arriba a la derecha del bloque.' },
       { titulo: 'Hábitos (verde)', texto: 'Puntúa del 1 al 5 once variables: desde Puntualidad hasta Estabilidad semanal. El promedio del grupo también se calcula en tiempo real.' },
       { titulo: 'Escala de puntuación', texto: '1 = lo intenta y no le sale, o con errores graves casi siempre · 2 = a veces, con errores frecuentes · 3 = en la mayoría de los intentos, con errores menores · 4 = con soltura casi siempre · 5 = con soltura y adaptándose a cada situación o persona. Sin estrellas = no observado: no cuenta como puntuación baja. Solo puntúa las variables que hayas podido observar; para quitar una puntuación, pulsa de nuevo la estrella marcada.' },
       { titulo: 'Promedio en tiempo real', texto: 'Cada grupo muestra su media actualizada y una barra de progreso. El número junto a cada estrella indica la puntuación seleccionada.' },
       { titulo: 'Biblioteca y Plantillas', texto: 'Ambos botones abren Recursos en la sección correspondiente. Recursos también está en el menú «Más acciones».' },
     ],
-    siguiente: 'Diagnóstico — se genera automáticamente con los datos de evaluación y fase.',
+    siguiente: 'Lectura — se genera automáticamente con los datos de evaluación y fase.',
   },
   {
     tab: 'Acompañamiento',
     icon: '🗓️',
-    desc: 'Guía de intervención según la fase actual del captador.',
+    desc: 'Guía de intervención según la fase actual del captador/a.',
     secciones: [
-      { titulo: 'Cabecera de la fase', texto: 'Muestra los días en el proceso, el nombre de la fase y lo que es frecuente que viva el captador en ese momento. El color cambia según la fase: azul (F1–F2), naranja (F3), verde (F4–F5), gris (F6).' },
+      { titulo: 'Cabecera de la fase', texto: 'Muestra los días en el proceso, el nombre de la fase y lo que es frecuente que viva el captador/a en ese momento. El color cambia según la fase: azul (F1–F2), naranja (F3), verde (F4–F5), gris (F6).' },
       { titulo: 'Garantizar ahora', texto: 'Los 3 puntos más importantes a trabajar en esta fase según la metodología Wesser. Referencia rápida antes de salir al campo.' },
       { titulo: 'Señales de alarma', texto: 'Dos conductas observables de esta fase. Si aparecen, conviene intervenir en menos de 48 h.' },
-      { titulo: 'Registro de la sesión', texto: 'El único lugar donde se escribe la sesión, como una intervención verificable: qué observé (y, si quieres, el foco: la variable que se trabaja), mi lectura, qué trabajamos / objetivo, acción del captador y cómo y cuándo lo comprobaremos (con fecha opcional). En la sesión siguiente se muestran la acción, la comprobación y el foco con su puntuación de entonces y de hoy. Se guarda con la fecha de intervención y aparece en el historial. En fichas antiguas se muestran aquí, como solo lectura, las notas guardadas con el formato anterior.' },
+      { titulo: 'Registro de la sesión', texto: 'El único lugar donde se escribe la sesión, como una intervención verificable: qué observé (y, si quieres, el foco: la variable que se trabaja), mi lectura, qué trabajamos / objetivo, acción del captador/a y cómo y cuándo lo comprobaremos (con fecha opcional). En la sesión siguiente se muestran la acción, la comprobación y el foco con su puntuación de entonces y de hoy. Se guarda con la fecha de la sesión y aparece en el historial. En sesiones antiguas se muestran aquí, como solo lectura, las notas guardadas con el formato anterior.' },
       { titulo: 'Plantillas por fase', texto: 'El botón Plantillas de «Qué trabajamos» abre Recursos con las plantillas de la fase actual (Días 1–5, Días 6–12, hasta +90 días). «Usar plantilla» la inserta en el campo.' },
     ],
     siguiente: 'Decisión — tus 4 criterios y el cierre de la sesión.',
   },
   {
-    tab: 'Diagnóstico',
+    tab: 'Lectura',
     icon: '🔍',
-    desc: 'Lo que indican los datos: qué veo, qué significa, qué haría ahora, nivel de atención y señales. La decisión está en su propia pestaña.',
+    desc: 'Lo que indican los datos: qué veo, qué puede significar, qué haría ahora, nivel de atención y señales. La decisión está en su propia pestaña.',
     secciones: [
-      { titulo: 'Qué veo · Qué significa', texto: 'La evidencia disponible y una lectura prudente de lo que muestra, generadas por reglas a partir de la evaluación y la fase. Una variable sin evaluar no cuenta como puntuación baja, y la comparación con la sesión anterior usa solo las variables evaluadas en ambas.' },
-      { titulo: 'Qué haría ahora', texto: 'Hasta 3 prioridades para esta intervención, ordenadas por urgencia: la que propone la lectura (con qué revisar la próxima vez) y las de otros ámbitos, sin repetir. Orientan la intervención; la decisión es del responsable.' },
+      { titulo: 'Qué veo · Qué puede significar', texto: 'La evidencia disponible y una lectura prudente de lo que muestra, generadas por reglas a partir de la evaluación y la fase. Una variable sin evaluar no cuenta como puntuación baja, y la comparación con la sesión anterior usa solo las variables evaluadas en ambas.' },
+      { titulo: 'Qué haría ahora', texto: 'Hasta 3 prioridades para esta sesión, ordenadas por urgencia: la que propone la lectura (con qué revisar la próxima vez) y las de otros ámbitos, sin repetir. Orientan la intervención; la decisión es del responsable.' },
       { titulo: 'Nivel de atención', texto: 'Índice interno de 0 a 100 calculado con reglas a partir de las señales registradas: seguimiento, puntuaciones, evolución y variables concretas. No es una probabilidad de baja. Niveles: baja, moderada, alta o prioritaria. En los Días 1–12 no se valoran las medias (son un punto de partida) y con estado «Baja» no se calcula.' },
-      { titulo: 'Semáforo de seguimiento', texto: 'Visible a partir del Día 46. Compara las dos últimas sesiones (solo las variables evaluadas en ambas) y los días sin intervención para indicar el nivel de seguimiento: normal, reforzado o prioritario. No predice si la persona seguirá.' },
-      { titulo: 'Señales de alarma', texto: 'Señales observables en esta fase. Márcalas si las has detectado: el resumen indica la urgencia del seguimiento. No se guardan con la ficha ni cambian el índice de atención.' },
+      { titulo: 'Semáforo de seguimiento', texto: 'Visible a partir del Día 46. Compara las dos últimas sesiones (solo las variables evaluadas en ambas) y los días sin sesión para indicar el nivel de seguimiento: normal, reforzado o prioritario. No predice si la persona seguirá.' },
+      { titulo: 'Señales de alarma', texto: 'Señales observables en esta fase. Márcalas si las has detectado: el resumen indica la urgencia del seguimiento. No se guardan con la sesión ni cambian el índice de atención.' },
     ],
     siguiente: 'Acompañamiento — escribe tu lectura y lo que vas a trabajar.',
   },
@@ -1969,7 +1970,7 @@ const AYUDA_TABS = [
     icon: '🏢',
     desc: 'Resumen, historial y evolución de todos los captadores del equipo.',
     secciones: [
-      { titulo: 'Resumen', texto: 'Tabla con todos los captadores guardados: estado, medias de técnica y hábitos, fase, nivel de atención, semáforo, sesiones y última intervención. Filtra por nombre, provincia o estado. Pulsa una fila para cargar esa ficha.' },
+      { titulo: 'Resumen', texto: 'Tabla con todos los captadores guardados: estado, medias de técnica y hábitos, fase, nivel de atención, semáforo, sesiones y última sesión. Filtra por nombre, provincia o estado. Pulsa una fila para cargar su última sesión.' },
       { titulo: 'Historial', texto: 'El único lugar para recuperar sesiones guardadas, agrupadas por persona: por NIP cuando lo tienen y, si no, por nombre. Busca por nombre, NIP o provincia; cada sesión muestra fecha, medias, fase y su registro. Puedes cargarla para consultarla o actualizarla, eliminarla, empezar una sesión nueva de esa persona o ver su evolución. También se abre desde el menú «Más acciones».' },
       { titulo: 'Evolución', texto: 'Gráfico de línea con la evolución de técnica y hábitos a lo largo del tiempo, detalle por variable de cada sesión y progresión de fase.' },
     ],
@@ -1978,12 +1979,12 @@ const AYUDA_TABS = [
   {
     tab: 'Decisión',
     icon: '⚖️',
-    desc: 'Tu criterio profesional y el cierre de la sesión. No cambia sola aunque cambien los datos del diagnóstico.',
+    desc: 'Tu criterio profesional y el cierre de la sesión. No cambia sola aunque cambien los datos de la lectura.',
     secciones: [
       { titulo: 'Lo que indican los datos', texto: 'Arriba, la lectura actual de la herramienta y el nivel de atención, como referencia. Si la sesión está guardada y la lectura ha cambiado desde entonces, se indica: tu decisión no cambia sola, revísala.' },
       { titulo: 'Decisión: los 4 criterios', texto: 'Esfuerzo (volumen de intentos e intención en campo, con independencia del resultado), Aprendizaje (aplica en campo las correcciones acordadas), Proceso (sigue la secuencia acordada: parada → speech → rebatida → cierre), Resultado (resultados observados en campo frente al objetivo de la fase). Marca SÍ o NO en cada uno. «Sugerir desde la evaluación» es una orientación basada solo en las variables disponibles: propone Esfuerzo con Aprovechamiento de la jornada y Praxis, Aprendizaje con «Aplica el feedback acordado» y Proceso con al menos dos variables de técnica. Resultado no se sugiere, porque la app no registra altas. Revísalos siempre.' },
-      { titulo: 'Resultado de tus criterios', texto: 'Resultado de las 16 combinaciones de la matriz, de «Potenciar» a «Valorar una salida». El resultado es el último criterio: si hay esfuerzo y aprendizaje, se prioriza el acompañamiento. Valorar una salida solo se recomienda a partir del Día 13, con al menos dos sesiones registradas y al menos 8 variables evaluadas.' },
-      { titulo: 'Antes de una salida', texto: 'Checklist de 10 puntos. Solo aparece cuando la recomendación es valorar una salida. Sirve para revisar que se ha hecho todo el acompañamiento necesario; la decisión es del responsable, contrastada con el RP/RE.' },
+      { titulo: 'Lo que indican tus criterios', texto: 'Resultado de las 16 combinaciones de la matriz, de «Potenciar» a «Valorar una salida». El resultado es el último criterio: si hay esfuerzo y aprendizaje, se prioriza el acompañamiento. Valorar una salida solo se recomienda a partir del Día 13, con al menos dos sesiones registradas y al menos 8 variables evaluadas.' },
+      { titulo: 'Antes de una salida', texto: 'Checklist de 10 puntos. Solo aparece cuando tus criterios indican valorar una salida. Sirve para revisar que se ha hecho todo el acompañamiento necesario; la decisión es del responsable, contrastada con el RP/RE.' },
     ],
     siguiente: 'Guardar la sesión — al final de esta pestaña.',
   },
@@ -2254,7 +2255,7 @@ function renderFaseDisplay(faseId) {
   if (!wrap) return;
   if (!faseId) {
     wrap.innerHTML = AppState.faseCongelada
-      ? vacio('calendar', 'Esta ficha no tiene fase registrada', 'Se muestra tal como se guardó. Si cambias las fechas en Captador, la fase se calculará con ellas.',
+      ? vacio('calendar', 'Esta sesión no tiene fase registrada', 'Se muestra tal como se guardó. Si cambias las fechas en Captador, la fase se calculará con ellas.',
       '<button type="button" class="btn btn-secondary" onclick="irAFechaInicio()">' + ic('user') + 'Ir a Captador</button>')
       : vacio('calendar', 'Falta la fecha de comienzo', 'Introdúcela en Captador y la fase se calcula sola.',
       '<button type="button" class="btn btn-secondary" onclick="irAFechaInicio()">' + ic('user') + 'Ir a Captador</button>');
@@ -2273,7 +2274,7 @@ function renderFaseDisplay(faseId) {
       '<div class="fd-hero">' +
         '<div class="fd-hero-num"><span class="cifra">' + (dias || '—') + '</span><span class="cifra-unit">días</span></div>' +
         '<div class="fd-hero-info">' +
-          '<p class="eyebrow">Fase en esta intervención</p>' +
+          '<p class="eyebrow">Fase en esta sesión</p>' +
           '<h2 class="fd-hero-fase" id="h-fase-actual">' + esc(fase ? fase.label : '—') + '</h2>' +
         '</div>' +
       '</div>' +
@@ -2311,7 +2312,7 @@ const REGISTRO_CAMPOS = [
   { k:'reg_observe',   label:'Qué observé' },
   { k:'reg_lectura',   label:'Mi lectura' },
   { k:'reg_trabajo',   label:'Qué trabajamos / objetivo' },
-  { k:'reg_acuerdo',   label:'Acción del captador' },
+  { k:'reg_acuerdo',   label:'Acción del captador/a' },
   { k:'reg_siguiente', label:'Cómo y cuándo lo comprobaremos' },
 ];
 const NOTAS_ANTERIORES = [
@@ -2393,17 +2394,17 @@ function usarLecturaSugerida() {
   const diag = diagnosticar(data, previas);
   if (!diag || diag.datosInsuficientes) {
     toast(diag && diag.sinFase
-      ? 'Aún no hay lectura sugerida: falta la fecha de comienzo para calcular la fase.'
-      : 'Aún no hay lectura sugerida: puntúa en Evaluación al menos 4 variables que hayas observado.', {tono:'warn', ms:4500});
+      ? 'Aún no hay lectura de la herramienta: falta la fecha de comienzo para calcular la fase.'
+      : 'Aún no hay lectura de la herramienta: puntúa en Evaluación al menos 4 variables que hayas observado.', {tono:'warn', ms:4500});
     return;
   }
   const texto = diag.diagnostico.texto;
   if (ta.value.trim() === texto) { ta.focus(); return; }
-  if (ta.value.trim() && !confirm('«Mi lectura» ya tiene texto. ¿Sustituirlo por la lectura sugerida?')) return;
+  if (ta.value.trim() && !confirm('«Mi lectura» ya tiene texto. ¿Sustituirlo por la lectura de la herramienta?')) return;
   ta.value = texto;
   autoguardar();
   ta.focus();
-  toast('Lectura sugerida copiada (' + diag.tipo + '). Ajústala a lo que has visto.', {ms:4000});
+  toast('Lectura de la herramienta copiada (' + diag.tipo + '). Ajústala a lo que has visto.', {ms:4000});
 }
 // Lectura que sugirió la herramienta, congelada al guardar: si las reglas cambian en otra versión,
 // la sesión sigue mostrando la que se propuso entonces
@@ -2450,7 +2451,7 @@ function registroConContexto(d, sinSugerida) {
   if (ls && ls.texto && !sinSugerida) {
     const tras = items.findIndex(x => x.label === 'Qué observé');
     const ev = evidenciaTxt(ls);
-    items.splice(tras + 1, 0, { label: 'Lectura sugerida por la herramienta · ' + ls.tipo, texto: (ev ? ev + '\n' : '') + ls.texto, sugerida: true });
+    items.splice(tras + 1, 0, { label: 'Lectura de la herramienta · ' + ls.tipo, texto: (ev ? ev + '\n' : '') + ls.texto, sugerida: true });
   }
   if (d && ALL_VARS_LABELS[d.reg_foco]) {
     const tras = items.findIndex(x => x.label === 'Qué observé');
@@ -2758,7 +2759,7 @@ function etiquetaGuardar() { return sesionEditada() ? 'Actualizar esta sesión' 
 const FLUJO_SESION = [
   { tab: 0, nombre: 'Captador/a' },
   { tab: 1, nombre: 'Evaluación' },
-  { tab: 3, nombre: 'Diagnóstico' },
+  { tab: 3, nombre: 'Lectura' },
   { tab: 2, nombre: 'Acompañamiento' },
   { tab: 5, nombre: 'Decisión' },
 ];
@@ -2771,7 +2772,7 @@ function estadoSesion() {
   const textos = ['captador','nip','responsable','provincia','fechainicio'].concat([1,2,3,4,5].map(i=>'c'+i), [1,2,3,4,5,6].map(i=>'ic'+i),
     [1,2,3,4,5,6,7,8,9].map(i=>'ip'+i), [1,2,3,4,5,6].map(i=>'ih'+i));
   return {
-    nombre: lleno('captador'), inicio: fechaISOValida(d.fechainicio), nEval, nReg, nCrit,
+    nombre: lleno('captador'), inicio: fechaISOValida(d.fechainicio), nEval, nReg, nCrit, decision: resumenDecision(d),
     vacia: !textos.some(lleno) && !nEval && !nReg && !nCrit && !AppState.revisionAnterior,
     guardada: !!sesionEditada(), pendiente: _hasUnsavedChanges,
   };
@@ -2792,7 +2793,7 @@ function irA(tab, id) {
 // Índice de bloques (solo los presentes en ese momento) y botón «Arriba». Sin desplazamiento animado.
 const INDICE_BLOQUES = {
   3: [['diagCard','Lectura'], ['lmiSection','Qué haría'], ['riesgoCard','Atención'], ['semaforoCard','Semáforo'], ['senalesCard','Señales']],
-  5: [['criteriosCard','Criterios'], ['mzResultado','Resultado'], ['checklistSection','Checklist']],
+  5: [['criteriosCard','Criterios'], ['mzResultado','Lo que indican'], ['checklistSection','Checklist']],
 };
 function altoCabecera() {
   const h = document.getElementById('site-header');
@@ -2844,7 +2845,7 @@ function renderDecisionRef() {
   const at = rc && rc.classList.contains('visible') ? (document.getElementById('riesgoNivel')?.textContent || '').trim() : '';
   let html = '<p class="eyebrow">Lo que indican los datos</p><div class="decision-ref-fila"><p class="decision-ref-txt">' +
     (diag ? '<strong>' + esc(diag.tipo) + '</strong>' + (at ? ' · ' + esc(at) : '') : 'Aún no hay lectura: puntúa variables en Evaluación.') + '</p>' +
-    '<button type="button" class="btn btn-quiet btn-sm" onclick="irA(3)">Ver Diagnóstico' + ic('arrow') + '</button></div>';
+    '<button type="button" class="btn btn-quiet btn-sm" onclick="irA(3)">Ver Lectura' + ic('arrow') + '</button></div>';
   const ed = sesionEditada(), ls = ed && ed.lecturaSugerida;
   if (ls && diag && (ls.regla !== diag.regla || ls.tipo !== diag.tipo))
     html += '<div class="notice" data-tone="warn">' + ic('warn') + '<div><strong>La lectura ha cambiado desde que se guardó.</strong> Antes: ' + esc(ls.tipo) +
@@ -2877,7 +2878,7 @@ function renderFlujo() {
       item(datosOk, datosOk ? 'Datos' : !e.nombre ? 'Datos: falta el nombre' : 'Datos: falta la fecha de comienzo', 0, !e.nombre ? 'd_captador' : 'd_fechainicio', 'Datos del captador/a' + (datosOk ? ', completos' : ', incompletos')) +
       item(e.nEval >= 4, 'Evaluación ' + (e.nEval ? e.nEval + (e.nEval === 1 ? ' variable' : ' variables') : '—'), 1, null, 'Evaluación: ' + e.nEval + ' variables puntuadas') +
       item(e.nReg > 0, 'Registro ' + (e.nReg ? e.nReg + ' de ' + REGISTRO_CAMPOS.length : '—'), 2, 'h-registro', 'Registro de la sesión: ' + e.nReg + ' de ' + REGISTRO_CAMPOS.length + ' campos') +
-      item(e.nCrit === 4, 'Decisión ' + (e.nCrit === 4 ? '' : e.nCrit ? e.nCrit + ' de 4' : '—'), 5, 'h-criterios', 'Decisión: ' + e.nCrit + ' de 4 criterios') +
+      item(e.nCrit === 4, e.decision, 5, 'h-criterios', e.decision) +
       '<span class="estado-item"' + (e.pendiente ? ' data-pend="1"' : e.guardada ? ' data-ok="1"' : '') + '>' +
         (e.pendiente ? (e.guardada ? 'Cambios sin guardar' : 'Sin guardar') : e.guardada ? ic('check') + 'Guardada' : 'Sin guardar') + '</span>';
   }
@@ -2903,7 +2904,7 @@ function actualizarModoSesion() {
     if (ed) {
       tit.textContent = 'Editando una sesión guardada';
       desc.textContent = 'Sesión del ' + formatFecha(aISO(getFechaIntervencion(ed))) + ' de ' + (ed.captador || 'sin nombre') +
-        '. «Actualizar» guarda los cambios en esta misma sesión. Para registrar otra intervención, usa «Nueva sesión».';
+        '. «Actualizar» guarda los cambios en esta misma sesión. Para registrar otra sesión, usa «Nueva sesión».';
       icon.setAttribute('data-tone', 'blue'); icon.innerHTML = ic('pencil');
     } else {
       tit.textContent = 'Sesión nueva';
@@ -2951,7 +2952,7 @@ function guardarFicha() {
       if (ls) data.lecturaSugerida = ls;
       const antes = orig.lecturaSugerida && orig.lecturaSugerida.regla;
       if (antes && (!ls || ls.regla !== antes) && (data.reg_lectura || '').trim())
-        avisoLectura = 'Sesión actualizada. Con los datos corregidos la lectura sugerida ha cambiado: revisa «Mi lectura».';
+        avisoLectura = 'Sesión actualizada. Con los datos corregidos la lectura de la herramienta ha cambiado: revisa «Mi lectura».';
     }
     invalidarCache();
     fichas[idx] = data;
@@ -3101,7 +3102,7 @@ function contarCampos() {
   // Resumen de lo esencial (el recuento de campos no distinguía lo importante de lo opcional)
   const el=document.getElementById('camposRellenos');
   if(el) { try { const e=estadoSesion();
-    el.textContent='Evaluación '+(e.nEval||'—')+' · Registro '+(e.nReg?e.nReg+'/'+REGISTRO_CAMPOS.length:'—')+' · Decisión '+(e.nCrit?e.nCrit+'/4':'—')+' · '+(e.pendiente?'sin guardar':e.guardada?'guardada':'sin guardar');
+    el.textContent='Evaluación '+(e.nEval||'—')+' · Registro '+(e.nReg?e.nReg+'/'+REGISTRO_CAMPOS.length:'—')+' · '+(e.nCrit===4?'Decisión ✓':'Decisión pendiente')+' · '+(e.pendiente?'sin guardar':e.guardada?'guardada':'sin guardar');
   } catch(err) { el.textContent=`${filled} de ${total} campos rellenados`; } }
 }
 
@@ -3527,7 +3528,7 @@ function generarPDF(){
       evidencia: ls.evidencia || vivo('evidencia'), diagnostico: { texto: ls.texto },
       contexto: 'contexto' in ls ? ls.contexto : vivo('contexto'),
       recomendacion: ls.accion ? { texto: ls.accion } : vivo('recomendacion'), palanca: vivo('palanca') } : diagVivo;
-  if(diagResult){ sec('LECTURA ORIENTATIVA (GENERADA POR REGLAS)', AZUL);
+  if(diagResult){ sec('LECTURA DE LA HERRAMIENTA (GENERADA POR REGLAS)', AZUL);
     chk(8); doc.setFillColor(232,234,246); doc.rect(M-2,y-4,cw+4,7,'F');
     doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(...AZUL);
     doc.text(diagResult.tipo,M,y); y+=8;
@@ -3541,7 +3542,7 @@ function generarPDF(){
     parrafo('EVIDENCIA ('+nivelTxt.toUpperCase()+'): '+((diagResult.evidencia||[]).join(' \u00b7 ')||'sin datos'), 7.5, 'normal', MID, 4.4, M, cw-4); y+=3;
     if(diagResult.contexto){ parrafo('CONTEXTO: '+diagResult.contexto, 7.5, 'bold', diagResult.contexto.startsWith('Mejora')?VERDE:NARANJA, 4.4, M, cw-4); y+=3; }
     parrafo(diagResult.diagnostico.texto, 8, 'normal', NEG, 4.8, M, cw-4); y+=3;
-    if(diagResult.recomendacion){ etiquetado('INTERVENCI\u00d3N:', diagResult.recomendacion.texto); y+=3; }
+    if(diagResult.recomendacion){ etiquetado('INTERVENCI\u00d3N SUGERIDA:', diagResult.recomendacion.texto); y+=3; }
     if(diagResult.palanca){
       parrafo('VARIABLE PRIORITARIA POR PUNTUACI\u00d3N: '+diagResult.palanca.label+' ('+diagResult.palanca.val+'/5). Es la prioridad por puntuaci\u00f3n, no una causa demostrada.',
         7.5, 'bold', NARANJA, 4.6, M, cw-4); y+=3; }
@@ -3584,9 +3585,9 @@ function generarPDF(){
   const dec = decisionParaPDF(d);
   sec('5. DECISI\u00d3N',AZUL);
   chk(14); doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(...GRIS);
-  doc.text('RESULTADO DE LOS CRITERIOS:',M,y); y+=5;
+  doc.text('LO QUE INDICAN TUS CRITERIOS:',M,y); y+=5;
   doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(...NEG);
-  const decLns=doc.splitTextToSize(dec.resultado,cw-4); chk(decLns.length*5+2); doc.text(decLns,M,y); y+=decLns.length*5+1;
+  const decLns=doc.splitTextToSize(dec.resumen,cw-4); chk(decLns.length*5+2); doc.text(decLns,M,y); y+=decLns.length*5+1;
   if(dec.desc){ doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(...NEG);
     const dl=doc.splitTextToSize(dec.desc,cw-4); chk(dl.length*4.8+2); doc.text(dl,M,y); y+=dl.length*4.8+1; }
   y+=4; chk(12);
@@ -3603,7 +3604,7 @@ function generarPDF(){
   y+=4;
 
   // Registro de la sesión (y notas guardadas con el formato anterior, si las hay)
-  const registro=registroConContexto(d, true);   // la lectura sugerida ya va en «Lectura orientativa»
+  const registro=registroConContexto(d, true);   // la lectura sugerida ya va en «Lectura de la herramienta»
   if(registro.length){ sec('REGISTRO DE LA SESI\u00d3N',ROJO);
     registro.forEach(r=>{ etiquetado((r.label+(r.anterior?' (formato anterior)':'')).toUpperCase(), r.texto); y+=3; }); y+=2; }
 
@@ -3675,7 +3676,7 @@ function renderDashboard(){
     document.getElementById('alertasCard')?.classList.remove('visible');
     if(empty){ empty.style.display='block';
       empty.innerHTML=fichas.length===0
-        ? vacio('users','Aún no hay fichas','Guarda la primera ficha y aquí verás el resumen del equipo.')
+        ? vacio('users','Aún no hay sesiones','Guarda la primera sesión y aquí verás el resumen del equipo.')
         : vacio('search','Sin resultados','Ningún captador/a coincide con los filtros. Prueba con otro nombre o estado.'); }
     return;
   }
@@ -3829,7 +3830,7 @@ function diagnosticarReglas(data, sesionesAnteriores) {
     const inicio = [ev('t_0'), ev('t_1')].filter(Boolean);
     return res({ regla:'R1', tipo:'Fase inicial', nivel:'alto', icono:'🗓️', color:'blue',
       evidencia: ['Fase: ' + nombreFase, nEval + (nEval === 1 ? ' variable evaluada' : ' variables evaluadas'), ev('t_0'), ev('t_1'), bajo('h_6') ? ev('h_6') : null],
-      lectura: 'El captador está en la fase de incorporación. En este momento las puntuaciones describen un punto de partida; todavía no permiten valorar un rendimiento consolidado.',
+      lectura: 'El captador/a está en la fase de incorporación. En este momento las puntuaciones describen un punto de partida; todavía no permiten valorar un rendimiento consolidado.',
       accion: (faseNum === 1
           ? 'Acompañar los turnos y centrar el trabajo en la Parada y el inicio del Speech. Reconocer los avances concretos que observes.'
           : 'Centrar el trabajo en que la Parada y el Speech salgan con soltura antes de valorar el resto del proceso. Reconocer los avances concretos que observes.') +
@@ -3840,9 +3841,9 @@ function diagnosticarReglas(data, sesionesAnteriores) {
   // R1b: Seguimiento discontinuo — más de 14 días entre la intervención anterior y esta, en fase crítica
   if (diasSinInterv !== null && diasSinInterv > 14 && hayFase && faseNum >= 3 && faseNum <= 5) {
     return res({ regla:'R1b', tipo:'Seguimiento discontinuo', nivel:'alto', icono:'📞', color:'orange',
-      evidencia: [diasSinInterv + ' días entre la intervención anterior y esta', 'Fase: ' + nombreFase],
-      lectura: 'Esta intervención llega ' + diasSinInterv + ' días después de la anterior registrada, en una fase en la que el seguimiento cercano es especialmente importante. Los datos no indican qué ha pasado en ese tiempo.',
-      accion: 'Aprovechar esta sesión para preguntar al captador cómo le ha ido en estos días y fijar la próxima intervención en menos de 14 días.',
+      evidencia: [diasSinInterv + ' días entre la sesión anterior y esta', 'Fase: ' + nombreFase],
+      lectura: 'Esta sesión llega ' + diasSinInterv + ' días después de la anterior registrada, en una fase en la que el seguimiento cercano es especialmente importante. Los datos no indican qué ha pasado en ese tiempo.',
+      accion: 'Aprovechar esta sesión para preguntar al captador/a cómo le ha ido en estos días y fijar la próxima sesión en menos de 14 días.',
       revision: 'Comprobar que la siguiente intervención se registra antes de 14 días.' });
   }
 
@@ -3851,7 +3852,7 @@ function diagnosticarReglas(data, sesionesAnteriores) {
     return res({ regla:'R2', tipo:'Feedback con valoración baja', nivel: totalSuf ? 'alto' : 'medio', icono:'🚧', color:'orange',
       evidencia: [ev('h_6'), mediaH()],
       lectura: 'Se observa una valoración baja en la aplicación del feedback acordado, lo que puede limitar el efecto de otras correcciones. Conviene explorar qué dificulta recibirlas o aplicarlas. Hipótesis a explorar, no comprobadas: cómo y cuándo se da el feedback, experiencias anteriores con correcciones o cómo se siente al recibirlas.',
-      accion: 'Hablar a solas con el captador sobre cómo vive las correcciones y qué le cuesta aplicar. Acordar una sola corrección concreta y cómo se va a comprobar.',
+      accion: 'Hablar a solas con el captador/a sobre cómo vive las correcciones y qué le cuesta aplicar. Acordar una sola corrección concreta y cómo se va a comprobar.',
       revision: 'En la próxima sesión, comprobar si ha aplicado la corrección acordada y volver a valorar «Aplica el feedback acordado».' });
   }
 
@@ -3860,7 +3861,7 @@ function diagnosticarReglas(data, sesionesAnteriores) {
     return res({ regla:'R3', tipo:'Creencias y manejo de la negatividad', nivel: totalSuf ? 'alto' : 'medio', icono:'🧠', color:'orange',
       evidencia: [nCreencias + ' creencias registradas', ev('h_3')],
       lectura: 'Se observan creencias registradas junto con una valoración baja en manejo de la negatividad. Esto hace razonable explorar si estas creencias están interfiriendo en la ejecución; los datos no permiten afirmar que sean la causa.',
-      accion: 'Dedicar parte de la próxima sesión a revisar con el captador las creencias registradas, empezando por la que más aparezca en calle, y acordar cómo responder cuando surja. Puedes apoyarte en la Biblioteca de creencias.',
+      accion: 'Dedicar parte de la próxima sesión a revisar con el captador/a las creencias registradas, empezando por la que más aparezca en calle, y acordar cómo responder cuando surja. Puedes apoyarte en la Biblioteca de creencias.',
       revision: 'En la siguiente intervención, comprobar si esas creencias siguen apareciendo en campo y volver a valorar el manejo de la negatividad.' });
   }
 
@@ -3894,7 +3895,7 @@ function diagnosticarReglas(data, sesionesAnteriores) {
       evidencia: [ev('t_0'), ev('t_1'), ev('t_2'), ev('t_3')],
       lectura: 'El dato diferencial de esta evaluación está en el cierre (' + scoreDe(data, 't_3') + '/5) frente al resto del proceso. La hipótesis de trabajo es una dificultad específica en esa fase; conviene comprobar si está en la técnica, en el momento de pedir o en otro factor.',
       accion: 'Observar varios cierres completos en campo, identificar en qué punto se interrumpe la conversación y practicar ese tramo con role-play.',
-      revision: 'En la próxima intervención, observar de nuevo el cierre y volver a puntuarlo para ver si mejora.' });
+      revision: 'En la próxima sesión, observar de nuevo el cierre y volver a puntuarlo para ver si mejora.' });
   }
 
   // R7: Speech bajo + Parada aceptable
@@ -3903,7 +3904,7 @@ function diagnosticarReglas(data, sesionesAnteriores) {
       evidencia: [ev('t_0'), ev('t_1')],
       lectura: 'La parada puntúa más alto que el speech. La conversación puede perderse tras la parada; conviene comprobar si influye la estructura del mensaje, el tono o la adaptación a la persona.',
       colorAccion: 'blue',
-      accion: 'Escuchar el speech en campo (o grabado, si el captador está de acuerdo), compararlo con la estructura de referencia y practicar la apertura.',
+      accion: 'Escuchar el speech en campo (o grabado, si el captador/a está de acuerdo), compararlo con la estructura de referencia y practicar la apertura.',
       revision: 'En la próxima observación, comparar la ejecución de la parada y del speech y volver a puntuar el speech.' });
   }
 
@@ -3911,8 +3912,8 @@ function diagnosticarReglas(data, sesionesAnteriores) {
   if (bajo('h_1') && tecSuf && tAvg >= 2.5) {
     return res({ regla:'R8', tipo:'Rendimiento sin acompañamiento bajo', nivel: totalSuf ? 'alto' : 'medio', icono:'🔗', color:'orange',
       evidencia: [ev('h_1'), mediaT()],
-      lectura: 'La valoración del rendimiento sin acompañamiento es baja respecto al resto de indicadores. Conviene comprobar qué ocurre cuando trabaja sin supervisión directa.',
-      accion: 'Planificar con el captador tramos de trabajo autónomo con un objetivo concreto, y revisarlos juntos después.',
+      lectura: 'La valoración del rendimiento sin acompañamiento es baja, mientras la técnica se mantiene en un nivel aceptable. Conviene comprobar qué ocurre cuando trabaja sin supervisión directa.',
+      accion: 'Planificar con el captador/a tramos de trabajo autónomo con un objetivo concreto, y revisarlos juntos después.',
       revision: 'En la próxima sesión, comparar lo ocurrido en los tramos autónomos con los tramos acompañados.' });
   }
 
@@ -3922,7 +3923,7 @@ function diagnosticarReglas(data, sesionesAnteriores) {
       evidencia: [ev('h_10'), mediaT(), ev('h_6')],
       lectura: 'Se observa variabilidad entre periodos. Conviene identificar qué factores están presentes en las semanas de mejor y de peor rendimiento, como la zona, el horario, el equipo o la rutina de inicio.',
       colorAccion: 'blue',
-      accion: 'Revisar con el captador una semana buena y una mala y anotar qué cambió entre ellas. Si aparece un factor repetido, acordar una rutina de inicio de jornada estable.',
+      accion: 'Revisar con el captador/a una semana buena y una mala y anotar qué cambió entre ellas. Si aparece un factor repetido, acordar una rutina de inicio de jornada estable.',
       revision: 'Volver a valorar la estabilidad semanal cuando haya pasado un tiempo con esa rutina.' });
   }
 
@@ -3931,9 +3932,9 @@ function diagnosticarReglas(data, sesionesAnteriores) {
     const bajan = cambiosTxt(-1);
     return res({ regla:'R10', tipo:'Caída respecto a la sesión anterior', nivel:'medio', icono:'📉', color:'orange', motivo: unaComparacion,
       evidencia: [comparacion(), bajan.length ? 'Bajan: ' + bajan.join(' · ') : null],
-      lectura: 'Se observa una caída respecto a la intervención anterior. Una sola comparación no permite saber si es un cambio puntual o una tendencia sostenida.',
-      accion: 'Preguntar al captador qué ha cambiado desde la última sesión y revisar juntos las variables que más han bajado.',
-      revision: 'Registrar al menos una intervención más antes de concluir si la caída se mantiene.' });
+      lectura: 'Se observa una caída respecto a la sesión anterior. Una sola comparación no permite saber si es un cambio puntual o una tendencia sostenida.',
+      accion: 'Preguntar al captador/a qué ha cambiado desde la última sesión y revisar juntos las variables que más han bajado.',
+      revision: 'Registrar al menos una sesión más antes de concluir si la caída se mantiene.' });
   }
 
   // R11: Fase avanzada + puntuaciones bajas
@@ -3942,7 +3943,7 @@ function diagnosticarReglas(data, sesionesAnteriores) {
     return res({ regla:'R11', tipo:'Puntuaciones bajas para la fase', nivel: nEval >= 8 ? 'alto' : 'medio', icono:'⚠️', color:'red', motivo: pocas(8),
       evidencia: ['Fase: ' + nombreFase, 'Media ' + fmt(globalAvg) + '/5 (' + nEval + ' variables evaluadas)', masBajas.length ? 'Más bajas: ' + masBajas.join(' · ') : null],
       lectura: 'Hay una diferencia entre el tiempo en el proceso y las puntuaciones actuales. Los datos no indican la causa; conviene revisar qué competencia concreta está impidiendo la consolidación.',
-      accion: 'Revisar con el captador las variables más bajas, acordar un objetivo concreto para la siguiente sesión y hablar abiertamente de las expectativas de ambas partes. Si el acompañamiento actual no da resultado, plantear un enfoque distinto.',
+      accion: 'Revisar con el captador/a las variables más bajas, acordar un objetivo concreto para la siguiente sesión y hablar abiertamente de las expectativas de ambas partes. Si el acompañamiento actual no da resultado, plantear un enfoque distinto.',
       revision: 'En la próxima sesión, comprobar si mejora la variable trabajada.' });
   }
 
@@ -3952,7 +3953,7 @@ function diagnosticarReglas(data, sesionesAnteriores) {
       motivo: [faltanTec(), hFilled.length < 8 ? 'Hábitos: ' + hFilled.length + ' de ' + HABITOS_VARS.length + ' evaluadas (mínimo 8)' : null].filter(Boolean).join(' · ') || null,
       evidencia: [mediaT(), mediaH()],
       lectura: 'Las puntuaciones registradas son altas en técnica y en hábitos. Con este nivel, el siguiente paso puede centrarse en consolidar, ganar autonomía o asumir nuevos retos.',
-      accion: 'Acordar con el captador un reto nuevo (calidad, campañas, apoyo a compañeros) y, si procede, valorar responsabilidades adicionales.',
+      accion: 'Acordar con el captador/a un reto nuevo (calidad, campañas, apoyo a compañeros) y, si procede, valorar responsabilidades adicionales.',
       revision: 'Comprobar en las próximas sesiones si el nivel alto se mantiene.',
       palanca: allScored.find(x => x.val < 5) || null });
   }
@@ -3979,7 +3980,7 @@ function diagnosticarReglas(data, sesionesAnteriores) {
       tituloLectura: porFase ? 'Falta la fase' : 'Pocas variables evaluadas', tituloAccion: 'Qué hacer',
       evidencia: [nEval + (nEval === 1 ? ' variable evaluada' : ' variables evaluadas'), porFase ? 'Fase sin calcular' : null],
       lectura: porFase
-        ? 'Ninguna regla que no dependa de la fase se cumple con los datos actuales, y sin fase no se puede valorar el resto. No se genera una lectura para no suponer en qué fase está el captador.'
+        ? 'Ninguna regla que no dependa de la fase se cumple con los datos actuales, y sin fase no se puede valorar el resto. No se genera una lectura para no suponer en qué fase está el captador/a.'
         : 'Con tan pocos datos no se puede hacer una lectura general fiable.',
       accion: porFase
         ? 'Introduce la fecha de comienzo en Captador. La fase se calcula sola y la lectura se completa en cuanto la tenga.'
@@ -3993,7 +3994,7 @@ function diagnosticarReglas(data, sesionesAnteriores) {
     lectura: 'No aparece ninguno de los patrones que revisa la herramienta. Las puntuaciones no muestran una diferencia marcada entre áreas.',
     accion: palanca && palanca.val < 4
       ? 'Centrar la siguiente sesión en ' + palanca.label + ' (' + palanca.val + '/5), la variable prioritaria por puntuación entre las evaluadas.'
-      : 'Mantener el seguimiento y valorar con el captador nuevos retos.',
+      : 'Mantener el seguimiento y valorar con el captador/a nuevos retos.',
     revision: palanca && palanca.val < 4
       ? 'En la próxima sesión, volver a puntuar ' + palanca.label + ' y compararla con hoy.'
       : 'Comprobar en las próximas sesiones si el nivel se mantiene.' });
@@ -4034,7 +4035,7 @@ function renderDiagnostico() {
     ? '<ul class="diag-evid">' + diag.evidencia.map(e => '<li class="pill">' + esc(e) + '</li>').join('') + '</ul>'
     : texto('No hay datos que mostrar.');
   const avisoFase = diag.faseDesconocida
-    ? '<div class="notice" data-tone="warn">' + ic('calendar') + '<div><strong>Sin fase.</strong> Esta lectura no tiene en cuenta en qué fase está el captador; puede cambiar al poner la fecha de comienzo.</div></div>' : '';
+    ? '<div class="notice" data-tone="warn">' + ic('calendar') + '<div><strong>Sin fase.</strong> Esta lectura no tiene en cuenta en qué fase está el captador/a; puede cambiar al poner la fecha de comienzo.</div></div>' : '';
   const faltaFase = diag.sinFase || diag.faseDesconocida;
   body.innerHTML = avisoFase +
     '<div><span class="score-pill ' + nv.cls + '">' + nv.txt + '</span>' +
@@ -4489,7 +4490,7 @@ function mostrarRecursos(seccion) {
   document.getElementById('recursosIcon').innerHTML = ic(bib ? 'book' : 'clipboard');
   document.getElementById('recursosIcon').setAttribute('data-tone', bib ? 'indigo' : 'slate');
   document.getElementById('recursosSub').textContent = bib
-    ? 'Biblioteca: inserta una creencia en la ficha junto con su intervención'
+    ? 'Biblioteca: inserta una creencia en la sesión junto con su intervención'
     : 'Plantillas: frases de intervención y tus plantillas propias';
   if (bib) { renderBibliotecaCats(); filtrarBiblioteca(); }
   else { renderCats(); filtrarPlantillas(); }
@@ -5347,7 +5348,7 @@ function usarCreencia(idx, conIntervencion) {
   }
   cerrarRecursos(true);
   if (!targetCreencia) toast('Las 5 creencias ya están ocupadas. Borra una para insertar otra.', {tono:'warn', ms:4500});
-  else toast(conIntervencion ? 'Insertadas: adáptalas a lo que dice el captador y a lo que habéis trabajado; así quedarán en el historial y en el PDF.' : 'Creencia insertada: adáptala a lo que dice el captador; así quedará en el historial y en el PDF.', {ms:5000});
+  else toast(conIntervencion ? 'Insertadas: adáptalas a lo que dice el captador/a y a lo que habéis trabajado; así quedarán en el historial y en el PDF.' : 'Creencia insertada: adáptala a lo que dice el captador/a; así quedará en el historial y en el PDF.', {ms:5000});
   goTab(1);
   setTimeout(() => { if (targetCreencia) try { targetCreencia.focus({preventScroll:true}); targetCreencia.scrollIntoView({block:'center'}); } catch(e){} }, 60);
 }
@@ -5390,7 +5391,7 @@ function switchJsonTab(tab) {
 
 function exportarJSON() {
   const fichas = cargarFichas();
-  if (!fichas.length) { toast('No hay fichas guardadas para exportar. Guarda una ficha primero.', {tono:'warn', ms:4000}); return; }
+  if (!fichas.length) { toast('No hay sesiones guardadas para exportar. Guarda una sesión primero.', {tono:'warn', ms:4000}); return; }
   const payload = { version: SCHEMA_VERSION, exportedAt: new Date().toISOString(), fichas };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -5449,7 +5450,7 @@ const RE_FECHA_HORA = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{
 const esObjeto = v => v !== null && typeof v === 'object' && !Array.isArray(v);
 // Devuelve { ficha } con solo los campos del modelo, ya validados, o { error } con el motivo de rechazo
 function validarFichaImportada(f) {
-  if (!esObjeto(f)) return { error: 'no es una ficha' };
+  if (!esObjeto(f)) return { error: 'no es una sesión' };
   const out = {};
   const ausente = v => v === undefined || v === null;
   const conocidos = new Set(CAMPOS_FICHA_FIJOS.concat(modeloFicha().textos, modeloFicha().puntuaciones));
@@ -5558,7 +5559,7 @@ function importarJSON(input) {
   const resultEl = document.getElementById('jsonImportResult');
   if (file.size > MAX_ARCHIVO_IMPORT) {
     resultEl.className = 'json-import-result err';
-    resultEl.textContent = 'No se ha importado nada: el archivo ocupa más de 5 MB, más de lo que puede ser una copia de fichas. Tus fichas no se han modificado.';
+    resultEl.textContent = 'No se ha importado nada: el archivo ocupa más de 5 MB, más de lo que puede ser una copia de sesiones. Tus sesiones no se han modificado.';
     anunciar(resultEl.textContent);
     input.value = '';
     return;
@@ -5581,7 +5582,7 @@ function importarJSON(input) {
         resultEl.className = 'json-import-result err';
         resultEl.textContent = (Number.isInteger(version) && version > SCHEMA_VERSION
           ? 'No se ha importado nada: este archivo es de una versión más nueva de la app. Recarga la página para actualizarla e inténtalo de nuevo.'
-          : 'No se ha importado nada: la versión del archivo no es válida.') + ' Tus fichas no se han modificado.';
+          : 'No se ha importado nada: la versión del archivo no es válida.') + ' Tus sesiones no se han modificado.';
         anunciar(resultEl.textContent);
         input.value = '';
         return;
@@ -5592,7 +5593,7 @@ function importarJSON(input) {
       const existingIds = new Set(existentes.map(f => f._id));
       let added = 0, skipped = 0, idsSustituidos = 0;
       const motivos = {}, ignorados = new Set();
-      const fichasTxt = n => n + (n === 1 ? ' ficha' : ' fichas');
+      const fichasTxt = n => n + (n === 1 ? ' sesión' : ' sesiones');
       // Todo el archivo se valida en memoria; no se escribe nada hasta el final (y solo si se confirma)
       nuevasFichas.forEach(original => {
         const v = validarFichaImportada(esObjeto(original) ? migrarFicha(original, version) : original);
@@ -5618,26 +5619,26 @@ function importarJSON(input) {
         listaIgn.slice(0, 10).join(', ') + (listaIgn.length > 10 ? '…' : '') + '.' : '';
       const sinCambios = msg => {
         resultEl.className = 'json-import-result err';
-        resultEl.textContent = msg + ' Tus fichas no se han modificado.';
+        resultEl.textContent = msg + ' Tus sesiones no se han modificado.';
         anunciar(resultEl.textContent);
         input.value = '';
       };
       // Sin ninguna ficha nueva que añadir no se escribe nada
       if (added === 0) {
-        sinCambios(rechazadas ? 'No se ha importado nada: el archivo no tiene ninguna ficha válida' + motivosTxt + '.'
-          : skipped ? 'No se ha importado nada: ' + (skipped === 1 ? 'la ficha del archivo ya existía.' : 'las ' + skipped + ' fichas del archivo ya existían.')
-          : 'No se ha importado nada: el archivo no contiene fichas.');
+        sinCambios(rechazadas ? 'No se ha importado nada: el archivo no tiene ninguna sesión válida' + motivosTxt + '.'
+          : skipped ? 'No se ha importado nada: ' + (skipped === 1 ? 'la sesión del archivo ya existía.' : 'las ' + skipped + ' sesiones del archivo ya existían.')
+          : 'No se ha importado nada: el archivo no contiene sesiones.');
         return;
       }
       // Fichas válidas y no válidas: nada entra a medias sin que el responsable lo decida
       if (rechazadas && !confirm(
         fichasTxt(added + skipped) + (added + skipped === 1 ? ' válida' : ' válidas') + ' · ' + rechazadas + (rechazadas === 1 ? ' no válida' : ' no válidas') + '\n\n' +
-        (added === 1 ? 'Se importaría 1 ficha.' : 'Se importarían ' + fichasTxt(added) + '.') + (skipped ? ' ' + fichasTxt(skipped) + ' ya existían y se omitirían.' : '') + '\n' +
+        (added === 1 ? 'Se importaría 1 sesión.' : 'Se importarían ' + fichasTxt(added) + '.') + (skipped ? ' ' + fichasTxt(skipped) + ' ya existían y se omitirían.' : '') + '\n' +
         rechazadas + (rechazadas === 1 ? ' se rechazaría: ' : ' se rechazarían: ') + resumenMotivos + '.' +
         (ignoradosTxt ? '\n' + ignoradosTxt.trim() : '') + '\n\n' +
-        '¿Importar ' + (added === 1 ? 'la ficha válida' : 'las ' + added + ' fichas válidas') + '? Si cancelas, no se modifica nada.')) {
+        '¿Importar ' + (added === 1 ? 'la sesión válida' : 'las ' + added + ' sesiones válidas') + '? Si cancelas, no se modifica nada.')) {
         resultEl.className = 'json-import-result';
-        resultEl.textContent = 'Importación cancelada: tus fichas no se han modificado.';
+        resultEl.textContent = 'Importación cancelada: tus sesiones no se han modificado.';
         anunciar(resultEl.textContent);
         input.value = '';
         return;
@@ -5646,12 +5647,12 @@ function importarJSON(input) {
       if (!merge) {
         const actuales = cargarFichas().length;
         if (actuales > 0 && !confirm(
-          'Vas a REEMPLAZAR tus ' + actuales + (actuales === 1 ? ' ficha guardada' : ' fichas guardadas') +
-          ' por ' + (added === 1 ? 'la única ficha válida' : 'las ' + added + ' fichas válidas') + ' de este archivo.' +
-          (rechazadas ? '\n\n' + rechazadas + (rechazadas === 1 ? ' ficha del archivo no es válida y no se importará.' : ' fichas del archivo no son válidas y no se importarán.') : '') +
-          '\n\nLas fichas que tienes ahora se perderán. Si quieres conservarlas, cancela y marca «Combinar con las fichas que ya tienes».\n\n¿Reemplazar?')) {
+          'Vas a REEMPLAZAR tus ' + actuales + (actuales === 1 ? ' sesión guardada' : ' sesiones guardadas') +
+          ' por ' + (added === 1 ? 'la única sesión válida' : 'las ' + added + ' sesiones válidas') + ' de este archivo.' +
+          (rechazadas ? '\n\n' + rechazadas + (rechazadas === 1 ? ' sesión del archivo no es válida y no se importará.' : ' sesiones del archivo no son válidas y no se importarán.') : '') +
+          '\n\nLas sesiones que tienes ahora se perderán. Si quieres conservarlas, cancela y marca «Combinar con las sesiones que ya tienes».\n\n¿Reemplazar?')) {
           resultEl.className = 'json-import-result';
-          resultEl.textContent = 'Importación cancelada: tus fichas no se han modificado.';
+          resultEl.textContent = 'Importación cancelada: tus sesiones no se han modificado.';
           anunciar(resultEl.textContent);
           input.value = '';
           return;
@@ -5798,8 +5799,8 @@ function calcRiesgo(sessions, estado, opts) {
   const inicial = faseDisponible && faseNum <= 2;
 
   // Seguimiento temporal (criterio interno de 7 y 14 días; más peso en F1–F3)
-  if (diasSin !== null && diasSin > 14) add('dias_sin_intervencion', 'temporal', faseNum <= 3 ? 25 : 15, 'Sin intervención registrada hace ' + diasSin + ' días (criterio interno: más de 14)', 'calendar');
-  else if (diasSin !== null && diasSin > 7) add('dias_sin_intervencion', 'temporal', faseNum <= 3 ? 12 : 8, diasSin + ' días desde la última intervención (criterio interno: más de 7)', 'calendar');
+  if (diasSin !== null && diasSin > 14) add('dias_sin_intervencion', 'temporal', faseNum <= 3 ? 25 : 15, 'Sin sesión registrada hace ' + diasSin + ' días (criterio interno: más de 14)', 'calendar');
+  else if (diasSin !== null && diasSin > 7) add('dias_sin_intervencion', 'temporal', faseNum <= 3 ? 12 : 8, diasSin + ' días desde la última sesión (criterio interno: más de 7)', 'calendar');
 
   // Rendimiento: nivel general y por grupo (solo grupos evaluados)
   if (!inicial && nivelOk && m.global !== null) {
@@ -5932,7 +5933,7 @@ function renderRiesgoCard() {
     'Índice interno de 0 a 100 según las señales registradas; no es una probabilidad de baja. ') +
     'Datos: ' + r.cobertura.evaluadas + ' de ' + r.cobertura.total + ' variables · ' + sessions.length + (sessions.length === 1 ? ' sesión' : ' sesiones') +
     (historica ? ' · consulta de una sesión anterior' : '') +
-    (r.diasSin !== null && r.diasSin !== undefined ? ' · última intervención hace ' + r.diasSin + (r.diasSin === 1 ? ' día' : ' días') : '');
+    (r.diasSin !== null && r.diasSin !== undefined ? ' · última sesión hace ' + r.diasSin + (r.diasSin === 1 ? ' día' : ' días') : '');
   const manualEl = document.getElementById('riesgoManual');
   if (manualEl) {
     const em = r.estadoManual;
@@ -6241,7 +6242,7 @@ function requisitosSalida(d) {
   const faltan = [];
   if (isNaN(faseNum)) faltan.push('la fase (pon la fecha de comienzo)');
   else if (faseNum <= 2) faltan.push('estar a partir del Día 13 (en ' + FASES[faseNum - 1].label + ' las puntuaciones son un punto de partida)');
-  if (nSes < 2) faltan.push('al menos dos intervenciones registradas, para valorar un patrón y no un solo día');
+  if (nSes < 2) faltan.push('al menos dos sesiones registradas, para valorar un patrón y no un solo día');
   if (suficienciaDe(m) !== 'alta') faltan.push('evidencia suficiente en esta sesión: al menos 8 variables evaluadas, de técnica y de hábitos (ahora ' + m.n + ')');
   return faltan;
 }
@@ -6262,6 +6263,15 @@ function restaurarDecision(data) {
   });
   actualizarChecklist();
 }
+// Decisión pendiente: el mismo texto en Decisión, estado de la sesión, historial y PDF
+const CRITERIO_NOMBRE = { esfuerzo:'esfuerzo', aprendizaje:'aprendizaje', proceso:'proceso', resultado:'resultado' };
+function decisionPendienteTxt(n) { return 'Decisi\u00f3n pendiente \u00b7 faltan ' + n + (n === 1 ? ' criterio' : ' criterios'); }
+function criteriosFaltanTxt(m) {
+  const f = CRITERIOS_MATRIZ.filter(k => m[k] === null).map(k => CRITERIO_NOMBRE[k]);
+  return f.length ? 'Falta decidir ' + (f.length > 1 ? f.slice(0, -1).join(', ') + ' y ' + f[f.length - 1] : f[0]) + '.' : '';
+}
+// Resumen de una línea: «Decisión: …» o «Decisión pendiente · faltan N criterios»
+function resumenDecision(d) { return decisionParaPDF(d).resumen; }
 // Decisión de la sesión para el PDF, tal como quedó registrada en sus datos (decisionMatrix, decisionResult,
 // checklistDespido). Los textos son los de la pantalla: nombres de los criterios, regla y puntos del checklist.
 function decisionParaPDF(d) {
@@ -6271,10 +6281,14 @@ function decisionParaPDF(d) {
   const r = d && d.decisionResult;
   const cod = r && typeof r.regla === 'string' ? r.regla.match(/^E([01])A([01])P([01])R([01])$/) : null;
   const regla = cod ? MATRIZ_REGLAS.find(x => x.cond({ esfuerzo: cod[1] === '1', aprendizaje: cod[2] === '1', proceso: cod[3] === '1', resultado: cod[4] === '1' })) : null;
-  let resultado, desc = '';
-  if (!r) {
-    resultado = 'No registrada';
-    desc = CRITERIOS_MATRIZ.some(k => m[k] === null) ? 'No hay una recomendaci\u00f3n registrada: faltan criterios por decidir.' : 'No hay una recomendaci\u00f3n registrada en esta sesi\u00f3n.';
+  const nFaltan = CRITERIOS_MATRIZ.filter(k => m[k] === null).length;
+  let resultado, desc = '', resumen;
+  if (nFaltan) {
+    resultado = resumen = decisionPendienteTxt(nFaltan);
+    desc = criteriosFaltanTxt(m);
+  } else if (!r) {
+    resultado = resumen = 'Sin decisi\u00f3n registrada';
+    desc = 'No hay una decisi\u00f3n registrada en esta sesi\u00f3n.';
   } else if (r.sinBaseSalida) {
     resultado = 'Sin base para valorar una salida';
     desc = 'Los 4 criterios est\u00e1n en \u00abNo\u00bb, pero no se cumpl\u00edan los requisitos para valorar una salida (fase, patr\u00f3n de sesiones o evidencia suficiente).';
@@ -6282,18 +6296,19 @@ function decisionParaPDF(d) {
     resultado = fraseNormal(partirEmoji(regla.decision).texto);
     desc = regla.desc;
   } else resultado = 'Registrada sin descripci\u00f3n';
+  if (!resumen) resumen = 'Decisi\u00f3n: ' + resultado;
   // Como en pantalla: el checklist solo aplica cuando la recomendación es valorar una salida
   const aplica = !!(r && r.cls === 'mr-despedir' && !r.sinBaseSalida);
   const lista = d && Array.isArray(d.checklistDespido) ? d.checklistDespido : null;
   let checklist = null, checklistNota = '';
-  if (!aplica) checklistNota = 'No aplica: el checklist solo se usa cuando la recomendaci\u00f3n es valorar una salida.';
+  if (!aplica) checklistNota = 'No aplica: el checklist solo se usa cuando tus criterios indican valorar una salida.';
   else if (!lista) checklistNota = 'No registrado en esta sesi\u00f3n.';
   else {
     const textos = [...document.querySelectorAll('#checklistSection .checklist-item-text')].map(el => el.textContent.trim());
     const items = textos.map((t, i) => ({ texto: t, hecho: lista[i] === true }));
     checklist = { items, hechos: items.filter(x => x.hecho).length, total: items.length };
   }
-  return { resultado, desc, criterios, checklist, checklistNota };
+  return { resultado, resumen, desc, criterios, checklist, checklistNota };
 }
 
 
@@ -6306,8 +6321,9 @@ function calcMatriz() {
   var allSet = Object.values(s).every(function(v){ return v !== null; });
   if (!allSet) {
     if (resEl) resEl.className = 'card mz-resultado';
-    if (decEl) decEl.textContent = 'Selecciona los 4 criterios';
-    if (desEl) desEl.textContent = 'Evalúa esfuerzo, aprendizaje, proceso y resultado.';
+    var nF = Object.values(s).filter(function(v){ return v === null; }).length;
+    if (decEl) decEl.textContent = decisionPendienteTxt(nF);
+    if (desEl) desEl.textContent = criteriosFaltanTxt(s);
     var cs = document.getElementById('checklistSection');
     if (cs) cs.style.display = 'none';
     return;
@@ -6486,7 +6502,7 @@ function actualizarSenalesResult() {
   const n = senalesActivas.size;
   if (n === 0) { result.className = 'senales-result notice'; result.innerHTML = ''; return; }
   let tone, icono, texto;
-  if (n >= 5) { tone='bad'; icono='alert'; texto=`<strong>${n} señales activas.</strong> Hablar con el captador hoy o mañana, sin esperar a la próxima sesión.`; }
+  if (n >= 5) { tone='bad'; icono='alert'; texto=`<strong>${n} señales activas.</strong> Hablar con el captador/a hoy o mañana, sin esperar a la próxima sesión.`; }
   else if (n >= 3) { tone='warn'; icono='warn'; texto=`<strong>${n} señales activas.</strong> Acompañamiento prioritario esta semana. No dejar pasar más de 48h sin intervenir.`; }
   else { tone='blue'; icono='eye'; texto=`<strong>${n} señal${n>1?'es':''} detectada${n>1?'s':''}.</strong> Mantener seguimiento en la próxima sesión; si la señal indica que se plantea dejarlo, habla con él antes.`; }
   result.className = 'senales-result notice show';
@@ -6503,11 +6519,11 @@ const SEMAFORO_CONFIG = {
   },
   amarillo: {
     cls: 'semaforo-amarillo', title: 'Seguimiento reforzado',
-    accion: '<strong>Seguimiento reforzado.</strong> Hay alguna señal de atención. Conviene hablar esta semana con el captador sobre cómo se ve en el equipo y qué necesita, y revisar estas señales en la próxima sesión.'
+    accion: '<strong>Seguimiento reforzado.</strong> Hay alguna señal de atención. Conviene hablar esta semana con el captador/a sobre cómo se ve en el equipo y qué necesita, y revisar estas señales en la próxima sesión.'
   },
   rojo: {
     cls: 'semaforo-rojo', title: 'Seguimiento prioritario',
-    accion: '<strong>Seguimiento prioritario.</strong> Conviene hablar con el captador en los próximos días, sin esperar a la próxima sesión programada, para entender qué está pasando.'
+    accion: '<strong>Seguimiento prioritario.</strong> Conviene hablar con el captador/a en los próximos días, sin esperar a la próxima sesión programada, para entender qué está pasando.'
   },
 };
 
@@ -6516,9 +6532,9 @@ const SEMAFORO_CONFIG = {
    Si no se cumplen, no se muestra color (mejor sin semáforo que con uno sin base).
    Prioridad de las señales:
    · Rojo: caída fuerte comparable (más de 0,8), media por debajo de 2,5 sin mejora,
-           o más de 14 días sin intervención junto con otra señal de atención.
+           o más de 14 días sin sesión junto con otra señal de atención.
    · Ámbar: cualquier señal de atención: bajada leve, media por debajo de 3, más de 7 o de 14 días
-           sin intervención. La falta de seguimiento por sí sola es atención, no prueba de abandono.
+           sin sesión. La falta de seguimiento por sí sola es atención, no prueba de abandono.
    · Verde: ninguna señal.
    El estado manual no decide el color: se devuelve aparte como contexto.
    En una ficha del historial no se cuentan los días transcurridos hasta hoy. */
@@ -6540,8 +6556,8 @@ function evaluarSemaforo(sessions, faseId, estado, opts) {
   else if (delta < 0) senales.push({ tipo:'atencion', label:'Bajada de ' + fmt1(-delta) + ' puntos respecto a la sesión anterior' });
   if (gLast !== null && gLast < 2.5 && delta <= 0) senales.push({ tipo:'critica', label:'Media de técnica y hábitos ' + fmt1(gLast) + '/5 sin mejora' });
   else if (gLast !== null && gLast < 3)            senales.push({ tipo:'atencion', label:'Media de técnica y hábitos ' + fmt1(gLast) + '/5, por debajo de 3' });
-  if (diasSin !== null && diasSin > 14)     senales.push({ tipo:'atencion', temporal:true, label: diasSin + ' días sin intervención (criterio interno: más de 14)' });
-  else if (diasSin !== null && diasSin > 7) senales.push({ tipo:'atencion', temporal:true, label: diasSin + ' días sin intervención (criterio interno: más de 7)' });
+  if (diasSin !== null && diasSin > 14)     senales.push({ tipo:'atencion', temporal:true, label: diasSin + ' días sin sesión (criterio interno: más de 14)' });
+  else if (diasSin !== null && diasSin > 7) senales.push({ tipo:'atencion', temporal:true, label: diasSin + ' días sin sesión (criterio interno: más de 7)' });
 
   const hayCritica = senales.some(s => s.tipo === 'critica');
   const otraAtencion = senales.some(s => s.tipo === 'atencion' && !s.temporal);
@@ -6644,7 +6660,7 @@ function actualizarDiasFase() {
   const faseMostrada = AppState.faseCongelada ? faseSelected : calc.fase;
   if (!faseValida(faseMostrada)) {
     wrap.innerHTML = '<div class="notice" data-tone="neutral">' + ic('info') +
-      '<div><strong>Esta ficha no tiene fase registrada.</strong> Se muestra tal como se guardó. Si cambias la fecha de comienzo o la de intervención, la fase se calculará con ellas.</div></div>';
+      '<div><strong>Esta sesión no tiene fase registrada.</strong> Se muestra tal como se guardó. Si cambias la fecha de comienzo o la de la sesión, la fase se calculará con ellas.</div></div>';
     return;
   }
   const fl = FASES.find(f => f.id === faseMostrada);
@@ -6654,10 +6670,10 @@ function actualizarDiasFase() {
   const est = ESTADOS[estado];
 
   wrap.innerHTML =
-    '<section class="card dias-fase-block" data-tone="' + (FASE_TONO[faseMostrada] || 'slate') + '" aria-label="Días en el proceso y fase de esta intervención">' +
+    '<section class="card dias-fase-block" data-tone="' + (FASE_TONO[faseMostrada] || 'slate') + '" aria-label="Días en el proceso y fase de esta sesión">' +
       '<div class="dias-fase-num"><span class="cifra cifra-xl">' + calc.dias + '</span><span class="cifra-unit">días</span></div>' +
       '<div class="dias-fase-info">' +
-        '<p class="eyebrow">Fase en esta intervención</p>' +
+        '<p class="eyebrow">Fase en esta sesión</p>' +
         '<div class="dias-fase-nombre">' + esc(fl ? fl.label : faseMostrada) + '</div>' +
         '<div class="dias-fase-rango">' + rangoLabel + '</div>' +
         (est ? '<span class="status-pill ' + est.cls + '">' + esc(est.label) + '</span>' : '') +
@@ -6715,8 +6731,8 @@ function calcLMI(limite = 3) {
   // Seguimiento urgente
   if (diasSin !== null && diasSin > 14 && riesgo && riesgo.nivel === 'critico') {
     add({ id:'contacto', grupo:'seguimiento', urgencia:'alta', esp:3, icono:'📞',
-      titulo:'Contactar hoy — ' + diasSin + ' días sin intervención registrada',
-      desc:'El índice de atención está en nivel prioritario y han pasado más de 14 días (criterio interno) desde la última intervención. Conviene contactar antes de planificar otra sesión y preguntar cómo le está yendo.' });
+      titulo:'Contactar hoy — ' + diasSin + ' días sin sesión registrada',
+      desc:'El índice de atención está en nivel prioritario y han pasado más de 14 días (criterio interno) desde la última sesión. Conviene contactar antes de planificar otra sesión y preguntar cómo le está yendo.' });
   }
 
   // Contexto de fase (según la guía de acompañamiento; solo con fase válida)
@@ -6725,7 +6741,7 @@ function calcLMI(limite = 3) {
       titulo: faseNum === 1 ? 'Día 1–5: acompañamiento cercano' : 'Día 6–12: validar el progreso',
       desc: faseNum === 1
         ? 'En los primeros días el foco está en la integración más que en el resultado. Acompañar los turnos, reconocer un avance concreto en cada uno y evitar comparaciones con veteranos.'
-        : 'La guía de fases señala este momento como delicado: el captador puede empezar a compararse. Mostrarle avances concretos («hace unos días no hacías esto») y acompañar varios turnos esta semana.' });
+        : 'La guía de fases señala este momento como delicado: el captador/a puede empezar a compararse. Mostrarle avances concretos («hace unos días no hacías esto») y acompañar varios turnos esta semana.' });
   }
   if (hayFase && (faseNum === 3 || faseNum === 4)) {
     add({ id:'fase_media', grupo:'fase', urgencia:'media', esp:1, icono:'🗓️',
@@ -6749,7 +6765,7 @@ function calcLMI(limite = 3) {
   if (nCreencias >= 2 && bajo('h_3')) {
     add({ id:'creencias', grupo:'creencias', urgencia:'alta', icono:'🧠',
       titulo:'Revisar las ' + nCreencias + ' creencias registradas (negatividad ' + s('h_3') + '/5)',
-      desc:'Hay creencias registradas junto con una valoración baja en manejo de la negatividad. Conviene revisarlas con el captador y comprobar en campo si interfieren; los datos no permiten afirmar que sean la causa.' });
+      desc:'Hay creencias registradas junto con una valoración baja en manejo de la negatividad. Conviene revisarlas con el captador/a y comprobar en campo si interfieren; los datos no permiten afirmar que sean la causa.' });
   }
   if (evo && evo.delta < -0.8) {
     add({ id:'caida', grupo:'evolucion', urgencia:'alta', icono:'📉',
@@ -6759,7 +6775,7 @@ function calcLMI(limite = 3) {
   if (bajo('h_1') && hayFase && faseNum >= 3) {
     add({ id:'autonomia', grupo:'autonomia', urgencia:'media', icono:'🔗',
       titulo:'Trabajar la autonomía — rendimiento sin RE/RP ' + s('h_1') + '/5',
-      desc:'Planificar con el captador tramos de trabajo autónomo con un objetivo concreto y revisarlos juntos después.' });
+      desc:'Planificar con el captador/a tramos de trabajo autónomo con un objetivo concreto y revisarlos juntos después.' });
   }
   if (bajo('t_3') && tecSuf && tAvg >= 2.5) {
     add({ id:'cierre', grupo:'cierre', urgencia:'media', icono:'🔒',
@@ -6779,7 +6795,7 @@ function calcLMI(limite = 3) {
   if (bajo('h_10')) {
     add({ id:'estabilidad', grupo:'estabilidad', urgencia:'media', icono:'📊',
       titulo:'Estabilidad semanal baja (' + s('h_10') + '/5)',
-      desc:'Revisar con el captador una semana buena y una mala, anotar qué cambió y, si aparece un factor repetido, acordar una rutina de inicio de jornada.' });
+      desc:'Revisar con el captador/a una semana buena y una mala, anotar qué cambió y, si aparece un factor repetido, acordar una rutina de inicio de jornada.' });
   }
   if (bajo('t_2') && minimo('t_0', 2.5) && minimo('t_1', 2.5)) {
     add({ id:'rebatidas', grupo:'rebatidas', urgencia:'media', icono:'🗣️',
@@ -6790,13 +6806,13 @@ function calcLMI(limite = 3) {
     const cual = bajo('h_0') ? 'Puntualidad (' + s('h_0') + '/5)' : 'Aprovechamiento de la jornada (' + s('h_9') + '/5)';
     add({ id:'jornada', grupo:'jornada', urgencia:'media', icono:'⏰',
       titulo: cual + ' — acordar un cambio concreto',
-      desc:'Hablar con el captador sobre qué lo provoca y acordar un cambio concreto que se pueda comprobar en la próxima sesión.' });
+      desc:'Hablar con el captador/a sobre si hay algo que lo dificulte y acordar un cambio concreto que se pueda comprobar en la próxima sesión.' });
   }
   if (bajo('h_2') || bajo('h_5')) {
     const cual = bajo('h_2') ? 'gestión de conflictos (' + s('h_2') + '/5)' : 'dinámicas de equipo (' + s('h_5') + '/5)';
     add({ id:'equipo', grupo:'equipo', urgencia:'media', icono:'🤝',
       titulo:'Valoración baja en ' + cual,
-      desc:'Hablar con el captador para entender qué está pasando en el equipo y cuál es su papel en ello.' });
+      desc:'Hablar con el captador/a sobre cómo vive la situación en el equipo.' });
   }
   if (bajo('h_4') && hayFase && faseNum >= 3) {
     add({ id:'criterios', grupo:'criterios', urgencia:'media', icono:'📋',
@@ -6832,7 +6848,7 @@ function calcLMI(limite = 3) {
       add({ id:'indice', grupo: grupoTop || 'indice', urgencia:'alta', icono:'🔴',
         titulo: RIESGO_NIVELES[riesgo.nivel].label + ' — revisar esta semana (' + riesgo.score + '/100)',
         desc: top ? 'La señal con más peso en el índice interno es: ' + top.label + '. Revisarla antes de la próxima sesión.'
-                  : 'Revisar las señales del índice de atención en Diagnóstico.' });
+                  : 'Revisar las señales del índice de atención en Lectura.' });
     }
   }
 
@@ -6842,7 +6858,7 @@ function calcLMI(limite = 3) {
   if (totalSuf && masBaja) {
     add({ id:'variable_prioritaria', grupo: GRUPO_VARIABLE[masBaja.k] || masBaja.k, urgencia:'normal', icono:'🎯',
       titulo:'Variable prioritaria por puntuación: ' + masBaja.l + ' (' + masBaja.v + '/5)',
-      desc:'Es la variable más baja entre las evaluadas. Conviene trabajarla en la próxima intervención; su puntuación no indica por sí sola que sea la causa del resultado.' });
+      desc:'Es la variable más baja entre las evaluadas. Conviene trabajarla en la próxima sesión; su puntuación no indica por sí sola que sea la causa del resultado.' });
   }
 
   // Puntuaciones altas sin otras señales
@@ -7053,6 +7069,7 @@ function renderHistorialTab() {
           ${hA?`<span class="score-pill ${pillClass(hA)}">Hábitos ${miniBar(hA)} ${hA}</span>`:'<span class="score-pill">Hábitos —</span>'}
           ${faseObj?`<span class="fase-badge" data-tone="${FASE_TONO[faseObj.id]||'slate'}">${esc(faseObj.label)}</span>`:''}
         </div>
+        <div class="hist-decision">${esc(resumenDecision(f))}</div>
         ${registro.length ? `<div class="hist-nota">${registroHtml(registro)}</div>` : ''}
         <div class="hist-entry-actions">
           <button type="button" class="btn btn-secondary btn-sm" onclick="cargarFichaEnFormulario('${idAttr(f._id)}')">${ic('upload')}Cargar</button>
