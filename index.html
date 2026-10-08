@@ -327,9 +327,19 @@ input[type=date]{scroll-margin-top:96px;}
 .score-star.filled{color:var(--brand);}
 .score-star.filled .ic{fill:currentColor;}
 .score-star.hover-fill{color:var(--brand);}
+.score-val.no-obs{width:auto;font-family:var(--font-body);font-size:var(--t-xs);font-weight:500;}
 .score-val{width:22px;text-align:center;flex-shrink:0;font-family:var(--font-brand);font-size:var(--t-md);font-weight:700;color:var(--ink-3);font-variant-numeric:tabular-nums;}
 .score-val.has-score{color:var(--ink);}
-.score-scale{display:flex;justify-content:space-between;padding:var(--s-2) var(--s-4) var(--s-3);font-size:var(--t-xs);color:var(--ink-3);}
+.escala-ref{padding:var(--s-3) var(--s-4);border-bottom:1px solid var(--line);font-size:var(--t-xs);color:var(--ink-2);line-height:1.45;}
+.escala-ref-tit{font-family:var(--font-brand);font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);margin-bottom:4px;}
+.escala-ref-lista{list-style:none;margin:0;padding:0;display:grid;gap:2px;}
+.escala-ref-lista b{display:inline-block;width:14px;font-family:var(--font-brand);color:var(--ink);}
+.escala-ref-nota{margin-top:6px;color:var(--ink-3);}
+.escala-ref-nota b{color:var(--ink-2);}
+.score-group-n{display:block;font-family:var(--font-body);font-size:var(--t-xs);font-weight:500;color:var(--ink-3);margin-top:2px;}
+.score-row{flex-wrap:wrap;}
+.score-sig{flex-basis:100%;font-size:var(--t-xs);color:var(--ink-2);line-height:1.4;}
+.score-sig:empty{display:none;}
 
 /* ---------- Píldoras de puntuación y estado (fondo suave, nunca texto blanco sobre color) ---------- */
 .score-pill,.status-pill,.riesgo-badge,.pill{display:inline-flex;align-items:center;gap:6px;min-height:26px;padding:2px 10px;border-radius:var(--r-pill);
@@ -767,8 +777,9 @@ span.estado-item{border-style:dashed;}
   .dash-filter{grid-template-columns:1fr;}
   .senales-grid{grid-template-columns:1fr;}
   .score-row{flex-wrap:wrap;row-gap:0;padding:var(--s-3) var(--s-4) var(--s-2);}
-  .score-row-label{flex:1 1 calc(100% - 40px);font-size:var(--t-md);}
-  .score-val{order:2;}
+  .score-row-label{flex:1 1 0;min-width:0;font-size:var(--t-md);}
+  .score-val{order:2;flex-shrink:0;}
+  .score-sig{order:4;margin-top:2px;}
   .score-stars{order:3;flex:1 1 100%;justify-content:space-between;margin-top:4px;}
   .score-star{flex:1;width:auto;}
   .fd-hero{gap:var(--s-4);}
@@ -1063,12 +1074,16 @@ span.estado-item{border-style:dashed;}
       <div class="score-group">
         <div class="score-group-header">
           <span class="tile tile-sm"><svg class="ic" aria-hidden="true"><use href="#i-bolt"/></svg></span>
-          <h2 class="score-group-title" id="h-tecnica">Técnica</h2>
+          <h2 class="score-group-title" id="h-tecnica">Técnica <span class="score-group-n" id="group-n-t"></span></h2>
           <div class="score-group-avg" id="group-avg-t" aria-label="Media de técnica"><span>—</span></div>
         </div>
         <div class="score-group-bar"><div class="score-group-bar-fill" id="group-bar-t" style="width:0%"></div></div>
+        <div class="escala-ref" aria-hidden="true">
+          <p class="escala-ref-tit">Escala</p>
+          <ol class="escala-ref-lista"><li><b>1</b> Lo intenta y no le sale, o con errores graves casi siempre</li><li><b>2</b> A veces, con errores frecuentes</li><li><b>3</b> En la mayoría de los intentos, con errores menores</li><li><b>4</b> Con soltura casi siempre</li><li><b>5</b> Con soltura y adaptándose a cada situación o persona</li></ol>
+          <p class="escala-ref-nota"><b>Sin estrellas = no observado.</b> No cuenta como puntuación baja. Para quitar una puntuación, pulsa de nuevo la estrella marcada.</p>
+        </div>
         <div class="score-group-body" id="tbody-tecnica"></div>
-        <div class="score-scale" aria-hidden="true"><span>1 Muy bajo</span><span>3 Aceptable</span><span>5 Excelente</span></div>
       </div>
       <div class="eyebrow-row"><h3 class="eyebrow">Intervención sobre el proceso</h3><button type="button" class="btn btn-tinted btn-sm" onclick="abrirPlantillas('tecnica','ip',this)"><svg class="ic" aria-hidden="true"><use href="#i-clipboard"/></svg>Plantillas</button></div>
       <div class="intervencion-list" data-lista="ip">
@@ -1088,13 +1103,17 @@ span.estado-item{border-style:dashed;}
       <div class="score-group">
         <div class="score-group-header">
           <span class="tile tile-sm"><svg class="ic" aria-hidden="true"><use href="#i-dumbbell"/></svg></span>
-          <h2 class="score-group-title" id="h-habitos">Hábitos</h2>
+          <h2 class="score-group-title" id="h-habitos">Hábitos <span class="score-group-n" id="group-n-h"></span></h2>
           <div class="score-group-avg" id="group-avg-h" aria-label="Media de hábitos"><span>—</span></div>
         </div>
         <div class="score-group-bar"><div class="score-group-bar-fill" id="group-bar-h" style="width:0%"></div></div>
+        <div class="escala-ref" aria-hidden="true">
+          <p class="escala-ref-tit">Escala</p>
+          <ol class="escala-ref-lista"><li><b>1</b> Lo intenta y no le sale, o con errores graves casi siempre</li><li><b>2</b> A veces, con errores frecuentes</li><li><b>3</b> En la mayoría de los intentos, con errores menores</li><li><b>4</b> Con soltura casi siempre</li><li><b>5</b> Con soltura y adaptándose a cada situación o persona</li></ol>
+          <p class="escala-ref-nota"><b>Sin estrellas = no observado.</b> No cuenta como puntuación baja. Para quitar una puntuación, pulsa de nuevo la estrella marcada.</p>
+        </div>
         <div class="notice" data-tone="warn" id="h6HistoricoAviso" hidden style="margin-bottom:12px"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><div><strong>«Aplica el feedback acordado» tiene una puntuación antigua.</strong> En esta sesión se puntuó «Disposición para recibir/aplicar feedback/formación», que mide otra cosa: se conserva, pero no se usa en lecturas, prioridades ni comparaciones. Si la puntúas ahora, la nueva sustituye a la antigua.</div></div>
         <div class="score-group-body" id="tbody-habitos"></div>
-        <div class="score-scale" aria-hidden="true"><span>1 Muy bajo</span><span>3 Aceptable</span><span>5 Excelente</span></div>
       </div>
       <div class="eyebrow-row"><h3 class="eyebrow">Intervención sobre hábitos</h3><button type="button" class="btn btn-tinted btn-sm" onclick="abrirPlantillas('habitos','ih',this)"><svg class="ic" aria-hidden="true"><use href="#i-clipboard"/></svg>Plantillas</button></div>
       <div class="intervencion-list" data-lista="ih">
@@ -1903,7 +1922,7 @@ const AYUDA_TABS = [
       { titulo: 'Mentalidad (Creencias)', texto: 'Anota las creencias limitantes que el captador verbaliza, con sus palabras cuando sea posible. Con dos o más registradas y una valoración baja en manejo de la negatividad, la lectura propone revisarlas; no suman al índice de atención.' },
       { titulo: 'Técnica (azul)', texto: 'Puntúa del 1 al 5: Parada, Speech, Rebatidas y Cierre. El promedio del grupo aparece en tiempo real arriba a la derecha del bloque.' },
       { titulo: 'Hábitos (verde)', texto: 'Puntúa del 1 al 5 once variables: desde Puntualidad hasta Estabilidad semanal. El promedio del grupo también se calcula en tiempo real.' },
-      { titulo: 'Escala de puntuación', texto: '1 = no lo hace, o con errores graves casi siempre · 2 = a veces, con errores frecuentes · 3 = en la mayoría de los intentos, con errores menores · 4 = con soltura casi siempre · 5 = con soltura y adaptándose a cada situación/persona. Solo puntúa las variables que hayas podido observar.' },
+      { titulo: 'Escala de puntuación', texto: '1 = lo intenta y no le sale, o con errores graves casi siempre · 2 = a veces, con errores frecuentes · 3 = en la mayoría de los intentos, con errores menores · 4 = con soltura casi siempre · 5 = con soltura y adaptándose a cada situación o persona. Sin estrellas = no observado: no cuenta como puntuación baja. Solo puntúa las variables que hayas podido observar; para quitar una puntuación, pulsa de nuevo la estrella marcada.' },
       { titulo: 'Promedio en tiempo real', texto: 'Cada grupo muestra su media actualizada y una barra de progreso. El número junto a cada estrella indica la puntuación seleccionada.' },
       { titulo: 'Biblioteca y Plantillas', texto: 'Ambos botones abren Recursos en la sección correspondiente. Recursos también está en el menú «Más acciones».' },
     ],
@@ -2044,6 +2063,9 @@ function getNuevaPlantillaId() {
 
 // ── SCORES ──
 const scores = {};
+// Escala 1–5 con anclajes de conducta (también en la Ayuda). 0 = no observado: no es una puntuación baja.
+const ESCALA = { 1:'Lo intenta y no le sale, o con errores graves casi siempre', 2:'A veces, con errores frecuentes',
+  3:'En la mayoría de los intentos, con errores menores', 4:'Con soltura casi siempre', 5:'Con soltura y adaptándose a cada situación o persona' };
 function buildScoreRow(container, vars, prefix) {
   vars.forEach(function(v, i) {
     var key = prefix + '_' + i;
@@ -2066,7 +2088,7 @@ function buildScoreRow(container, vars, prefix) {
       s.type = 'button';
       s.className = 'score-star';
       s.id = 'star_' + key + '_' + n;
-      s.setAttribute('aria-label', n + ' de 5');
+      s.setAttribute('aria-label', n + ' de 5: ' + ESCALA[n].toLowerCase());
       s.setAttribute('aria-pressed', 'false');
       s.innerHTML = ic('star');
       // Pulsar la puntuación ya marcada la borra
@@ -2080,11 +2102,18 @@ function buildScoreRow(container, vars, prefix) {
     valDiv.className = 'score-val';
     valDiv.id = 'scoreval_' + key;
     valDiv.setAttribute('aria-hidden', 'true');
-    valDiv.textContent = '—';
+    valDiv.textContent = 'No observado';
+    valDiv.classList.add('no-obs');
+
+    // Significado de la puntuación elegida
+    var sigDiv = document.createElement('p');
+    sigDiv.className = 'score-sig';
+    sigDiv.id = 'scoresig_' + key;
 
     row.appendChild(labelDiv);
     row.appendChild(valDiv);
     row.appendChild(starsDiv);
+    row.appendChild(sigDiv);
     container.appendChild(row);
   });
 }
@@ -2099,9 +2128,14 @@ function renderStars(key) {
   });
   const valEl = document.getElementById('scoreval_' + key);
   if (valEl) {
-    valEl.textContent = val > 0 ? val : '—';
+    valEl.textContent = val > 0 ? val : 'No observado';
     valEl.classList.toggle('has-score', val > 0);
+    valEl.classList.toggle('no-obs', !(val > 0));
   }
+  const sigEl = document.getElementById('scoresig_' + key);
+  if (sigEl) sigEl.textContent = !(val > 0) ? ''
+    : (key === 'h_6' && AppState.h6Historico === true) ? 'Puntuación con el significado anterior: no se usa en las lecturas'
+    : val + ' · ' + ESCALA[val];
   const prefix = key.split('_').slice(0,-1).join('_');
   updateGroupAvg(prefix);
 }
@@ -2122,6 +2156,8 @@ function updateGroupAvg(prefix) {
     avgEl.innerHTML = avg ? avg + '<span>/ 5</span>' : '<span>—</span>';
     avgEl.setAttribute('aria-label', 'Media de ' + (isTecnica ? 'técnica' : 'hábitos') + ': ' + (avg ? avg + ' de 5' : 'sin puntuar'));
   }
+  const nEl = document.getElementById('group-n-' + prefix);
+  if (nEl) nEl.textContent = count + ' de ' + vars.length + ' evaluadas';
   const barEl = document.getElementById('group-bar-' + prefix);
   if (barEl) barEl.style.width = (avg ? (avg / 5 * 100) : 0) + '%';
 }
@@ -2494,7 +2530,7 @@ function cargarDatos(data, opts) {
   AppState.revisionAnterior = REVISION_OPCIONES[data.revisionAnterior] ? data.revisionAnterior : '';
   AppState.h6Historico = esH6Historico(data) ? (scoreDe(Object.assign({}, data, { h6Historico: false }), 'h_6') !== null ? true : null)
     : (data.h6Historico === false ? false : null);
-  try{ pintarAvisoH6(); updateGroupAvg('h'); }catch(e){}
+  try{ pintarAvisoH6(); renderStars('h_6'); }catch(e){}
   try{ renderRegistroAnterior(); }catch(e){}
   try{ renderRevisionAnterior(); }catch(e){}
   // Sincronizar tras carga
@@ -7024,6 +7060,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   buildScoreRow(document.getElementById('tbody-tecnica'), TECNICA_VARS, 't');
   buildScoreRow(document.getElementById('tbody-habitos'), HABITOS_VARS, 'h');
+  try { updateGroupAvg('t'); updateGroupAvg('h'); } catch (e) {}   // recuento «0 de N evaluadas» desde el principio
   buildFases();
   actualizarContador();
   try {
