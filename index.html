@@ -2761,32 +2761,108 @@ document.addEventListener('input', e => {
   } else _avisoLimite.delete(el);
 });
 
+// Un borrador por pestaña (wesser_borrador:<id>), para que dos pestañas no se pisen ni se borren el borrador al guardar.
+// El id vive en la pestaña (sessionStorage: sobrevive a recargar) y la pestaña lo retiene con un cerrojo (Web Locks)
+// mientras está abierta. Al abrir, se ofrece el borrador propio o el de una pestaña ya cerrada (cerrojo libre), nunca
+// el de otra pestaña abierta. Una pestaña duplicada hereda el id, no consigue el cerrojo y toma uno nuevo.
+// wesser_borrador (formato anterior, común a todas) se trata como el de una pestaña cerrada: se ofrece, no se asigna solo.
+// Sin Web Locks no se puede saber qué pestañas siguen abiertas: se ofrecen todos, como antes.
 const BORRADOR_KEY = 'wesser_borrador';
+const BORRADOR_PREFIJO = 'wesser_borrador:';
+const PESTANA_KEY = 'wesser_pestana';
+let _pestanaId = null, _borradorPendiente = false;
+function claveBorrador() { return BORRADOR_PREFIJO + _pestanaId; }
 // En iPhone el borrador sustituye al aviso al cerrar la página: si no se puede escribir, se dice (una vez por fallo)
 let _borradorFallido = false;
 function guardarBorrador() {
+  if (!_pestanaId) { _borradorPendiente = true; return; }   // aún sin id de pestaña: se escribe en cuanto lo tenga
   try {
-    localStorage.setItem(BORRADOR_KEY, JSON.stringify({ datos: recopilarDatos(), id: AppState.lastLoadedId || '', at: new Date().toISOString() }));
+    localStorage.setItem(claveBorrador(), JSON.stringify({ datos: recopilarDatos(), id: AppState.lastLoadedId || '', at: new Date().toISOString() }));
     _borradorFallido = false;
   } catch(e) {
     if (!_borradorFallido) toast('No se ha podido guardar el borrador en este dispositivo. Guarda la sesión antes de cerrar la página.', {tono:'error', ms:8000});
     _borradorFallido = true;
   }
 }
-function leerBorrador() {
+// Borrador guardado bajo una clave (null si no hay o no se puede leer; uno ilegible no se borra)
+function leerBorrador(clave) {
   try {
-    const b = JSON.parse(localStorage.getItem(BORRADOR_KEY) || 'null');
+    const b = JSON.parse(localStorage.getItem(clave) || 'null');
     if (b && esObjeto(b.datos)) return b;
-  } catch(e) {}
-  try {   // borrador de pestaña de versiones anteriores
-    const d = JSON.parse(sessionStorage.getItem(BORRADOR_KEY) || 'null');
-    if (esObjeto(d)) return { datos: d, id: sessionStorage.getItem(BORRADOR_KEY + '_id') || '', at: null };
   } catch(e) {}
   return null;
 }
+// Borra solo el borrador de esta pestaña
 function borrarBorrador() {
-  try { localStorage.removeItem(BORRADOR_KEY); } catch(e) {}
+  _borradorPendiente = false;
+  if (_pestanaId) try { localStorage.removeItem(claveBorrador()); } catch(e) {}
   try { sessionStorage.removeItem(BORRADOR_KEY); sessionStorage.removeItem(BORRADOR_KEY + '_id'); } catch(e) {}
+}
+function nuevoIdPestana() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+// true si esta pestaña consigue el cerrojo del id (y lo retiene hasta cerrarse)
+function retenerPestana(id) {
+  return new Promise(res => {
+    try {
+      navigator.locks.request('wesser_pestana_' + id, { ifAvailable: true }, l => { res(!!l); return l ? new Promise(() => {}) : undefined; })
+        .catch(() => res(false));
+    } catch(e) { res(false); }
+  });
+}
+// Fija el id de la pestaña y ofrece recuperar un borrador: el suyo (al recargar) o el de una pestaña ya cerrada
+async function iniciarBorrador() {
+  let id = null, vivas = null;
+  try { id = sessionStorage.getItem(PESTANA_KEY); } catch(e) {}
+  if (navigator.locks && navigator.locks.request) {
+    if (!id || !(await retenerPestana(id))) { id = nuevoIdPestana(); await retenerPestana(id); }
+    try { const q = await navigator.locks.query(); vivas = new Set((q.held || []).map(l => l.name)); } catch(e) {}
+  } else if (!id) id = nuevoIdPestana();
+  _pestanaId = id;
+  try { sessionStorage.setItem(PESTANA_KEY, id); } catch(e) {}
+  // Candidatos: el propio; el de pestaña de versiones anteriores (sessionStorage); los de pestañas cerradas y el antiguo común
+  const cand = [];
+  const propio = leerBorrador(claveBorrador());
+  if (propio) cand.push({ clave: claveBorrador(), b: propio });
+  try {
+    const d = JSON.parse(sessionStorage.getItem(BORRADOR_KEY) || 'null');
+    if (esObjeto(d)) cand.push({ clave: null, b: { datos: d, id: sessionStorage.getItem(BORRADOR_KEY + '_id') || '', at: null } });
+  } catch(e) {}
+  const ajenos = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k || k === claveBorrador()) continue;
+      const otra = k.startsWith(BORRADOR_PREFIJO) ? 'wesser_pestana_' + k.slice(BORRADOR_PREFIJO.length) : null;
+      if (k !== BORRADOR_KEY && !otra) continue;
+      if (otra && vivas && vivas.has(otra)) continue;   // pestaña abierta: su borrador es suyo
+      const b = leerBorrador(k);
+      if (b) ajenos.push({ clave: k, b, ajeno: true });
+    }
+  } catch(e) {}
+  ajenos.sort((x, y) => String(y.b.at || '').localeCompare(String(x.b.at || '')));
+  // Solo se ofrecen los que tienen nombre; el resto se conserva tal cual
+  const ofrecibles = cand.concat(ajenos).filter(c => String(c.b.datos.captador || '').trim());
+  const c = ofrecibles[0];
+  if (c) {
+    const b = c.b.datos;
+    const cuando = c.b.at && !isNaN(new Date(c.b.at)) ? ' (último cambio: ' + new Date(c.b.at).toLocaleString('es-ES', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) + ')' : '';
+    const origen = c.ajeno ? ', de otra pestaña ya cerrada o de una visita anterior' : '';
+    const quita = () => { if (c.clave && c.clave !== claveBorrador()) try { localStorage.removeItem(c.clave); } catch(e) {} };
+    if (confirm(`Hay un borrador sin guardar de "${String(b.captador).trim().slice(0, 100)}"${cuando}${origen}.\n\nAceptar: recuperarlo y seguir editando (seguirá sin guardar hasta que pulses Guardar).\nCancelar: descartarlo.`)) {
+      try {
+        if (c.b.id && cargarFichas().some(f => f._id === c.b.id)) { AppState.lastLoadedId = c.b.id; AppState.faseCongelada = true; }
+        cargarDatos(b, { pendiente: true });   // restaurado ≠ guardado: queda como cambio pendiente
+        guardarBorrador();                     // pasa a ser el borrador de esta pestaña
+        if (!_borradorFallido) quita();        // el original solo se quita si la copia ha quedado guardada
+        contarCampos(); actualizarDots(); actualizarModoSesion();
+        try { renderFaseDisplay(faseSelected); renderLMI(); ajustarTextareas(); } catch(e) {}
+      } catch(e) { toast('No se ha podido recuperar el borrador. Se conserva: se volverá a ofrecer al abrir la aplicación.', {tono:'error', ms:7000}); }
+    } else {
+      if (c.clave === claveBorrador() || !c.clave) borrarBorrador(); else quita();
+    }
+    if (ofrecibles.length > 1) toast('Hay ' + (ofrecibles.length - 1) + (ofrecibles.length === 2 ? ' borrador más' : ' borradores más') + ' sin guardar: se ofrecerán al volver a abrir la aplicación.', {tono:'info', ms:6000});
+  }
+  if (_borradorPendiente && _hasUnsavedChanges) guardarBorrador();
+  _borradorPendiente = false;
 }
 // Descartar a propósito lo que no se ha guardado: vuelve a la sesión guardada (o a un formulario vacío si no lo estaba)
 function descartarCambios() {
@@ -7405,19 +7481,8 @@ document.addEventListener('DOMContentLoaded',()=>{
       '<optgroup label="Hábitos">' + HABITOS_VARS.map((v, i) => '<option value="h_' + i + '">' + esc(v) + '</option>').join('') + '</optgroup>'; }   // recuento «0 de N evaluadas» desde el principio
   buildFases();
   actualizarContador();
-  try {
-    const bor = leerBorrador();
-    // Solo si hay datos reales (nombre del captador/a)
-    if (bor && (bor.datos.captador || '').trim()) {
-      const b = bor.datos;
-      const cuando = bor.at && !isNaN(new Date(bor.at)) ? ' (último cambio: ' + new Date(bor.at).toLocaleString('es-ES', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) + ')' : '';
-      if (confirm(`Hay un borrador sin guardar de "${String(b.captador).trim().slice(0, 100)}"${cuando}.\n\nAceptar: recuperarlo y seguir editando (seguirá sin guardar hasta que pulses Guardar).\nCancelar: descartarlo.`)) {
-        if (bor.id && cargarFichas().some(f => f._id === bor.id)) { AppState.lastLoadedId = bor.id; AppState.faseCongelada = true; }
-        cargarDatos(b, { pendiente: true });   // restaurado ≠ guardado: queda como cambio pendiente
-        guardarBorrador();                     // y pasa al almacenamiento del navegador si venía de la pestaña
-      } else borrarBorrador();
-    }
-  } catch(e) { borrarBorrador(); }
+  // Asíncrono: fija el id de la pestaña y ofrece recuperar un borrador. Si algo falla, la pestaña sigue teniendo borrador
+  iniciarBorrador().catch(() => { if (!_pestanaId) _pestanaId = nuevoIdPestana(); if (_borradorPendiente) guardarBorrador(); });
   if(!document.getElementById('d_fecha').value) document.getElementById('d_fecha').value=aISO(new Date());
   contarCampos(); actualizarDots(); actualizarModoSesion();
   aplicarTema();
