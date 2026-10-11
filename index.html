@@ -1016,7 +1016,8 @@ textarea.input,.field textarea,.intervencion-row textarea{overflow-y:hidden;}
 
     <!-- Qué se está registrando: una sesión nueva o una sesión guardada -->
     <section class="card sesion-ctx" id="sesionCtx" aria-labelledby="sesionCtxTitulo">
-      <div class="sesion-ctx-info" aria-live="polite">
+      <!-- Sin aria-live: la frase cambia con cada letra del nombre. Los cambios de sesión se anuncian con toast() → #srStatus -->
+      <div class="sesion-ctx-info">
         <span class="tile tile-sm" data-tone="brand" id="sesionCtxIcon"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></span>
         <div><h2 class="eyebrow" id="sesionCtxTitulo">Sesión nueva</h2><p class="sesion-ctx-desc" id="sesionCtxDesc"></p></div>
       </div>
@@ -3708,7 +3709,7 @@ function generarPDF(){
   else dec.checklist.items.forEach(it=>{
     doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(...NEG);
     const il=doc.splitTextToSize(it.texto,cw-24); chk(il.length*4.6+2); doc.text(il,M,y);
-    doc.setFont('helvetica','bold');doc.setTextColor(...(it.hecho?VERDE:GRIS)); doc.text(it.hecho?'S\u00ed':'No',W-M,y,{align:'right'});
+    doc.setFont('helvetica','bold');doc.setTextColor(...(it.hecho?VERDE:GRIS)); doc.text(it.hecho?'S\u00ed':'Sin revisar',W-M,y,{align:'right'});   // sin marcar no significa \u00abno se hizo\u00bb
     y+=il.length*4.6+1.5; });
   y+=4;
 
