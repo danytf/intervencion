@@ -3013,7 +3013,7 @@ function bloqueoPaso(tab, e) {
 }
 function irA(tab, id) {
   goTab(tab);
-  if (!id) return;
+  if (!id) { enfocarTituloSeccion(); return; }   // «Siguiente»: el botón pulsado ha quedado oculto
   setTimeout(() => { const el = document.getElementById(id); if (!el) return;
     el.scrollIntoView({ block: 'center' }); if (el.matches('input,textarea,select,button')) el.focus({ preventScroll: true }); }, 60);
 }
@@ -3042,10 +3042,14 @@ function irABloque(id) {
   if (!t.hasAttribute('tabindex')) t.setAttribute('tabindex', '-1');
   try { t.focus({ preventScroll: true }); } catch (e) {}
 }
-function volverArriba() {
-  window.scrollTo(0, 0);
+// El foco va al título de la sección activa, para el teclado y los lectores de pantalla
+function enfocarTituloSeccion() {
   const h = document.querySelector('.section-card.active h1');
   if (h) { if (!h.hasAttribute('tabindex')) h.setAttribute('tabindex', '-1'); try { h.focus({ preventScroll: true }); } catch (e) {} }
+}
+function volverArriba() {
+  window.scrollTo(0, 0);
+  enfocarTituloSeccion();
 }
 function actualizarBtnArriba() {
   const b = document.getElementById('btnArriba');
