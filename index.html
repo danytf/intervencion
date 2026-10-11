@@ -2553,6 +2553,8 @@ function lecturaSugeridaFormulario(d) {
 function firmaEvidencia(d) {
   const o = { fase: d.faseSelected || null, fecha: d.fecha || '', inicio: d.fechainicio || '' };
   Object.keys(ALL_VARS_LABELS).forEach(k => o[k] = d[k] || 0);
+  // h_6 cuenta como lo ven las reglas: con el significado anterior no se usa (0); la misma nota vuelta a puntuar sí
+  o.h_6 = scoreDe(d, 'h_6') || 0;
   for (let i = 1; i <= 5; i++) o['c' + i] = d['c' + i] || '';
   return JSON.stringify(o);
 }
