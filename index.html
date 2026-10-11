@@ -5822,6 +5822,23 @@ function validarFichaImportada(f) {
   return { ficha: out, ignorados };
 }
 
+// Sesión del archivo con un _id que ya existe aquí. 'igual': mismo contenido (sin contar las marcas de tiempo).
+// 'posterior' / 'anterior': es la misma sesión (misma alta, _savedAt) y su última edición (_editedAt o, si nunca se
+// editó, _savedAt) es posterior / anterior a la local. 'conflicto': alta distinta, fechas ausentes, inválidas o iguales
+// con contenido distinto; no se adivina cuál vale y se conserva la local. Ninguna fecha sustituye nada sin confirmar.
+function compararConLocal(local, imp) {
+  const estable = v => Array.isArray(v) ? '[' + v.map(estable).join(',') + ']'
+    : esObjeto(v) ? '{' + Object.keys(v).sort().map(k => JSON.stringify(k) + ':' + estable(v[k])).join(',') + '}' : JSON.stringify(v);
+  const norma = f => { const v = validarFichaImportada(f); if (v.error) return null; const o = { ...v.ficha }; delete o._savedAt; delete o._editedAt; return estable(o); };
+  const a = norma(local);
+  if (a !== null && a === norma(imp)) return 'igual';
+  if (!local || typeof local._savedAt !== 'string' || local._savedAt !== imp._savedAt) return 'conflicto';
+  const t = f => { const s = f._editedAt || f._savedAt; return typeof s === 'string' && RE_FECHA_HORA.test(s) ? Date.parse(s) : NaN; };
+  const tl = t(local), ti = t(imp);
+  if (isNaN(tl) || isNaN(ti) || tl === ti) return 'conflicto';
+  return ti > tl ? 'posterior' : 'anterior';
+}
+
 function importarJSON(input) {
   const file = input.files[0];
   if (!file) return;
@@ -5858,9 +5875,11 @@ function importarJSON(input) {
       }
       const avisoVersion = version < SCHEMA_VERSION ? ' Copia de una versión anterior de la app: los datos que entonces no existían quedan vacíos.' : '';
       const merge = document.getElementById('jsonMerge')?.checked;
-      let existentes = merge ? cargarFichas() : [];
+      let existentes = merge ? cargarFichas().slice() : [];   // copia: hasta confirmar no se toca la caché
       const existingIds = new Set(existentes.map(f => f._id));
-      let added = 0, skipped = 0, idsSustituidos = 0;
+      const idsDelArchivo = new Set();
+      let added = 0, skipped = 0, repetidas = 0, idsSustituidos = 0;
+      const actualizables = [], antiguas = [], conflictos = [];
       const motivos = {}, ignorados = new Set();
       const fichasTxt = n => n + (n === 1 ? ' sesión' : ' sesiones');
       // Todo el archivo se valida en memoria; no se escribe nada hasta el final (y solo si se confirma)
@@ -5875,9 +5894,19 @@ function importarJSON(input) {
           let nuevo; do { nuevo = nuevoId(); } while (existingIds.has(nuevo));
           f._id = nuevo;
         } else f._id = id;
-        if (merge && existingIds.has(f._id)) { skipped++; return; }
+        if (merge && existingIds.has(f._id)) {
+          if (idsDelArchivo.has(f._id)) { repetidas++; return; }   // repetida dentro del propio archivo: vale la primera
+          idsDelArchivo.add(f._id);
+          const i = existentes.findIndex(x => x._id === f._id);
+          const c = compararConLocal(existentes[i], f);
+          if (c === 'igual') skipped++;
+          else if (c === 'posterior') actualizables.push({ i, f });
+          else (c === 'anterior' ? antiguas : conflictos).push(existentes[i]);
+          return;
+        }
         existentes.push(f);
         existingIds.add(f._id);
+        idsDelArchivo.add(f._id);
         added++;
       });
       const rechazadas = Object.values(motivos).reduce((a, b) => a + b, 0);
@@ -5892,20 +5921,30 @@ function importarJSON(input) {
         anunciar(resultEl.textContent);
         input.value = '';
       };
-      // Sin ninguna ficha nueva que añadir no se escribe nada
-      if (added === 0) {
-        sinCambios(rechazadas ? 'No se ha importado nada: el archivo no tiene ninguna sesión válida' + motivosTxt + '.'
-          : skipped ? 'No se ha importado nada: ' + (skipped === 1 ? 'la sesión del archivo ya existía.' : 'las ' + skipped + ' sesiones del archivo ya existían.')
+      // Sesiones que ya existían aquí y se conservan como están: iguales, más antiguas en el archivo o en conflicto
+      const quienes = l => l.slice(0, 5).map(f => '«' + (f.captador || 'Sin nombre') + '» (' + formatFecha(f.fecha) + ')').join(', ') + (l.length > 5 ? '…' : '');
+      const yaExistian = skipped + repetidas + actualizables.length + antiguas.length + conflictos.length;
+      const conservadasTxt =
+        (skipped ? ', ' + skipped + (skipped === 1 ? ' ya existía igual' : ' ya existían iguales') : '') +
+        (repetidas ? ', ' + repetidas + (repetidas === 1 ? ' repetida' : ' repetidas') + ' dentro del archivo (se usa la primera)' : '') +
+        (antiguas.length ? ', ' + antiguas.length + (antiguas.length === 1 ? ' con una versión más antigua en el archivo (se conserva la tuya)' : ' con versiones más antiguas en el archivo (se conservan las tuyas)') : '') +
+        (conflictos.length ? ', ' + conflictos.length + (conflictos.length === 1 ? ' distinta' : ' distintas') +
+          ' sin poder saber cuál es la más reciente (se conserva la tuya; revisa ' + quienes(conflictos) + ')' : '');
+      // Sin nada nuevo ni ninguna posible actualización no se escribe nada
+      if (added === 0 && !actualizables.length) {
+        sinCambios(rechazadas && !yaExistian ? 'No se ha importado nada: el archivo no tiene ninguna sesión válida' + motivosTxt + '.'
+          : yaExistian ? 'No se ha importado nada: ' + conservadasTxt.slice(2) + motivosTxt + '.'
           : 'No se ha importado nada: el archivo no contiene sesiones.');
         return;
       }
       // Fichas válidas y no válidas: nada entra a medias sin que el responsable lo decida
       if (rechazadas && !confirm(
-        fichasTxt(added + skipped) + (added + skipped === 1 ? ' válida' : ' válidas') + ' · ' + rechazadas + (rechazadas === 1 ? ' no válida' : ' no válidas') + '\n\n' +
-        (added === 1 ? 'Se importaría 1 sesión.' : 'Se importarían ' + fichasTxt(added) + '.') + (skipped ? ' ' + fichasTxt(skipped) + ' ya existían y se omitirían.' : '') + '\n' +
+        fichasTxt(added + yaExistian) + (added + yaExistian === 1 ? ' válida' : ' válidas') + ' · ' + rechazadas + (rechazadas === 1 ? ' no válida' : ' no válidas') + '\n\n' +
+        (added === 1 ? 'Se importaría 1 sesión nueva.' : 'Se importarían ' + fichasTxt(added) + ' nuevas.') +
+        (yaExistian ? ' ' + fichasTxt(yaExistian) + (yaExistian === 1 ? ' ya existía: no se cambia' : ' ya existían: no se cambian') + ' sin preguntarte.' : '') + '\n' +
         rechazadas + (rechazadas === 1 ? ' se rechazaría: ' : ' se rechazarían: ') + resumenMotivos + '.' +
         (ignoradosTxt ? '\n' + ignoradosTxt.trim() : '') + '\n\n' +
-        '¿Importar ' + (added === 1 ? 'la sesión válida' : 'las ' + added + ' sesiones válidas') + '? Si cancelas, no se modifica nada.')) {
+        '¿Continuar con las sesiones válidas? Si cancelas, no se modifica nada.')) {
         resultEl.className = 'json-import-result';
         resultEl.textContent = 'Importación cancelada: tus sesiones no se han modificado.';
         anunciar(resultEl.textContent);
@@ -5927,6 +5966,23 @@ function importarJSON(input) {
           return;
         }
       }
+      // Versiones del archivo editadas después que las locales: sustituyen a las locales solo si se confirma
+      let actualizadas = 0;
+      if (actualizables.length) {
+        const n = actualizables.length;
+        if (confirm('El archivo trae una versión editada después que la tuya de ' + fichasTxt(n) + ': ' + quienes(actualizables.map(a => a.f)) + '.\n\n' +
+          'Aceptar: reemplazar ' + (n === 1 ? 'esa sesión' : 'esas ' + n + ' sesiones') + ' en este dispositivo por ' + (n === 1 ? 'la' : 'las') + ' del archivo. Lo que tienes ahora en ' + (n === 1 ? 'ella' : 'ellas') + ' se perderá.\n' +
+          'Cancelar: conservar ' + (n === 1 ? 'tu versión' : 'tus versiones') + (added ? ' (' + (added === 1 ? 'la sesión nueva se importa' : 'las ' + added + ' sesiones nuevas se importan') + ' igualmente)' : '') + '.')) {
+          actualizables.forEach(({ i, f }) => { existentes[i] = f; });
+          actualizadas = n;
+        } else if (!added) {
+          resultEl.className = 'json-import-result';
+          resultEl.textContent = 'Importación cancelada: tus sesiones no se han modificado.';
+          anunciar(resultEl.textContent);
+          input.value = '';
+          return;
+        }
+      }
       asegurarIds(existentes);   // sin repetidos dentro de lo importado
       if (!(merge ? salvarFichas(existentes, 'importacion') : reemplazarFichas(existentes))) {
         resultEl.className = 'json-import-result err';
@@ -5939,7 +5995,11 @@ function importarJSON(input) {
       actualizarContador(); actualizarModoSesion();
       try{ renderHistorialTab(); }catch(e){} populateEvoSelect(); renderDashboard();
       resultEl.className = 'json-import-result ok';
-      resultEl.textContent = fichasTxt(added) + (added === 1 ? ' importada' : ' importadas') + (skipped ? ', ' + skipped + (skipped === 1 ? ' omitida (ya existía)' : ' omitidas (ya existían)') : '') +
+      const noActualizadas = actualizables.length - actualizadas;
+      resultEl.textContent = (added || !actualizadas ? fichasTxt(added) + (added === 1 ? ' importada' : ' importadas') : '') +
+        (actualizadas ? (added ? ', ' + actualizadas : fichasTxt(actualizadas)) + (actualizadas === 1 ? ' actualizada' : ' actualizadas') + ' con la versión del archivo' : '') +
+        (noActualizadas ? ', ' + noActualizadas + (noActualizadas === 1 ? ' con una versión más reciente en el archivo que has decidido no aplicar' : ' con versiones más recientes en el archivo que has decidido no aplicar') : '') +
+        conservadasTxt +
         (idsSustituidos ? ', ' + idsSustituidos + ' con identificador no válido (se ha sustituido)' : '') + motivosTxt + '.' + ignoradosTxt + avisoVersion;
       anunciar(resultEl.textContent);
       input.value = '';
