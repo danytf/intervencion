@@ -3644,6 +3644,15 @@ function generarPDF(){
   let doc;
   try { doc = new JsPDF({orientation:'portrait',unit:'mm',format:'a4'}); }
   catch(e){ alert('Error iniciando PDF: '+e.message); return; }
+  // La Helvetica del PDF solo tiene los caracteres de WinAnsi: «−» y «→» salían como «"» y «!'», y la línea entera
+  // quedaba con las letras separadas y se salía del margen. Se sustituyen por equivalentes que sí tiene al medir,
+  // partir y escribir el texto (la app y los datos guardados no cambian)
+  { const SUST = { '−':'-', '→':'->', '≤':'<=', '≥':'>=' };
+    const pdfTxt = v => typeof v === 'string' ? v.replace(/[−→≤≥]/g, c => SUST[c]) : Array.isArray(v) ? v.map(pdfTxt) : v;
+    const text = doc.text.bind(doc), split = doc.splitTextToSize.bind(doc), ancho = doc.getTextWidth.bind(doc);
+    doc.text = (t, ...r) => text(pdfTxt(t), ...r);
+    doc.splitTextToSize = (t, ...r) => split(pdfTxt(t), ...r);
+    doc.getTextWidth = t => ancho(pdfTxt(t)); }
 
   const W=210, M=16, cw=W-M*2;
   let y = M;
