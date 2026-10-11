@@ -1996,7 +1996,7 @@ const AYUDA_TABS = [
     icon: '🏢',
     desc: 'Resumen, historial y evolución de todos los captadores del equipo.',
     secciones: [
-      { titulo: 'Resumen', texto: 'Tabla con todos los captadores guardados: estado, medias de técnica y hábitos, fase, nivel de atención, semáforo, sesiones y última sesión. Filtra por nombre, provincia o estado. Pulsa una fila para cargar su última sesión.' },
+      { titulo: 'Resumen', texto: 'Tabla con todos los captadores guardados: estado, medias de técnica y hábitos, fase, nivel de atención, semáforo, sesiones y última sesión. Filtra por nombre, provincia o estado. Pulsa una fila para empezar una sesión nueva con esa persona; para corregir una sesión pasada, cárgala desde Historial.' },
       { titulo: 'Historial', texto: 'El único lugar para recuperar sesiones guardadas, agrupadas por persona: por NIP cuando lo tienen y, si no, por nombre. Busca por nombre, NIP o provincia; cada sesión muestra fecha, medias, fase y su registro. Puedes cargarla para consultarla o actualizarla, eliminarla, empezar una sesión nueva de esa persona o ver su evolución. También se abre desde el menú «Más acciones».' },
       { titulo: 'Evolución', texto: 'Gráfico de línea con la evolución de técnica y hábitos a lo largo del tiempo, detalle por variable de cada sesión y progresión de fase.' },
     ],
@@ -3016,7 +3016,13 @@ function guardarFicha() {
     return;
   }
   const fichas=cargarFichas();
-  const idx = AppState.lastLoadedId ? fichas.findIndex(f => f._id === AppState.lastLoadedId) : -1;
+  let idx = AppState.lastLoadedId ? fichas.findIndex(f => f._id === AppState.lastLoadedId) : -1;
+  // Cambiar la fecha al actualizar puede ser otra sesión distinta: la sesión guardada solo se modifica si se confirma
+  if (idx >= 0 && fichas[idx].fecha && data.fecha && data.fecha !== fichas[idx].fecha) {
+    const antes = formatFecha(fichas[idx].fecha), ahora = formatFecha(data.fecha);
+    if (confirm(`Estás actualizando la sesión del ${antes} y ahora tiene fecha ${ahora}.\n\n¿Es otra sesión distinta? Aceptar la guarda como sesión nueva del ${ahora}; la del ${antes} queda como estaba.`)) idx = -1;
+    else if (!confirm(`¿Corregir la fecha de la sesión del ${antes} a ${ahora}?\n\nCancelar no guarda nada.`)) return;
+  }
   let msg, avisoLectura = '';
   if (idx >= 0) {
     const orig = fichas[idx];
@@ -3808,7 +3814,8 @@ function renderDashboard(){
     </tr>`;
   }).join('');
 }
-function cargarYAbrir(id){if(cargarFichaEnFormulario(id))goTab(0);}
+// Desde Equipo y las alertas se acompaña a la persona: sesión nueva con sus datos. Editar una sesión pasada solo desde Historial › Cargar
+function cargarYAbrir(id){ nuevaSesionDe(id); }
 
 
 // ══════════════════════════════════════════
