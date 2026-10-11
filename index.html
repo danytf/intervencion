@@ -7080,7 +7080,8 @@ function calcLMI(limite = 3) {
   const add = c => cand.push(Object.assign({ esp: 2 }, c));   // esp: 3 seguimiento · 2 datos de la persona · 1 contexto de fase
 
   // Seguimiento urgente
-  if (diasSin !== null && diasSin > 14 && riesgo && riesgo.nivel === 'critico') {
+  const contactoHoy = diasSin !== null && diasSin > 14 && riesgo && riesgo.nivel === 'critico';
+  if (contactoHoy) {
     add({ id:'contacto', grupo:'seguimiento', urgencia:'alta', esp:3, icono:'📞',
       titulo:'Contactar hoy — ' + diasSin + ' días sin sesión registrada',
       desc:'El índice de atención está en nivel prioritario y han pasado más de 14 días (criterio interno) desde la última sesión. Conviene contactar antes de planificar otra sesión y preguntar cómo le está yendo.' });
@@ -7187,8 +7188,10 @@ function calcLMI(limite = 3) {
       desc:(fase ? fase.label + ': ' : '') + 'la guía de fases propone hablar de objetivos a medio plazo. «¿Dónde quieres estar dentro de un mes? ¿Qué meta te motiva?»' });
   }
 
-  // Índice de atención alto: refuerza la prioridad que corresponde a su señal principal o, si no hay, se añade aparte
-  if (riesgo && (riesgo.nivel === 'critico' || riesgo.nivel === 'alto') && !(diasSin > 14)) {
+  // Índice de atención alto: refuerza la prioridad que corresponde a su señal principal o, si no hay, se añade aparte.
+  // Solo se omite cuando ya está «Contactar hoy» (prioritario y más de 14 días); con atención alta y más de 14 días
+  // no hay contacto, y sin esto se quedaba sin ninguna prioridad del índice
+  if (riesgo && (riesgo.nivel === 'critico' || riesgo.nivel === 'alto') && !contactoHoy) {
     const top = riesgo.factores.find(f => f.puntos > 0);
     const grupoTop = top ? (GRUPO_FACTOR[top.id] || top.id) : null;
     const existente = grupoTop ? cand.find(c => c.grupo === grupoTop) : null;
