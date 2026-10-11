@@ -5879,7 +5879,7 @@ function importarJSON(input) {
       const existingIds = new Set(existentes.map(f => f._id));
       const idsDelArchivo = new Set();
       let added = 0, skipped = 0, repetidas = 0, idsSustituidos = 0;
-      const actualizables = [], antiguas = [], conflictos = [];
+      const actualizables = [], antiguas = [], conflictos = [], abiertas = [];
       const motivos = {}, ignorados = new Set();
       const fichasTxt = n => n + (n === 1 ? ' sesión' : ' sesiones');
       // Todo el archivo se valida en memoria; no se escribe nada hasta el final (y solo si se confirma)
@@ -5900,6 +5900,8 @@ function importarJSON(input) {
           const i = existentes.findIndex(x => x._id === f._id);
           const c = compararConLocal(existentes[i], f);
           if (c === 'igual') skipped++;
+          // La sesión abierta en el formulario no se sustituye: al pulsar «Actualizar» el formulario la volvería a pisar
+          else if (c === 'posterior' && f._id === AppState.lastLoadedId) abiertas.push(existentes[i]);
           else if (c === 'posterior') actualizables.push({ i, f });
           else (c === 'anterior' ? antiguas : conflictos).push(existentes[i]);
           return;
@@ -5923,13 +5925,15 @@ function importarJSON(input) {
       };
       // Sesiones que ya existían aquí y se conservan como están: iguales, más antiguas en el archivo o en conflicto
       const quienes = l => l.slice(0, 5).map(f => '«' + (f.captador || 'Sin nombre') + '» (' + formatFecha(f.fecha) + ')').join(', ') + (l.length > 5 ? '…' : '');
-      const yaExistian = skipped + repetidas + actualizables.length + antiguas.length + conflictos.length;
+      const yaExistian = skipped + repetidas + actualizables.length + antiguas.length + conflictos.length + abiertas.length;
       const conservadasTxt =
         (skipped ? ', ' + skipped + (skipped === 1 ? ' ya existía igual' : ' ya existían iguales') : '') +
         (repetidas ? ', ' + repetidas + (repetidas === 1 ? ' repetida' : ' repetidas') + ' dentro del archivo (se usa la primera)' : '') +
         (antiguas.length ? ', ' + antiguas.length + (antiguas.length === 1 ? ' con una versión más antigua en el archivo (se conserva la tuya)' : ' con versiones más antiguas en el archivo (se conservan las tuyas)') : '') +
         (conflictos.length ? ', ' + conflictos.length + (conflictos.length === 1 ? ' distinta' : ' distintas') +
-          ' sin poder saber cuál es la más reciente (se conserva la tuya; revisa ' + quienes(conflictos) + ')' : '');
+          ' sin poder saber cuál es la más reciente (se conserva la tuya; revisa ' + quienes(conflictos) + ')' : '') +
+        (abiertas.length ? ', 1 con una versión más reciente en el archivo que no se ha aplicado porque ' + quienes(abiertas) +
+          ' está abierta en el formulario. Para aplicarla, sal de esa sesión sin guardar (Nueva sesión o cargar otra) y vuelve a importar el archivo; si guardas tus cambios, se conservará tu versión' : '');
       // Sin nada nuevo ni ninguna posible actualización no se escribe nada
       if (added === 0 && !actualizables.length) {
         sinCambios(rechazadas && !yaExistian ? 'No se ha importado nada: el archivo no tiene ninguna sesión válida' + motivosTxt + '.'
