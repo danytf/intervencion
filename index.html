@@ -387,6 +387,8 @@ input[type=date]{scroll-margin-top:96px;}
   background:var(--tone-soft,var(--surface-2));color:var(--ink);font-size:var(--t-sm);line-height:1.5;}
 .notice > .ic{color:var(--tone,var(--ink-3));margin-top:1px;}
 .notice strong{font-weight:700;}
+.identidad-lista{margin:var(--s-2) 0;padding-left:1.1em;display:grid;gap:var(--s-2);}
+.identidad-lista .btn{margin-top:4px;}
 
 /* ══════════ CAPTADOR: fase y antigüedad ══════════ */
 .dias-fase-block{display:flex;align-items:center;gap:var(--s-4);}
@@ -1039,6 +1041,7 @@ textarea.input,.field textarea,.intervencion-row textarea{overflow-y:hidden;}
         <div class="field"><label for="d_captador">Nombre y apellidos</label><input type="text" id="d_captador" placeholder="Nombre completo" autocomplete="off" oninput="autoguardar()"></div>
         <div class="field"><label for="d_nip">NIP</label><input type="text" id="d_nip" placeholder="WES-00123" autocomplete="off" oninput="autoguardar()"></div>
       </div>
+      <div class="notice" data-tone="blue" id="identidadAviso" hidden style="margin-top:12px"></div>
       <div class="field-row cols-wide">
         <div class="field"><label for="d_responsable">Responsable</label><input type="text" id="d_responsable" placeholder="Nombre del RE/RP" autocomplete="off" oninput="autoguardar()"></div>
         <div class="field"><label for="d_provincia">Provincia</label><input type="text" id="d_provincia" placeholder="Granada" autocomplete="off" oninput="autoguardar()"></div>
@@ -1664,6 +1667,80 @@ function agruparPorIdentidad(fichas) {
   });
   return out;
 }
+// ── Coincidencias de identidad ──
+// Solo detectan y sugieren al escribir una sesión nueva: claveIdentidad() y la agrupación de lo guardado no cambian.
+// Un NIP distinto es siempre otra persona; el nombre solo se compara con sesiones sin NIP o cuando el formulario no lo tiene.
+function normNip(s) { return typeof s === 'string' ? s.replace(/\s+/g, '').toUpperCase() : ''; }
+function normNombre(s) {
+  return typeof s === 'string' ? s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim().toLowerCase() : '';
+}
+let _coincMemo = { k: null, cache: null, res: [] };
+function coincidenciasIdentidad() {
+  if (AppState.lastLoadedId) return [];   // editando una sesión guardada: su identidad ya está fijada
+  const captador = (document.getElementById('d_captador')?.value || '').trim(), nipTxt = (document.getElementById('d_nip')?.value || '').trim();
+  const nombre = normNombre(captador), nip = normNip(nipTxt);
+  if (!nombre && !nip) return [];
+  const fichas = cargarFichas(), memoK = captador + '\u0000' + nipTxt;
+  if (_coincMemo.k === memoK && _coincMemo.cache === fichas) return _coincMemo.res;
+  const grupos = agruparPorIdentidad(fichas);
+  let res = [];
+  if (!grupos[claveIdentidad({ captador, nip: nipTxt })]) {   // con esta identidad exacta ya hay historial: nada que sugerir
+    res = Object.entries(grupos).map(([clave, g]) => {
+      const gNip = clave.startsWith('nip:') ? clave.slice(4) : '';
+      let tipo = '';
+      if (nip && gNip) { if (normNip(gNip) === nip) tipo = 'nip'; }                        // mismo NIP escrito de otra forma
+      else if (nombre && normNombre(g.nombre) === nombre) tipo = nip ? 'sinNip' : 'nombre';
+      return tipo ? { clave, tipo, nombre: g.nombre, nip: gNip, n: g.sesiones.length, ultima: g.ultima } : null;
+    }).filter(Boolean);
+  }
+  _coincMemo = { k: memoK, cache: fichas, res };
+  return res;
+}
+function renderCoincidencias() {
+  const el = document.getElementById('identidadAviso');
+  if (!el) return;
+  const c = coincidenciasIdentidad();
+  if (!c.length) { el.hidden = true; el.innerHTML = ''; return; }
+  const ses = n => n === 1 ? '1 sesión' : n + ' sesiones';
+  const items = c.slice(0, 4).map((x, i) => {
+    const ult = 'última: ' + formatFecha(aISO(getFechaIntervencion(x.ultima) || new Date()));
+    const quien = '<strong>' + esc(x.nombre) + '</strong>' + (x.nip ? ' · NIP ' + esc(x.nip) : '');
+    if (x.tipo === 'sinNip') return '<li>' + quien + ' tiene ' + ses(x.n) + ' guardadas sin NIP (' + ult + '). Si guardas con este NIP, quedarán en un historial aparte. ' +
+      '<button type="button" class="btn btn-secondary btn-sm" onclick="anadirNipA(coincidenciasIdentidad()[' + i + '])">Añadir este NIP a esas sesiones</button></li>';
+    return '<li>' + quien + ' ya tiene ' + ses(x.n) + ' (' + ult + '). ' +
+      '<button type="button" class="btn btn-secondary btn-sm" onclick="usarDatosDe(coincidenciasIdentidad()[' + i + '])">Usar sus datos</button></li>';
+  }).join('');
+  el.innerHTML = ic('info') + '<div><strong>¿Es la misma persona?</strong> Hay sesiones guardadas que pueden ser suyas:<ul class="identidad-lista">' + items + '</ul>Si es otra persona, ignora este aviso.</div>';
+  el.hidden = false;
+}
+// Copia la identidad exacta de esa persona (nombre y NIP; el resto solo si está vacío): la sesión se suma a su historial
+function usarDatosDe(x) {
+  const g = x && agruparPorIdentidad(cargarFichas())[x.clave];
+  if (!g) return;
+  CAMPOS_IDENTIDAD.forEach(k => {
+    const el = document.getElementById('d_' + k);
+    if (el && (k === 'captador' || k === 'nip' || !el.value.trim())) el.value = g.ultima[k] || '';
+  });
+  autoguardar();
+  toast('Datos de "' + g.nombre + '" aplicados: esta sesión se añadirá a su historial (' + g.sesiones.length + (g.sesiones.length === 1 ? ' sesión' : ' sesiones') + ').');
+}
+// Une al NIP del formulario las sesiones de esa persona guardadas sin NIP. Solo con confirmación expresa
+function anadirNipA(x) {
+  const clave = x && x.clave;
+  const nip = (document.getElementById('d_nip')?.value || '').trim().slice(0, 30);
+  invalidarCache();
+  const g = agruparPorIdentidad(cargarFichas())[clave];
+  if (!nip || !g || clave.startsWith('nip:')) return;
+  const n = g.sesiones.length;
+  if (!confirm(`¿Añadir el NIP ${nip} a ${n === 1 ? 'la sesión' : 'las ' + n + ' sesiones'} de "${g.nombre}" guardadas sin NIP?\n\nAsí esta sesión y las anteriores formarán un solo historial. Hazlo solo si es la misma persona.`)) return;
+  const ahora = new Date().toISOString();
+  invalidarCache();
+  if (!salvarFichas(cargarFichas().map(f => claveIdentidad(f) === clave ? { ...f, nip, _editedAt: ahora } : f))) return;
+  actualizarContador(); try{ renderHistorialTab(); }catch(e){} populateEvoSelect(); renderDashboard();
+  autoguardar();
+  toast('NIP añadido a ' + (n === 1 ? '1 sesión' : n + ' sesiones') + ' de "' + g.nombre + '": ahora forman un solo historial.');
+}
+
 // Nombre para listas: si dos personas distintas comparten nombre, se añade el NIP (o «sin NIP») para distinguirlas
 function etiquetaIdentidad(grupos, k) {
   const g = grupos[k];
@@ -2995,6 +3072,7 @@ function actualizarModoSesion() {
   try { renderFlujo(); } catch (e) {}
   try { if (currentTab === 5) renderDecisionRef(); } catch (e) {}
   try { renderIndiceBloques(currentTab); } catch (e) {}
+  try { renderCoincidencias(); } catch (e) {}
 }
 
 // Guardar: actualiza la sesión que se está editando o añade una sesión nueva; nunca duplica sin avisar
