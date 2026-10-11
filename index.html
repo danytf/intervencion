@@ -4156,8 +4156,12 @@ function diagnosticarReglas(data, sesionesAnteriores) {
       revision: 'En la próxima observación, volver a puntuar ' + foco + ' y compararlo con hoy.' });
   }
 
-  // R6: Cierre bajo + resto de la técnica aceptable
-  if (bajo('t_3') && tAvg >= 2.8 && tFilled.length >= 3) {
+  // R6: Cierre bajo + resto de la técnica aceptable. «El resto» es la media de la técnica sin el cierre (con el cierre
+  // dentro, su propia nota baja la media y la regla no saltaba en el caso típico: cierre 2 y resto 3). Mismo mínimo:
+  // cierre y al menos 2 variables más evaluadas
+  const tResto = TECNICA_VARS.map((_, i) => i === 3 ? null : scoreDe(data, 't_' + i)).filter(v => v !== null);
+  const tRestoAvg = tResto.length ? tResto.reduce((a, b) => a + b, 0) / tResto.length : 0;
+  if (bajo('t_3') && tResto.length >= 2 && tRestoAvg >= 2.8) {
     return res({ regla:'R6', tipo:'Cierre por debajo del resto', nivel: tFilled.length === TECNICA_VARS.length ? 'alto' : 'medio', icono:'🔒', color:'orange', motivo: faltanTec(),
       evidencia: [ev('t_0'), ev('t_1'), ev('t_2'), ev('t_3')],
       lectura: 'El dato diferencial de esta evaluación está en el cierre (' + scoreDe(data, 't_3') + '/5) frente al resto del proceso. La hipótesis de trabajo es una dificultad específica en esa fase; conviene comprobar si está en la técnica, en el momento de pedir o en otro factor.',
