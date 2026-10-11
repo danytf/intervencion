@@ -6204,15 +6204,18 @@ function calcRiesgo(sessions, estado, opts) {
   const proceso = Math.min(factores.filter(f => f.dim === 'proceso').reduce((a, f) => a + f.puntos, 0), (rendimiento > 0 || inicial) ? 15 : 25);
   let senales = rendimiento + evolucion + proceso;
 
-  // Mejora sostenida: al menos dos comparaciones fiables seguidas, todas al alza.
+  // Mejora sostenida: las últimas comparaciones fiables, al menos dos, todas al alza. Cuenta la racha final: un
+  // retroceso o un tramo estable anteriores ya no la anulan; uno reciente sí, porque corta la racha.
   // Descuenta hasta 15 puntos de las señales de rendimiento y proceso; nunca de la señal temporal.
   const pares = [];
   for (let k = 1; k < sorted.length; k++) { const e = compararEvolucion(sorted[k - 1], sorted[k]); if (e) pares.push(e.delta); }
+  let racha = 0;
+  while (racha < pares.length && pares[pares.length - 1 - racha] > 0) racha++;
   let descuento = 0;
-  if (pares.length >= 2 && pares.every(d => d > 0) && senales > 0) {
+  if (racha >= 2 && senales > 0) {
     descuento = Math.min(15, senales);
     senales -= descuento;
-    add('mejora_sostenida', 'evolucion', -descuento, 'Mejora en ' + pares.length + ' comparaciones seguidas entre sesiones', 'trend');
+    add('mejora_sostenida', 'evolucion', -descuento, 'Mejora en ' + racha + ' comparaciones seguidas entre sesiones', 'trend');
   }
 
   // Datos que faltan: se informan sin sumar puntos
