@@ -4082,7 +4082,10 @@ function diagnosticarReglas(data, sesionesAnteriores) {
   const hFilled = hVals.filter(v=>v>0);
   const tAvg = tFilled.length ? tFilled.reduce((a,b)=>a+b,0)/tFilled.length : 0;
   const hAvg = hFilled.length ? hFilled.reduce((a,b)=>a+b,0)/hFilled.length : 0;
-  const globalAvg = (tFilled.length+hFilled.length) ? (tVals.concat(hVals).filter(v=>v>0).reduce((a,b)=>a+b,0))/(tFilled.length+hFilled.length) : 0;
+  // Media global = media de las medias de técnica y de hábitos (los grupos evaluados), la misma que usan el índice de atención
+  // y el semáforo. Antes era la media de todas las variables, en la que los hábitos (11) pesaban casi el triple que la técnica (4)
+  const mediasGrupo = [tFilled.length ? tAvg : null, hFilled.length ? hAvg : null].filter(v => v !== null);
+  const globalAvg = mediasGrupo.length ? mediasGrupo.reduce((a,b)=>a+b,0)/mediasGrupo.length : 0;
 
   const fase = data.faseSelected||'';
   const faseNum = numeroFase(fase);
@@ -4277,7 +4280,7 @@ function diagnosticarReglas(data, sesionesAnteriores) {
   if (hayFase && faseNum >= 4 && globalAvg < 2.5 && totalSuf) {
     const masBajas = allScored.slice(0, 2).map(x => x.label + ' ' + x.val + '/5');
     return res({ regla:'R11', tipo:'Puntuaciones bajas para la fase', nivel: nEval >= 8 ? 'alto' : 'medio', icono:'⚠️', color:'red', motivo: pocas(8),
-      evidencia: ['Fase: ' + nombreFase, 'Media ' + fmt(globalAvg) + '/5 (' + nEval + ' variables evaluadas)', masBajas.length ? 'Más bajas: ' + masBajas.join(' · ') : null],
+      evidencia: ['Fase: ' + nombreFase, 'Media de técnica y hábitos ' + fmt(globalAvg) + '/5 (' + nEval + ' variables evaluadas)', masBajas.length ? 'Más bajas: ' + masBajas.join(' · ') : null],
       lectura: 'Hay una diferencia entre el tiempo en el proceso y las puntuaciones actuales. Los datos no indican la causa; conviene revisar qué competencia concreta está impidiendo la consolidación.',
       accion: 'Revisar con el captador/a las variables más bajas, acordar un objetivo concreto para la siguiente sesión y hablar abiertamente de las expectativas de ambas partes. Si el acompañamiento actual no da resultado, plantear un enfoque distinto.',
       revision: 'En la próxima sesión, comprobar si mejora la variable trabajada.' });
@@ -7148,7 +7151,7 @@ function calcLMI(limite = 3) {
   const tAvg = m.t, hAvg = m.h;
   const tecSuf = m.nT >= 2, habSuf = m.nH >= 3, totalSuf = m.n >= 4;
   const evaluadas = Object.keys(ALL_VARS_LABELS).map(k => ({ k, l: ALL_VARS_LABELS[k], v: scoreDe(d, k) })).filter(x => x.v !== null);
-  const globalAvg = evaluadas.length ? evaluadas.reduce((a, x) => a + x.v, 0) / evaluadas.length : null;
+  const globalAvg = m.global;   // media de las medias de técnica y hábitos, como en el índice, el semáforo y la lectura
   const s = k => scoreDe(d, k);
   const bajo = (k, max = 2) => { const v = s(k); return v !== null && v <= max; };
   const minimo = (k, min) => { const v = s(k); return v !== null && v >= min; };
@@ -7300,7 +7303,7 @@ function calcLMI(limite = 3) {
   if (!cand.length && tecSuf && habSuf && globalAvg >= 4 && tAvg >= 3.5 && hAvg >= 3.5) {
     add({ id:'potenciar', grupo:'potenciar', urgencia:'normal', icono:'🏆',
       titulo:'Puntuaciones altas — proponer nuevos retos',
-      desc:'Media ' + fmt1(globalAvg) + '/5. Buen momento para acordar un reto nuevo: campañas, zonas o apoyo a compañeros.' });
+      desc:'Media de técnica y hábitos ' + fmt1(globalAvg) + '/5. Buen momento para acordar un reto nuevo: campañas, zonas o apoyo a compañeros.' });
   }
 
   // Selección: orden por urgencia y especificidad; una prioridad por grupo; máximo 3
