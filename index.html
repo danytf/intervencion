@@ -995,6 +995,7 @@ textarea.input,.field textarea,.intervencion-row textarea{overflow-y:hidden;}
         <button type="button" class="hdr-drop-item" onclick="cerrarHdrMenu();descartarCambios()"><svg class="ic" aria-hidden="true"><use href="#i-x-circle"/></svg><span class="hdr-drop-label">Descartar cambios sin guardar</span></button>
         <button type="button" class="hdr-drop-item" onclick="cerrarHdrMenu();abrirHistorial()"><svg class="ic" aria-hidden="true"><use href="#i-clock"/></svg><span class="hdr-drop-label">Historial</span><span class="hdr-drop-badge" id="fichaCount">0</span></button>
         <div class="hdr-drop-sep"></div>
+        <button type="button" class="hdr-drop-item" onclick="cerrarHdrMenu();abrirAyuda(document.getElementById('hdrMenuBtn'), true)"><svg class="ic" aria-hidden="true"><use href="#i-help"/></svg><span class="hdr-drop-label">Ayuda general</span></button>
         <button type="button" class="hdr-drop-item" onclick="cerrarHdrMenu();abrirRecursosDesdeMenu()"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg><span class="hdr-drop-label">Recursos</span></button>
         <button type="button" class="hdr-drop-item" onclick="cerrarHdrMenu();abrirPdfModal()"><svg class="ic" aria-hidden="true"><use href="#i-doc"/></svg><span class="hdr-drop-label">Informe de la sesión (PDF)</span></button>
         <button type="button" class="hdr-drop-item" onclick="cerrarHdrMenu();abrirJsonModal()"><svg class="ic" aria-hidden="true"><use href="#i-swap"/></svg><span class="hdr-drop-label">Copia de seguridad (importar / exportar)</span></button>
@@ -2051,6 +2052,7 @@ const AYUDA_TABS = [
       { titulo: 'Hábitos (verde)', texto: 'Puntúa del 1 al 5 once variables: desde Puntualidad hasta Estabilidad semanal. El promedio del grupo también se calcula en tiempo real.' },
       { titulo: 'Escala de puntuación', texto: '1 = lo intenta y no le sale, o con errores graves casi siempre · 2 = a veces, con errores frecuentes · 3 = en la mayoría de los intentos, con errores menores · 4 = con soltura casi siempre · 5 = con soltura y adaptándose a cada situación o persona. Sin estrellas = no observado: no cuenta como puntuación baja. Solo puntúa las variables que hayas podido observar; para quitar una puntuación, pulsa de nuevo la estrella marcada.' },
       { titulo: 'Promedio en tiempo real', texto: 'Cada grupo muestra su media actualizada y una barra de progreso. El número junto a cada estrella indica la puntuación seleccionada.' },
+      { titulo: 'Lo más importante ahora mismo', texto: 'Al principio de la pantalla aparecen las prioridades sugeridas para esta sesión, calculadas con lo que has evaluado hasta ahora. Orientan, no deciden. «Ver lectura» abre el detalle.' },
       { titulo: 'Biblioteca y Plantillas', texto: 'Ambos botones abren Recursos en la sección correspondiente. Recursos también está en el menú «Más acciones».' },
     ],
     siguiente: 'Lectura — se genera automáticamente con los datos de evaluación y fase.',
@@ -2098,7 +2100,8 @@ const AYUDA_TABS = [
     desc: 'Tu criterio profesional y el cierre de la sesión. No cambia sola aunque cambien los datos de la lectura.',
     secciones: [
       { titulo: 'Lo que indican los datos', texto: 'Arriba, la lectura actual de la herramienta y el nivel de atención, como referencia. Si la sesión está guardada y la lectura ha cambiado desde entonces, se indica: tu decisión no cambia sola, revísala.' },
-      { titulo: 'Decisión: los 4 criterios', texto: 'Esfuerzo (volumen de intentos e intención en campo, con independencia del resultado), Aprendizaje (aplica en campo las correcciones acordadas), Proceso (sigue la secuencia acordada: parada → speech → rebatida → cierre), Resultado (resultados observados en campo frente al objetivo de la fase). Marca SÍ o NO en cada uno. «Sugerir desde la evaluación» es una orientación basada solo en las variables disponibles: propone Esfuerzo con Aprovechamiento de la jornada y Praxis, Aprendizaje con «Aplica el feedback acordado» y Proceso con al menos dos variables de técnica. Resultado no se sugiere, porque la app no registra altas. Revísalos siempre.' },
+      { titulo: 'Decisión: los 4 criterios', texto: 'Marca SÍ o NO en cada uno. Esfuerzo: volumen de intentos e intención en campo, con independencia del resultado. Aprendizaje: aplica en campo las correcciones acordadas. Proceso: sigue la secuencia acordada (parada → speech → rebatida → cierre). Resultado: resultados observados en campo frente al objetivo de la fase.' },
+      { titulo: 'Sugerir desde la evaluación', texto: 'Es una orientación basada solo en las variables disponibles: propone Esfuerzo con Aprovechamiento de la jornada y Praxis, Aprendizaje con «Aplica el feedback acordado» y Proceso con al menos dos variables de técnica. Resultado no se sugiere, porque la app no registra altas. Revísalos siempre.' },
       { titulo: 'Lo que indican tus criterios', texto: 'Resultado de las 16 combinaciones de la matriz, de «Potenciar» a «Valorar una salida». El resultado es el último criterio: si hay esfuerzo y aprendizaje, se prioriza el acompañamiento. Valorar una salida solo se recomienda a partir del Día 13, con al menos dos sesiones registradas y al menos 8 variables evaluadas.' },
       { titulo: 'Antes de una salida', texto: 'Checklist de 10 puntos. Solo aparece cuando tus criterios indican valorar una salida. Sirve para revisar que se ha hecho todo el acompañamiento necesario; la decisión es del responsable, contrastada con el RP/RE.' },
     ],
@@ -2106,13 +2109,29 @@ const AYUDA_TABS = [
   },
 ];
 
+// Ayuda general: lo que no pertenece a una pestaña concreta (guardar, datos, copias, PDF, instalación, glosario)
+const AYUDA_GENERAL = {
+  tab: 'General',
+  desc: 'Cómo funciona la herramienta: guardar, tus datos, copias de seguridad, informe e instalación.',
+  secciones: [
+    { titulo: 'Primeros pasos', texto: 'Una sesión sigue seis pasos, en este orden: Captador/a → Evaluación → Lectura → Acompañamiento → Decisión → Equipo. «Siguiente», al final de cada pantalla, te lleva al paso siguiente. El punto de cada pestaña de la barra inferior indica cómo va esa parte.' },
+    { titulo: 'Guardar y borradores', texto: '«Guardar» añade la sesión al historial; si la sesión ya estaba guardada, el botón dice «Actualizar». Arriba verás «Guardado» o «Sin guardar». Mientras escribes se guarda un borrador en este dispositivo: si cierras sin guardar, al volver te ofrece recuperarlo. «Descartar cambios sin guardar» está en el menú «Más acciones».' },
+    { titulo: 'Dónde están tus datos', texto: 'Todo se guarda solo en este navegador, en este dispositivo. No se envía a ningún servidor ni se sincroniza con otros dispositivos. Si borras los datos del navegador o cambias de móvil, se pierden: haz copias de seguridad.' },
+    { titulo: 'Copia de seguridad', texto: 'En «Más acciones › Copia de seguridad». Exportar descarga un archivo .json con todas las sesiones guardadas, con nombres, NIP, observaciones, lecturas y decisiones: guárdalo en un lugar seguro. No incluye los cambios sin guardar ni tus plantillas propias.' },
+    { titulo: 'Restaurar una copia', texto: 'Elige o arrastra el archivo .json. Con «Combinar con las sesiones que ya tienes» marcada, se añaden sin duplicar. Si la desmarcas, las sesiones del archivo sustituyen a las que tienes. Un archivo dañado, de otro formato o de más de 5 MB no se importa y tus sesiones no se tocan. Cada texto admite hasta 10.000 caracteres.' },
+    { titulo: 'Informe de la sesión (PDF)', texto: 'En «Más acciones › Informe de la sesión (PDF)». Si hay cambios sin guardar, cada página lleva la marca «Borrador». Es de uso interno: contiene datos personales y valoraciones, compártelo solo con quien lo necesite (RP/RE). La primera vez necesita conexión a internet para preparar el generador.' },
+    { titulo: 'Recursos y plantillas', texto: 'En «Más acciones › Recursos»: la biblioteca de creencias con su intervención y las plantillas por fase. Puedes guardar tus propios textos como plantillas; las propias no entran en la copia de seguridad.' },
+    { titulo: 'Instalar en el móvil', texto: 'En iPhone: Safari › Compartir › «Añadir a pantalla de inicio». Se abre como una app, pero necesita conexión para abrirse; tus datos siguen siendo los de este dispositivo.' },
+    { titulo: 'Glosario', texto: 'NIP: identificador Wesser del captador/a; agrupa sus sesiones. RE/RP: responsable de equipo / de zona. F1–F6: fases de integración (Día 1–5, 6–12, 13–25, 26–45, 46–90 y más de 90). Índice de atención: número de 0 a 100 que orienta, no predice una baja. Semáforo: nivel de seguimiento a partir del Día 46. Foco: la variable de la evaluación en la que se centra la intervención.' },
+  ],
+  siguiente: null,
+};
+
 const AYUDA_ICONOS = ['user', 'star', 'compass', 'pulse', 'users', 'scale'];
-window.abrirAyuda = function abrirAyuda(opener) {
-  const panel = document.getElementById('ayudaPanel');
-  if (!panel) return;
+function pintarAyuda(general) {
   const idx = AYUDA_TABS[currentTab] ? currentTab : 0;
-  const tab = AYUDA_TABS[idx];
-  document.getElementById('ayudaIcon').innerHTML = ic(AYUDA_ICONOS[idx] || 'help');
+  const tab = general ? AYUDA_GENERAL : AYUDA_TABS[idx];
+  document.getElementById('ayudaIcon').innerHTML = ic(general ? 'help' : (AYUDA_ICONOS[idx] || 'help'));
   document.getElementById('ayudaTab').textContent = 'Ayuda · ' + tab.tab;
   document.getElementById('ayudaDesc').textContent = tab.desc;
   document.getElementById('ayudaBody').innerHTML = tab.secciones.map(s =>
@@ -2122,9 +2141,19 @@ window.abrirAyuda = function abrirAyuda(opener) {
     '</div>'
   ).join('');
   const footer = document.getElementById('ayudaFooter');
-  footer.innerHTML = tab.siguiente
+  footer.innerHTML = (tab.siguiente
     ? '<div class="notice" data-tone="blue">' + ic('arrow') + '<div><strong>Siguiente paso.</strong> ' + esc(tab.siguiente) + '</div></div>'
-    : '';
+    : '') +
+    '<button type="button" class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="pintarAyuda(' + (general ? 'false' : 'true') + ')">' +
+      (general ? 'Ver la ayuda de ' + esc(AYUDA_TABS[idx].tab) : 'Ver la ayuda general') + '</button>';
+  const cuerpo = document.querySelector('#ayudaPanel .screen-body');
+  if (cuerpo) cuerpo.scrollTop = 0;
+}
+window.pintarAyuda = pintarAyuda;
+window.abrirAyuda = function abrirAyuda(opener, general) {
+  const panel = document.getElementById('ayudaPanel');
+  if (!panel) return;
+  pintarAyuda(!!general);
   abrirPantalla('ayudaPanel', opener);
 }
 
