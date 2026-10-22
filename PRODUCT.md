@@ -29,6 +29,7 @@ Orienta sin predecir: un índice de atención, no una probabilidad de baja; las 
 
 - La app es un único `index.html`, sin servidor y sin ficheros aparte. Publicada en GitHub Pages (repo danytf/intervencion, rama main).
 - Instalación en el móvil: el manifiesto se genera dentro del propio fichero y existe el aviso «Instalar Wesser». El código intenta registrar un service worker desde un Blob, pero los navegadores no lo aceptan, así que en la práctica no hay service worker activo. Queda descartado ampliarlo: ni modo sin conexión real ni service worker o manifiesto en ficheros aparte.
+- Publicación: `noindex` y una política de seguridad de contenido (meta CSP) sin conexiones salientes (`connect-src 'none'`); lo único externo es el script de jsPDF 2.5.1 desde cdnjs, con integridad fijada (SRI sha512). Si se cambia de versión de jsPDF hay que actualizar el hash. El repositorio es público: no hay datos personales, pero sí la metodología interna (plantillas, biblioteca, criterios).
 - Los datos viven solo en el `localStorage` de ese navegador. Un fallo de lectura o datos dañados (incluido un contenido `null`) nunca se toman por «no hay datos» ni se sobrescriben.
 - Mientras se edita, un borrador se guarda en `localStorage` y se ofrece recuperarlo al volver (en iPhone sustituye al aviso al cerrar la página). Si no se puede escribir, se avisa.
 - Textos libres: máximo 10.000 caracteres por campo, el mismo límite al escribir, al guardar y al importar; nunca se recortan en silencio.
