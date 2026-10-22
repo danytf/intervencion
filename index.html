@@ -36,7 +36,7 @@ try{var t=localStorage.getItem('wesser_intervencion_tema')||(window.matchMedia&&
   --bg:#F2F4F4; --surface:#FFFFFF; --surface-2:#F6F7F7; --surface-hi:#ECEFEF;
   --line:#E1E5E5; --line-2:#CDD3D2;
   /* Tinta */
-  --ink:#1C1F21; --ink-2:#4A5250; --ink-3:#646C69; --ink-4:#8A918E;
+  --ink:#1C1F21; --ink-2:#4A5250; --ink-3:#646C69; --ink-4:#6B7370;
   /* Marca */
   --brand:#CC2E34; --brand-ink:#A8242A; --brand-solid:#CC2E34; --brand-solid-hover:#B3262C;
   --brand-soft:rgba(204,46,52,.08);
@@ -74,7 +74,7 @@ try{var t=localStorage.getItem('wesser_intervencion_tema')||(window.matchMedia&&
   color-scheme:dark;
   --bg:#1B1D1F; --surface:#26292C; --surface-2:#2E3236; --surface-hi:#34383C;
   --line:#3A3F43; --line-2:#4D5357;
-  --ink:#F2F4F4; --ink-2:#C4CAC8; --ink-3:#A3ABA8; --ink-4:#7D8582;
+  --ink:#F2F4F4; --ink-2:#C4CAC8; --ink-3:#A3ABA8; --ink-4:#929A97;
   --brand:#E0555A; --brand-ink:#F4A3A6; --brand-soft:rgba(224,85,90,.14); --brand-solid-hover:#B8292F;
   --inverse:#F2F4F4; --inverse-ink:#1C1F21;
   --ok:#6EE7B7; --warn:#F0CB85; --bad:#FCA5A5;
@@ -321,7 +321,7 @@ input[type=date]{scroll-margin-top:96px;}
 .score-row:last-child{border-bottom:none;}
 .score-row-label{flex:1;min-width:0;font-size:var(--t-sm);font-weight:600;line-height:1.35;color:var(--ink);}
 .score-stars{display:flex;gap:2px;flex-shrink:0;}
-.score-star{width:40px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:10px;color:var(--line-2);
+.score-star{width:40px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:10px;color:var(--ink-4);
   transition:color .1s var(--ease),background-color .15s var(--ease);}
 .score-star .ic{width:24px;height:24px;stroke-width:1.6;}
 .score-star.filled{color:var(--brand);}
@@ -884,6 +884,11 @@ textarea.input,.field textarea,.intervencion-row textarea{overflow-y:hidden;}
 /* El relleno de móvil (.card) no debe sumarse al de las tarjetas que lo ponen por dentro */
 .card.card-flush{padding:0;}
 .riesgo-ver-todos .rot180{transform:rotate(180deg);}
+/* Objetivos táctiles: en pantallas táctiles, los controles de acción llegan a 44px */
+@media (pointer:coarse){
+  .toast-action,.dash-row-btn,.estado-item,
+  .bloque-indice .chip,.pcat-submenu .chip,#subtabsBar .chip{min-height:44px;}
+}
 </style>
 </head>
 <body>
