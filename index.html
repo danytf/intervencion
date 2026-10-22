@@ -6204,8 +6204,12 @@ function calcRiesgo(sessions, estado, opts) {
   const inicial = faseDisponible && faseNum <= 2;
 
   // Seguimiento temporal (criterio interno de 7 y 14 días; más peso en F1–F3)
-  if (diasSin !== null && diasSin > 14) add('dias_sin_intervencion', 'temporal', faseNum <= 3 ? 25 : 15, 'Sin sesión registrada hace ' + diasSin + ' días (criterio interno: más de 14)', 'calendar');
-  else if (diasSin !== null && diasSin > 7) add('dias_sin_intervencion', 'temporal', faseNum <= 3 ? 12 : 8, diasSin + ' días desde la última sesión (criterio interno: más de 7)', 'calendar');
+  // Escala con la ausencia: más de 7, de 14 y de 30 días. Hasta F3 pesa más (el seguimiento cercano es lo que sostiene la
+  // integración); con fase desconocida se usan los pesos de F4 en adelante. Con más de 14 días el índice es siempre al menos «moderado»
+  const temprana = faseNum <= 3;
+  if (diasSin !== null && diasSin > 30) add('dias_sin_intervencion', 'temporal', temprana ? 30 : 25, 'Sin sesión registrada hace ' + diasSin + ' días (criterio interno: más de 30)', 'calendar');
+  else if (diasSin !== null && diasSin > 14) add('dias_sin_intervencion', 'temporal', temprana ? 25 : 20, 'Sin sesión registrada hace ' + diasSin + ' días (criterio interno: más de 14)', 'calendar');
+  else if (diasSin !== null && diasSin > 7) add('dias_sin_intervencion', 'temporal', temprana ? 12 : 10, diasSin + ' días desde la última sesión (criterio interno: más de 7)', 'calendar');
 
   // Rendimiento: nivel general y por grupo (solo grupos evaluados)
   if (!inicial && nivelOk && m.global !== null) {
