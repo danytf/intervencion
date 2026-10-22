@@ -6048,8 +6048,9 @@ function importarJSON(input) {
       input.value = '';
     } catch(err) {
       resultEl.className = 'json-import-result err';
-      resultEl.textContent = 'Error: ' + err.message;
-      anunciar('No se ha podido importar: ' + err.message);
+      resultEl.textContent = 'No se ha importado nada: el archivo no es una copia de seguridad de esta app (está dañado o tiene otro formato). Tus sesiones no se han modificado.';
+      anunciar(resultEl.textContent);
+      input.value = '';
     }
   };
   reader.readAsText(file);
