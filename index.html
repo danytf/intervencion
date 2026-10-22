@@ -3632,6 +3632,9 @@ function generarPDF(){
     window._cargandoJsPDF = true;
     const sc = document.createElement('script');
     sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    // Integridad fijada: la librería corre con acceso a los datos de la app, así que solo se ejecuta si es exactamente esta versión
+    sc.integrity = 'sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHgtNA==';
+    sc.crossOrigin = 'anonymous';
     sc.onload = () => { window._cargandoJsPDF = false; generarPDF(); };
     sc.onerror = () => { window._cargandoJsPDF = false; toast('No se ha podido cargar el generador de PDF. Conéctate a internet y vuelve a intentarlo.', {tono:'error', ms:5000}); };
     document.head.appendChild(sc);
@@ -3660,7 +3663,7 @@ function generarPDF(){
   // Inicializar doc
   let doc;
   try { doc = new JsPDF({orientation:'portrait',unit:'mm',format:'a4'}); }
-  catch(e){ alert('Error iniciando PDF: '+e.message); return; }
+  catch(e){ _finalizarPDF(false); return; }
   // La Helvetica del PDF solo tiene los caracteres de WinAnsi: «−» y «→» salían como «"» y «!'», y la línea entera
   // quedaba con las letras separadas y se salía del margen. Se sustituyen por equivalentes que sí tiene al medir,
   // partir y escribir el texto (la app y los datos guardados no cambian)
@@ -3934,7 +3937,7 @@ function generarPDF(){
   }
 
   try{ doc.save('informe_'+captadorNombre.replace(/\s+/g,'_')+'_'+(fechaISOValida(d.fecha)?d.fecha:aISO(new Date()))+(esBorrador?'_BORRADOR':'')+'.pdf'); _finalizarPDF(true); }
-  catch(e){ _finalizarPDF(false); alert('Error guardando PDF: '+e.message); }
+  catch(e){ _finalizarPDF(false); }
 }
 
 function htmlEsc(s) {
@@ -5707,7 +5710,7 @@ function exportarJSON() {
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);   // revocar al instante puede cancelar la descarga en algunos navegadores
   toast('Copia de seguridad descargada: ' + fichas.length + (fichas.length === 1 ? ' sesión' : ' sesiones'));
   cerrarJsonModal();
 }
