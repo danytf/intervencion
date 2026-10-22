@@ -3066,7 +3066,15 @@ function actualizarBtnArriba() {
   const rn = nav && getComputedStyle(nav).position === 'fixed' ? nav.getBoundingClientRect() : null;
   const navAbajo = rn && rn.top > window.innerHeight / 2 ? rn.height : 0;   // barra inferior del móvil (no la lateral de escritorio)
   const pantalla = window.innerHeight - altoCabecera() - navAbajo;   // una pantalla útil
-  const ocultar = window.scrollY < pantalla;
+  let ocultar = window.scrollY < pantalla;
+  if (!ocultar) {   // nunca tapa el botón de avance o de guardado que cierra la sección
+    b.hidden = false;
+    const cta = document.querySelector('.section-card.active .flujo-sig .btn');
+    if (cta) {
+      const ra = b.getBoundingClientRect(), rc = cta.getBoundingClientRect();
+      ocultar = !(ra.right < rc.left || ra.left > rc.right || ra.bottom < rc.top || ra.top > rc.bottom);
+    }
+  }
   if (b.hidden !== ocultar) b.hidden = ocultar;
 }
 let _arribaPend = false;
