@@ -6959,7 +6959,9 @@ const SEMAFORO_CONFIG = {
    Prioridad de las señales:
    · Rojo: caída fuerte comparable (más de 0,8), media por debajo de 2,5 sin mejora,
            o más de 14 días sin sesión junto con otra señal de atención.
-   · Ámbar: cualquier señal de atención: bajada leve, media por debajo de 3, más de 7 o de 14 días
+   · Ámbar: cualquier señal de atención: bajada de 0,3 o más (una bajada menor es ruido normal entre sesiones: con el
+           mismo nivel real y variaciones de ±1 en algunas variables, antes marcaba ámbar en 4 de cada 10 comparaciones),
+           media por debajo de 3, más de 7 o de 14 días
            sin sesión. La falta de seguimiento por sí sola es atención, no prueba de abandono.
    · Verde: ninguna señal.
    El estado manual no decide el color: se devuelve aparte como contexto.
@@ -6979,7 +6981,7 @@ function evaluarSemaforo(sessions, faseId, estado, opts) {
 
   const senales = [];
   if (delta < -0.8)   senales.push({ tipo:'critica', label:'Caída de ' + fmt1(-delta) + ' puntos respecto a la sesión anterior' });
-  else if (delta < 0) senales.push({ tipo:'atencion', label:'Bajada de ' + fmt1(-delta) + ' puntos respecto a la sesión anterior' });
+  else if (delta <= -0.3) senales.push({ tipo:'atencion', label:'Bajada de ' + fmt1(-delta) + ' puntos respecto a la sesión anterior' });
   if (gLast !== null && gLast < 2.5 && delta <= 0) senales.push({ tipo:'critica', label:'Media de técnica y hábitos ' + fmt1(gLast) + '/5 sin mejora' });
   else if (gLast !== null && gLast < 3)            senales.push({ tipo:'atencion', label:'Media de técnica y hábitos ' + fmt1(gLast) + '/5, por debajo de 3' });
   if (diasSin !== null && diasSin > 14)     senales.push({ tipo:'atencion', temporal:true, label: diasSin + ' días sin sesión (criterio interno: más de 14)' });
