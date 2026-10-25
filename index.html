@@ -3666,9 +3666,9 @@ function generarPDF(){
     if (window._cargandoJsPDF) return;
     window._cargandoJsPDF = true;
     const sc = document.createElement('script');
-    sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/4.2.1/jspdf.umd.min.js';
     // Integridad fijada: la librería corre con acceso a los datos de la app, así que solo se ejecuta si es exactamente esta versión
-    sc.integrity = 'sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHgtNA==';
+    sc.integrity = 'sha512-plOdviVmws4Y3JAvbnpfKb2hVxKM1lCwsi3vmElYRj+tiDLffZ4FVUj5a8vyKJ9pIgl8JCAHEJ4D1iUKBecswg==';
     sc.crossOrigin = 'anonymous';
     sc.onload = () => { window._cargandoJsPDF = false; generarPDF(); };
     sc.onerror = () => { window._cargandoJsPDF = false; toast('No se ha podido cargar el generador de PDF. Conéctate a internet y vuelve a intentarlo.', {tono:'error', ms:5000}); };
